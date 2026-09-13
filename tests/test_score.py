@@ -363,3 +363,8 @@ def test_shifted_findings_sharing_an_id_pair_with_as_many_entries_in_line_order(
     per_rule, _, unlabelled = score(fs, ls, RULES)
     assert counts(per_rule, "secret-exposed") == (1, 1, 0) and unlabelled == []
     assert stale(fs, ls) == []
+
+
+def test_heading_says_how_many_diffs_ran_when_told():
+    md = render_markdown([], [], "v0.5.0", corpus_size=10, unlabelled=0, ran=9)
+    assert md.startswith("Locrin v0.5.0, 9 of 10 diffs ran, 0 unlabelled findings.\n")

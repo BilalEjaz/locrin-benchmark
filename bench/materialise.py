@@ -180,7 +180,14 @@ def _materialise_git(diff: Diff, cache: Path) -> Checkout:
         root.parent.mkdir(parents=True, exist_ok=True)
         _git(["clone", "--filter=blob:none", f"https://github.com/{diff.repo}.git", str(root)], root.parent)
         _persist_settings(lambda args: _git(args, root))
-    _git(["checkout", "--detach", "-f", diff.sha], root)
+    checkout = ["checkout", "--detach", "-f", diff.sha]
+    try:
+        _git(checkout, root)
+    except subprocess.CalledProcessError:
+        # A clone cached before the commit landed upstream. A promisor clone fetches the commit by
+        # itself, a full clone does not. A commit the server no longer serves fails here, naming git fetch.
+        _git(["fetch", "-q", "origin", diff.sha], root)
+        _git(checkout, root)
     _git(["clean", "-fdq"], root)
     removed = _strip_engine_files(root)
     # A partial clone fetches blobs lazily. run_check gives locrin an empty home, so a fetch

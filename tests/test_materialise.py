@@ -390,3 +390,24 @@ def test_git_source_strips_a_dangling_engine_config_symlink(tmp_path, monkeypatc
     assert co.removed == ["locrin.toml"]
     assert not os.path.lexists(root / "locrin.toml")
     assert not target.exists()
+
+
+def test_git_source_fetches_a_commit_the_cached_clone_does_not_have(tmp_path, monkeypatch):
+    d = _local_upstream(tmp_path, monkeypatch)
+    # A full clone, not a promisor one: git never fetches a missing commit into it by itself.
+    cached = tmp_path / "cache" / "repos" / "acme__w"
+    cached.parent.mkdir(parents=True)
+    _run(["clone", "-q", str(tmp_path / "remotes" / "acme" / "w.git"), str(cached)], tmp_path)
+    promisor = subprocess.run(["git", "config", "--get", "remote.origin.promisor"], cwd=cached, capture_output=True)
+    assert promisor.returncode != 0
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    work = tmp_path / "upstream"
+    (work / "src" / "a.ts").write_bytes(b"export const a = 3;\n")
+    _run(["commit", "-q", "--no-verify", "-am", "three"], work)
+    sha = _run(["rev-parse", "HEAD"], work).strip()
+    _run(["push", "-q", str(tmp_path / "remotes" / "acme" / "w.git"), "main"], work)
+    newer = Diff(id=f"acme__w__{sha[:7]}", source="git", repo="acme/w", sha=sha, parent=d.sha,
+                 licence="MIT", language="typescript", url="u", files=["src/a.ts"])
+    co = materialise(newer, tmp_path / "corpus", tmp_path / "cache")
+    assert (co.root / "src" / "a.ts").read_bytes() == b"export const a = 3;\n"
+    assert co.base_ref == d.sha

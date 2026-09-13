@@ -528,3 +528,21 @@ def test_accept_lists_a_renamed_then_re_added_name_once(tmp_path):
     write_record(tmp_path, rec, before, after)
     [loaded] = load_corpus(tmp_path)
     assert list(loaded.files) == ["src/a.ts", "src/b.ts"]
+
+
+def test_check_gone_lists_records_whose_commit_github_no_longer_serves(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    rec, before, after = accept(FakeGitHub(), first_item(), seen_repos={})
+    write_record(out, rec, before, after)
+    other_sha = "1" * 40
+    gone = dict(rec, id=f"acme__gone__{other_sha[:7]}", repo="acme/gone", sha=other_sha,
+                url=f"https://github.com/acme/gone/commit/{other_sha}")
+    write_record(out, gone, before, after)
+    missing = BuildError("gh: Not Found (HTTP 404)")
+    monkeypatch.setattr(bc, "GitHub", lambda: FakeGitHub({f"repos/acme/gone/commits/{other_sha}": missing}))
+    assert bc.main(["--out", str(out), "--check-gone"]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == "gone: acme__gone__1111111: gh: Not Found (HTTP 404)\n"
+    assert "cline__cline" not in captured.out
+    monkeypatch.setattr(bc, "GitHub", FakeGitHub)
+    assert bc.main(["--out", str(out), "--check-gone"]) == 0

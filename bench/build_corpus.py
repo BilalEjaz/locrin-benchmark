@@ -16,7 +16,7 @@ import urllib.parse
 from collections import Counter
 from pathlib import Path
 
-from bench.corpus import ALLOWED_LICENCES, _valid_file, language_of
+from bench.corpus import ALLOWED_LICENCES, CorpusError, _valid_file, language_of, load_corpus
 
 TRAILERS = ["Co-Authored-By: Claude", "Co-authored-by: Codex", "Co-authored-by: Copilot", "Co-authored-by: Cursor"]
 MAX_FILES = 30
@@ -291,6 +291,31 @@ def _existing(out_root: Path) -> dict[str, str]:
     return found
 
 
+def _check_gone(gh, out_root: Path) -> int:
+    """Print `gone: <id>: <reason>` for every git record whose commit cannot be read, so it can be pruned."""
+    try:
+        diffs = load_corpus(out_root)
+    except CorpusError as e:
+        print(f"build_corpus: {e}", file=sys.stderr)
+        return 1
+    gone = 0
+    try:
+        for d in diffs:
+            if d.source != "git":
+                continue
+            try:
+                gh.get(f"repos/{d.repo}/commits/{d.sha}")
+            except RateLimitError:
+                raise
+            except BuildError as e:
+                print(f"gone: {d.id}: {e}")
+                gone += 1
+    except RateLimitError as e:
+        print(f"build_corpus: stopped: {e}", file=sys.stderr)
+        return 1
+    return 1 if gone else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="build_corpus")
     p.add_argument("--out", default="corpus")
@@ -298,7 +323,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--trailer", action="append")
     p.add_argument("--repo")
     p.add_argument("--sha")
+    p.add_argument("--check-gone", action="store_true",
+                   help="list the git records in --out whose commit GitHub no longer serves, and exit 1 if any")
     a = p.parse_args(argv)
+    if a.check_gone:
+        return _check_gone(GitHub(), Path(a.out))
     if bool(a.repo) != bool(a.sha):
         p.error("--repo and --sha go together")
     out = Path(a.out)

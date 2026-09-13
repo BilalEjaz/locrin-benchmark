@@ -16,6 +16,14 @@ from bench.run import Finding, RuleMeta, RunError, ignore_files_above, install_l
 from bench.score import render_markdown, score, stale
 
 
+# Exit codes: 0 every diff ran; 1 locrin or the harness failed on a diff; 2 setup failed, nothing ran;
+# 3 every diff that failed could not be checked out (a source commit the server no longer serves, say),
+# every other diff ran, and the results are complete for those.
+EXIT_RUN_FAILED = 1
+EXIT_SETUP = 2
+EXIT_SOURCE_GONE = 3
+
+
 def _now() -> str:
     return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
 
@@ -47,7 +55,7 @@ def main(argv: list[str] | None = None) -> int:
         labels = load_labels(Path(a.labels))
     except (RunError, CorpusError, LabelError) as e:
         print(f"bench: {e}", file=sys.stderr)
-        return 2
+        return EXIT_SETUP
     findings: list[Finding] = []
     rules: dict[str, RuleMeta] = {}
     ran: set[str] = set()
@@ -83,10 +91,11 @@ def main(argv: list[str] | None = None) -> int:
     out = Path(a.out) / a.version
     out.mkdir(parents=True, exist_ok=True)
     _write(out / "findings.jsonl", "".join(json.dumps(dataclasses.asdict(f), sort_keys=True) + "\n" for f in findings))
-    table = render_markdown(per_rule, per_pair, a.version, corpus_size=len(diffs), unlabelled=len(unlabelled), rules=rules)
+    table = render_markdown(per_rule, per_pair, a.version, corpus_size=len(diffs), unlabelled=len(unlabelled), rules=rules,
+                           ran=len(ran))
     _write(out / "table.md", table)
     _write(out / "run.json", json.dumps({
-        "locrin": a.version, "diffs": len(diffs), "findings": len(findings), "unlabelled": len(unlabelled),
+        "locrin": a.version, "diffs": len(diffs), "ran": len(ran), "findings": len(findings), "unlabelled": len(unlabelled),
         "materialise_failures": mat_fail, "run_failures": run_fail, "started": started, "finished": _now(),
     }, indent=2) + "\n")
     readme = Path(a.readme)
@@ -98,7 +107,9 @@ def main(argv: list[str] | None = None) -> int:
     for diff_id, e in unreported:
         print(f"stale: {diff_id} {e.rule} {e.file}:{e.line} {e.id}", file=sys.stderr)
     print(table)
-    return 1 if (mat_fail or run_fail) else 0
+    if run_fail:
+        return EXIT_RUN_FAILED
+    return EXIT_SOURCE_GONE if mat_fail else 0
 
 
 if __name__ == "__main__":

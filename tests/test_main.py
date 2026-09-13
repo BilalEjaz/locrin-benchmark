@@ -229,3 +229,30 @@ def test_a_diff_whose_engine_file_is_a_directory_fails_alone_and_the_rest_still_
     assert ran == ["fx-02-ok"]
     run = json.loads((out / "v0.5.0" / "run.json").read_text(encoding="utf-8"))
     assert len(run["materialise_failures"]) == 1 and run["materialise_failures"][0].startswith("fx-01-bad: ")
+
+
+def test_only_materialise_failures_exit_three_and_the_table_says_how_many_ran(tmp_path, monkeypatch, capsys):
+    # A corpus commit the server no longer serves is not a harness failure: results still publish.
+    def fake_materialise(d, corpus_root, cache):
+        if d.id == "fx-02-gone":
+            raise MaterialiseError(f"{d.id}: git checkout failed: fatal: unable to read tree")
+        return Checkout(root=tmp_path, base_ref="0" * 40, removed=[])
+
+    monkeypatch.setattr(main_mod, "install_locrin", lambda version, cache: Path("locrin"))
+    monkeypatch.setattr(main_mod, "load_corpus", lambda root: [diff("fx-01-ok"), diff("fx-02-gone")])
+    monkeypatch.setattr(main_mod, "materialise", fake_materialise)
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif([]))
+    out = tmp_path / "r"
+    args = ["--version", "v0.5.0", "--labels", str(tmp_path / "labels"), "--out", str(out),
+            "--readme", str(tmp_path / "README.md")]
+    assert main_mod.main(args) == 3
+    table = (out / "v0.5.0" / "table.md").read_text(encoding="utf-8")
+    assert table.startswith("Locrin v0.5.0, 1 of 2 diffs ran, 0 unlabelled findings.\n")
+    run = json.loads((out / "v0.5.0" / "run.json").read_text(encoding="utf-8"))
+    assert run["diffs"] == 2 and run["ran"] == 1
+
+    def failing_run(locrin, co, work, diff_id):
+        raise RunError(f"{diff_id}: locrin exit 2: bad")
+
+    monkeypatch.setattr(main_mod, "run_check", failing_run)
+    assert main_mod.main(args) == 1

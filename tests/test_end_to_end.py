@@ -72,14 +72,14 @@ def test_fixture_corpus_scores_exactly(tmp_path, home):
     assert proc.returncode == 0, proc.stdout + proc.stderr
     results = out / f"v{version}"
     run = json.loads((results / "run.json").read_text(encoding="utf-8"))
-    assert run["diffs"] == 10 and run["run_failures"] == [] and run["materialise_failures"] == []
+    assert run["diffs"] == 10 and run["ran"] == 10 and run["run_failures"] == [] and run["materialise_failures"] == []
     assert run["unlabelled"] == 0
     assert run["findings"] == 11
     assert run["locrin"] == f"v{version}"
 
     table = (results / "table.md").read_text(encoding="utf-8")
     lines = table.splitlines()
-    assert lines[0] == f"Locrin v{version}, 10 diffs, 0 unlabelled findings."
+    assert lines[0] == f"Locrin v{version}, 10 of 10 diffs ran, 0 unlabelled findings."
     for row in RULE_ROWS:
         assert row in lines, row
     pair_head = lines.index("| Pair | Ships | Precision | Recall | True | False positive | Missed | Note |")

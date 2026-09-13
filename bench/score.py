@@ -228,7 +228,7 @@ def _cell(v: float | None, is_precision: bool, scored: bool) -> str:
     return s
 
 
-def render_markdown(per_rule: list[Score], per_pair: list[Score], version: str, corpus_size: int, unlabelled: int, rules: dict[str, RuleMeta] | None = None) -> str:
+def render_markdown(per_rule: list[Score], per_pair: list[Score], version: str, corpus_size: int, unlabelled: int, rules: dict[str, RuleMeta] | None = None, ran: int | None = None) -> str:
     rules = rules or {}
 
     def ships(key: str) -> str:
@@ -248,7 +248,9 @@ def render_markdown(per_rule: list[Score], per_pair: list[Score], version: str, 
             out.append(f"| `{s.key}` | {ships(s.key)} | {_cell(s.precision, True, s.scored)} | {_cell(s.recall, False, s.scored)} | {s.true} | {s.false_positive} | {s.missed} | {s.reason} |")
         return out
 
-    lines = [f"Locrin {version}, {corpus_size} diffs, {unlabelled} unlabelled findings.", ""]
+    # With ran, the heading says how many diffs were actually scored, so a table with failures never looks complete.
+    diffs = f"{corpus_size} diffs" if ran is None else f"{ran} of {corpus_size} diffs ran"
+    lines = [f"Locrin {version}, {diffs}, {unlabelled} unlabelled findings.", ""]
     lines += rows(per_rule, "Rule")
     if per_pair:
         lines += ["", *rows(per_pair, "Pair")]
