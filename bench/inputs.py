@@ -13,6 +13,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+# The run.json label fields that must all be empty lists for a run to count as complete.
+COVERAGE = ("missing", "other_version", "unconfirmed", "unreproduced")
 
 
 def digest(root: Path) -> str:
@@ -58,6 +60,11 @@ def complete(run_json: Path, version: str, corpus: Path, labels: Path) -> tuple[
         return False, f"{run_json} does not record a publishable run"
     if run.get("locrin") != version:
         return False, f"{run_json} records locrin {run.get('locrin')!r}, not {version}"
+    # Belt and braces: the run must also record labels that cover it, in the fields this harness writes, so a
+    # run.json from a harness that did not yet check confirmation and reproduction is measured again.
+    coverage = run.get("labels") if isinstance(run.get("labels"), dict) else {}
+    if run.get("not_publishable") != [] or any(coverage.get(k) != [] for k in COVERAGE):
+        return False, f"{run_json} does not record labels that cover the run"
     recorded = run.get("inputs") if isinstance(run.get("inputs"), dict) else {}
     for name, root in (("corpus", corpus), ("labels", labels)):
         if recorded.get(name) != digest(root):

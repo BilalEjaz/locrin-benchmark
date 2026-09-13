@@ -34,7 +34,8 @@ def test_a_missing_directory_has_the_digest_of_an_empty_one(tmp_path):
 def _published(tmp_path: Path, **overrides) -> tuple[Path, Path, Path]:
     corpus = tree(tmp_path / "corpus", {"acme__w__1234567.json": b"{}\n"})
     labels = tree(tmp_path / "labels", {"acme__w__1234567.json": b"{}\n"})
-    run = {"locrin": "v0.5.0", "publishable": True,
+    run = {"locrin": "v0.5.0", "publishable": True, "not_publishable": [],
+           "labels": {"versions": ["v0.5.0"], "other_version": [], "missing": [], "unconfirmed": [], "unreproduced": []},
            "inputs": {"corpus": inputs.digest(corpus), "labels": inputs.digest(labels)}}
     run.update(overrides)
     path = tmp_path / "run.json"
@@ -48,7 +49,8 @@ def test_a_publishable_run_over_the_same_inputs_is_complete(tmp_path):
     assert ok is True and "publishable" in why
 
 
-@pytest.mark.parametrize("change", ["labels", "corpus", "unpublishable", "version", "no-inputs", "malformed", "missing"])
+@pytest.mark.parametrize("change", ["labels", "corpus", "unpublishable", "version", "no-inputs", "malformed", "missing",
+                                    "reasons", "unconfirmed", "unreproduced", "no-label-coverage"])
 def test_anything_else_is_measured_again(tmp_path, change):
     path, corpus, labels = _published(tmp_path)
     if change == "labels":
@@ -62,6 +64,17 @@ def test_anything_else_is_measured_again(tmp_path, change):
     elif change == "no-inputs":
         raw = json.loads(path.read_bytes())
         del raw["inputs"]
+        path.write_bytes(json.dumps(raw).encode("utf-8"))
+    elif change in ("reasons", "unconfirmed", "unreproduced", "no-label-coverage"):
+        # A run.json that says publishable yet records labels that do not cover the run, or that predates
+        # the coverage record, is never trusted as complete.
+        raw = json.loads(path.read_bytes())
+        if change == "reasons":
+            raw["not_publishable"] = ["1 unlabelled finding"]
+        elif change == "no-label-coverage":
+            del raw["labels"]["unreproduced"]
+        else:
+            raw["labels"][change] = ["acme__w__1234567"]
         path.write_bytes(json.dumps(raw).encode("utf-8"))
     elif change == "malformed":
         path.write_bytes(b"not json")

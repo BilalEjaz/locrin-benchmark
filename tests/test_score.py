@@ -76,7 +76,7 @@ def test_render_marks_below_line_ships_off_and_reasons():
     md = render_markdown(per_rule, [], "v0.5.0", corpus_size=10, unlabelled=0)
     assert "| `leftover-debug` | on | 85% | 100% | 17 | 3 | 0 |" in md
     assert "| `unreachable` | on | 67% (below line) | 100% |" in md
-    assert "| `dead-file` | off | 100% | 100% | 1 | 0 | 0 | 0 | n<5, not scored |" in md
+    assert "| `dead-file` | off | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |" in md
     assert "not benchmarked: advisory feed changes daily" in md
     assert "Locrin v0.5.0" in md and "10 diffs" in md
 
@@ -92,14 +92,14 @@ def test_scored_rows_need_five_confirmed_findings_and_mark_below_line():
     by = {s.key: s for s in per_rule}
     assert by["dead-file"].scored is True and by["dead-file"].reason == "" and by["dead-file"].precision == 0.8
     md = render_markdown(per_rule, per_pair, "v0.5.0", corpus_size=1, unlabelled=0, rules=RULES)
-    assert "| `dead-file` | off | 80% (below line) | 100% | 4 | 1 | 0 | 0 |  |" in md
+    assert "| `dead-file` | off | 80% (below line) | 100% | 4 | 1 | 0 | 0 | 0 |  |" in md
     assert "| `dead-file@typescript` | off | 80% (below line) |" in md
 
 
 def test_secret_exposed_ships_locked():
     md = render_markdown([Score("secret-exposed", 1, 0, 0, 1.0, 1.0, False, "n<5, not scored")], [], "v0.5.0", 1, 0,
                          rules={"secret-exposed": RuleMeta("secret-exposed", True, ["typescript"])})
-    assert "| `secret-exposed` | locked | 100% | 100% | 1 | 0 | 0 | 0 | n<5, not scored |" in md
+    assert "| `secret-exposed` | locked | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |" in md
 
 
 def test_rule_order_is_sarif_order_then_label_only_rules_sorted():
@@ -137,10 +137,10 @@ def test_every_pair_with_a_label_or_a_finding_gets_a_row():
 def test_empty_cells_and_pair_table_heading():
     md = render_markdown([Score("dead-export", 0, 0, 0, None, None, False, "n<5, not scored")],
                          [Score("leftover-debug@php", 1, 0, 0, 1.0, 1.0, False, "n<5, not scored")], "v0.5.0", 2, 3)
-    assert md.startswith("Locrin v0.5.0, 2 diffs, 3 unlabelled findings.\n\n| Rule | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Note |\n")
-    assert "| `dead-export` | on |  |  | 0 | 0 | 0 | 0 | n<5, not scored |" in md
-    assert "\n\n| Pair | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Note |\n" in md
-    assert md.endswith("| `leftover-debug@php` | opt-in | 100% | 100% | 1 | 0 | 0 | 0 | n<5, not scored |\n\n"
+    assert md.startswith("Locrin v0.5.0, 2 diffs, 3 unlabelled findings, 0 excluded until their label passes agree.\n\n| Rule | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Excluded | Note |\n")
+    assert "| `dead-export` | on |  |  | 0 | 0 | 0 | 0 | 0 | n<5, not scored |" in md
+    assert "\n\n| Pair | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Excluded | Note |\n" in md
+    assert md.endswith("| `leftover-debug@php` | opt-in | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |\n\n"
                        "Locrin reads PHP and Python only when `[languages]` turns them on, so their pairs ship "
                        "opt-in; the benchmark turns both on.\n")
     assert "\r" not in md
@@ -178,12 +178,12 @@ def test_fixture_labels_produce_the_truthful_numbers():
     ]
     assert all(not s.scored for s in per_rule + per_pair)
     md = render_markdown(per_rule, per_pair, "v0.5.0", corpus_size=10, unlabelled=0, rules=rules)
-    assert md.startswith("Locrin v0.5.0, 10 diffs, 0 unlabelled findings.\n")
-    assert "| `leftover-debug` | on | 75% | 100% | 3 | 1 | 0 | 0 | n<5, not scored |" in md
-    assert "| `unreachable` | on | 100% | 50% | 1 | 0 | 1 | 0 | n<5, not scored |" in md
-    assert "| `dead-file` | off |  |  | 0 | 0 | 0 | 0 | n<5, not scored |" in md
-    assert "| `vulnerable-dependency` | on |  |  | 0 | 0 | 0 | 0 | not benchmarked: advisory feed changes daily |" in md
-    assert "| `leftover-debug@typescript` | on | 50% | 100% | 1 | 1 | 0 | 0 | n<5, not scored |" in md
+    assert md.startswith("Locrin v0.5.0, 10 diffs, 0 unlabelled findings, 0 excluded until their label passes agree.\n")
+    assert "| `leftover-debug` | on | 75% | 100% | 3 | 1 | 0 | 0 | 0 | n<5, not scored |" in md
+    assert "| `unreachable` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | n<5, not scored |" in md
+    assert "| `dead-file` | off |  |  | 0 | 0 | 0 | 0 | 0 | n<5, not scored |" in md
+    assert "| `vulnerable-dependency` | on |  |  | 0 | 0 | 0 | 0 | 0 | not benchmarked: advisory feed changes daily |" in md
+    assert "| `leftover-debug@typescript` | on | 50% | 100% | 1 | 1 | 0 | 0 | 0 | n<5, not scored |" in md
 
 
 A, B, C, D = "a" * 16, "b" * 16, "c" * 16, "d" * 16
@@ -258,7 +258,7 @@ def test_the_n_gate_counts_confirmed_findings_not_missed_entries():
     assert row.scored is False and row.reason == "n<5, not scored"
     assert {s.key: s for s in per_pair}["unreachable@typescript"].scored is False
     md = render_markdown(per_rule, per_pair, "v0.5.0", 1, 0, rules=RULES)
-    assert "| `unreachable` | on | 0% | 0% | 0 | 1 | 4 | 0 | n<5, not scored |" in md
+    assert "| `unreachable` | on | 0% | 0% | 0 | 1 | 4 | 0 | 0 | n<5, not scored |" in md
     assert "below line" not in md
 
 
@@ -279,7 +279,7 @@ def test_pairs_shipped_off_render_off_even_when_the_rule_ships_on():
                          [Score("leftover-commented-code@python", 1, 0, 0, 1.0, 1.0, False, "n<5, not scored"),
                           Score("leftover-commented-code@typescript", 0, 0, 0, None, None, False, "n<5, not scored")], "v0.5.0", 1, 0, rules=rules)
     assert "| `leftover-commented-code` | on |" in md
-    assert "| `leftover-commented-code@python` | off | 100% | 100% | 1 | 0 | 0 | 0 | n<5, not scored |" in md
+    assert "| `leftover-commented-code@python` | off | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |" in md
     assert "| `leftover-commented-code@typescript` | on |" in md
     assert "| `leftover-commented-code@python` | off |" in render_markdown([], [Score("leftover-commented-code@python", 0, 0, 0, None, None, False, "n<5, not scored")], "v0.5.0", 1, 0)
 
@@ -369,7 +369,7 @@ def test_shifted_findings_sharing_an_id_pair_with_as_many_entries_in_line_order(
 
 def test_heading_says_how_many_diffs_ran_when_told():
     md = render_markdown([], [], "v0.5.0", corpus_size=10, unlabelled=0, ran=9)
-    assert md.startswith("Locrin v0.5.0, 9 of 10 diffs ran, 0 unlabelled findings.\n")
+    assert md.startswith("Locrin v0.5.0, 9 of 10 diffs ran, 0 unlabelled findings, 0 excluded until their label passes agree.\n")
 
 
 def test_a_precision_just_under_the_line_never_renders_as_the_line():
@@ -399,7 +399,7 @@ def test_php_and_python_pairs_render_opt_in_because_those_languages_ship_off():
 def test_the_table_always_lists_the_rules_that_are_not_benchmarked():
     md = render_markdown([], [], "v0.5.0", corpus_size=0, unlabelled=0, ran=0)
     for rule, reason in bench.score.NOT_BENCHMARKED.items():
-        assert f"| `{rule}` | on |  |  | 0 | 0 | 0 | 0 | not benchmarked: {reason} |" in md
+        assert f"| `{rule}` | on |  |  | 0 | 0 | 0 | 0 | 0 | not benchmarked: {reason} |" in md
     once = render_markdown([Score("vulnerable-dependency", 0, 0, 0, None, None, False,
                                   "not benchmarked: advisory feed changes daily")], [], "v0.5.0", 1, 0)
     assert once.count("`vulnerable-dependency`") == 1
@@ -442,5 +442,38 @@ def test_unlabelled_findings_are_counted_per_rule_and_per_pair_and_rendered():
     assert pair["leftover-debug@typescript"].unlabelled == 1 and pair["leftover-debug@php"].unlabelled == 1
     assert pair["no-meta-rule@typescript"].unlabelled == 1
     md = render_markdown(per_rule, per_pair, "v0.5.0", 1, len(unlabelled), rules=RULES)
-    assert "| `leftover-debug` | on | 100% | 100% | 1 | 0 | 0 | 2 | n<5, not scored |" in md
-    assert "| `leftover-debug@php` | opt-in |  |  | 0 | 0 | 0 | 1 | n<5, not scored |" in md
+    assert "| `leftover-debug` | on | 100% | 100% | 1 | 0 | 0 | 2 | 0 | n<5, not scored |" in md
+    assert "| `leftover-debug@php` | opt-in |  |  | 0 | 0 | 0 | 1 | 0 | n<5, not scored |" in md
+
+
+def test_findings_and_missed_entries_whose_passes_disagree_are_counted_excluded_per_rule_and_pair_and_rendered():
+    fs = [F("a", "leftover-debug", "x.ts", 1, ident=A), F("a", "leftover-debug", "y.php", 2, "php", ident=B)]
+    ls = labels(a=[E("leftover-debug", "x.ts", 1, "true", A),
+                   Entry("leftover-debug", "y.php", 2, B, "true", "false-positive", ""),
+                   Entry("unreachable", "z.ts", 9, None, "missed", "not-applicable", "")])
+    per_rule, per_pair, unlabelled = score(fs, ls, RULES)
+    rule = {s.key: s for s in per_rule}
+    pair = {s.key: s for s in per_pair}
+    assert unlabelled == []
+    assert rule["leftover-debug"].excluded == 1 and rule["unreachable"].excluded == 1
+    assert counts(per_rule, "unreachable") == (0, 0, 0)
+    assert pair["leftover-debug@php"].excluded == 1 and pair["leftover-debug@typescript"].excluded == 0
+    assert pair["unreachable@typescript"].excluded == 1
+    assert bench.score.excluded_count(fs, ls) == 2
+    assert bench.score.excluded_count(fs, ls, ran=set()) == 0
+    md = render_markdown(per_rule, per_pair, "v0.5.0", 1, 0, rules=RULES, excluded=2)
+    assert md.startswith("Locrin v0.5.0, 1 diffs, 0 unlabelled findings, 2 excluded until their label passes agree.\n")
+    assert "| `leftover-debug` | on | 100% | 100% | 1 | 0 | 0 | 0 | 1 | n<5, not scored |" in md
+    assert "| `leftover-debug@php` | opt-in |  |  | 0 | 0 | 0 | 0 | 1 | n<5, not scored |" in md
+    assert "| `unreachable@typescript` | on |  |  | 0 | 0 | 0 | 0 | 1 | n<5, not scored |" in md
+
+
+def test_unreproduced_lists_every_labelled_finding_entry_no_finding_of_the_run_matches():
+    ls = labels(a=[E("unreachable", "x.ts", 2, "true", A), E("unreachable", "x.ts", 4, "false-positive", B),
+                   E("unreachable", "x.ts", 6, "not-applicable", C),
+                   Entry("unreachable", "x.ts", 8, D, "true", "false-positive", ""),
+                   E("unreachable", "x.ts", 9, "missed")],
+                b=[E("unreachable", "y.ts", 3, "false-positive", A)])
+    fs = [F("a", "unreachable", "x.ts", 2, ident=A)]
+    assert [(d, e.line) for d, e in bench.score.unreproduced(fs, ls)] == [("a", 4), ("a", 6), ("a", 8), ("b", 3)]
+    assert [(d, e.line) for d, e in bench.score.unreproduced(fs, ls, ran={"a"})] == [("a", 4), ("a", 6), ("a", 8)]

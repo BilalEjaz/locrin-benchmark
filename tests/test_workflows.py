@@ -149,6 +149,9 @@ def _scheduled_tree(tmp_path: Path, run_json: dict | None) -> None:
     (tmp_path / "labels" / "acme__w__1234567.json").write_bytes(b"{}")
     if run_json is not None:
         run_json = dict(run_json)
+        if run_json.get("labels") == "covered":
+            run_json["labels"] = {"versions": ["v0.5.0"], "other_version": [], "missing": [], "unconfirmed": [], "unreproduced": []}
+            run_json.setdefault("not_publishable", [])
         if run_json.get("inputs") == "current":
             run_json["inputs"] = {"corpus": inputs.digest(tmp_path / "corpus"), "labels": inputs.digest(tmp_path / "labels")}
         (tmp_path / "results" / "v0.5.0").mkdir(parents=True)
@@ -157,8 +160,14 @@ def _scheduled_tree(tmp_path: Path, run_json: dict | None) -> None:
 
 @needs_bash
 @pytest.mark.parametrize("run_json, skip", [
-    ({"locrin": "v0.5.0", "ran": 3, "publishable": True, "gone": [], "inputs": "current"}, True),
-    ({"locrin": "v0.5.0", "ran": 2, "publishable": True, "gone": [{"id": "x", "evidence": "404"}], "inputs": "current"}, True),
+    ({"locrin": "v0.5.0", "ran": 3, "publishable": True, "gone": [], "inputs": "current", "labels": "covered"}, True),
+    ({"locrin": "v0.5.0", "ran": 2, "publishable": True, "gone": [{"id": "x", "evidence": "404"}], "inputs": "current",
+      "labels": "covered"}, True),
+    # Written before run.json recorded whether every label file was confirmed and every labelled finding
+    # reproduced, or recording labels that do not cover the run: measured again.
+    ({"locrin": "v0.5.0", "ran": 3, "publishable": True, "gone": [], "inputs": "current"}, False),
+    ({"locrin": "v0.5.0", "ran": 3, "publishable": True, "gone": [], "inputs": "current", "not_publishable": [],
+      "labels": {"versions": ["v0.5.0"], "other_version": [], "missing": [], "unconfirmed": ["x"], "unreproduced": []}}, False),
     # Published before run.json recorded its inputs, or over other labels or corpus: measured again.
     ({"locrin": "v0.5.0", "ran": 3, "publishable": True, "gone": []}, False),
     ({"locrin": "v0.5.0", "ran": 3, "publishable": True, "inputs": {"corpus": "sha256:0", "labels": "sha256:0"}}, False),
@@ -178,7 +187,7 @@ def test_scheduled_run_skips_a_version_only_when_its_run_json_records_a_publisha
 
 @needs_bash
 def test_a_version_is_measured_again_after_its_labels_change(tmp_path):
-    _scheduled_tree(tmp_path, {"locrin": "v0.5.0", "publishable": True, "inputs": "current"})
+    _scheduled_tree(tmp_path, {"locrin": "v0.5.0", "publishable": True, "inputs": "current", "labels": "covered"})
     (tmp_path / "labels" / "acme__w__1234567.json").write_bytes(b'{"relabelled": true}')
     proc, outputs = _run_step(tmp_path, "Resolve version", {"VERSION": "v0.5.0", "EVENT": "schedule"})
     assert proc.returncode == 0, proc.stderr

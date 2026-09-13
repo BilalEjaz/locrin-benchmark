@@ -39,31 +39,31 @@ pytestmark = [
 # positive (src/logger.ts is that module's real logging) and unreachable one genuine miss
 # (a literal-condition branch in src/c.ts).
 RULE_ROWS = [
-    "| `leftover-debug` | on | 75% | 100% | 3 | 1 | 0 | 0 | n<5, not scored |",
-    "| `leftover-commented-code` | on |  |  | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `leftover-agent-marker` | on | 100% | 100% | 2 | 0 | 0 | 0 | n<5, not scored |",
-    "| `unused-import` | on | 100% | 100% | 1 | 0 | 0 | 0 | n<5, not scored |",
-    "| `unreachable` | on | 100% | 50% | 1 | 0 | 1 | 0 | n<5, not scored |",
-    "| `dead-file` | off |  |  | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `boundary-violation` | on |  |  | 0 | 0 | 0 | 0 | not benchmarked: needs per-repository config |",
-    "| `swallowed-error` | off |  |  | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `test-no-assert` | on | 100% | 100% | 1 | 0 | 0 | 0 | n<5, not scored |",
-    "| `secret-exposed` | locked | 100% | 100% | 1 | 0 | 0 | 0 | n<5, not scored |",
-    "| `weak-crypto` | on | 100% | 100% | 1 | 0 | 0 | 0 | n<5, not scored |",
-    "| `injection-sink` | off |  |  | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `vulnerable-dependency` | on |  |  | 0 | 0 | 0 | 0 | not benchmarked: advisory feed changes daily |",
-    "| `express-route-without-auth` | on |  |  | 0 | 0 | 0 | 0 | not benchmarked: needs per-repository config |",
+    "| `leftover-debug` | on | 75% | 100% | 3 | 1 | 0 | 0 | 0 | n<5, not scored |",
+    "| `leftover-commented-code` | on |  |  | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `leftover-agent-marker` | on | 100% | 100% | 2 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `unused-import` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `unreachable` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | n<5, not scored |",
+    "| `dead-file` | off |  |  | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `boundary-violation` | on |  |  | 0 | 0 | 0 | 0 | 0 | not benchmarked: needs per-repository config |",
+    "| `swallowed-error` | off |  |  | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `test-no-assert` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `secret-exposed` | locked | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `weak-crypto` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `injection-sink` | off |  |  | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `vulnerable-dependency` | on |  |  | 0 | 0 | 0 | 0 | 0 | not benchmarked: advisory feed changes daily |",
+    "| `express-route-without-auth` | on |  |  | 0 | 0 | 0 | 0 | 0 | not benchmarked: needs per-repository config |",
 ]
 PAIR_ROWS = [
-    "| `leftover-agent-marker@javascript` | on | 100% | 100% | 2 | 0 | 0 | 0 | n<5, not scored |",
-    "| `leftover-debug@php` | opt-in | 100% | 100% | 1 | 0 | 0 | 0 | n<5, not scored |",
-    "| `leftover-debug@python` | opt-in | 100% | 100% | 1 | 0 | 0 | 0 | n<5, not scored |",
-    "| `leftover-debug@typescript` | on | 50% | 100% | 1 | 1 | 0 | 0 | n<5, not scored |",
-    "| `secret-exposed@typescript` | locked | 100% | 100% | 1 | 0 | 0 | 0 | n<5, not scored |",
-    "| `test-no-assert@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | n<5, not scored |",
-    "| `unreachable@typescript` | on | 100% | 50% | 1 | 0 | 1 | 0 | n<5, not scored |",
-    "| `unused-import@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | n<5, not scored |",
-    "| `weak-crypto@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | n<5, not scored |",
+    "| `leftover-agent-marker@javascript` | on | 100% | 100% | 2 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `leftover-debug@php` | opt-in | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `leftover-debug@python` | opt-in | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `leftover-debug@typescript` | on | 50% | 100% | 1 | 1 | 0 | 0 | 0 | n<5, not scored |",
+    "| `secret-exposed@typescript` | locked | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `test-no-assert@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `unreachable@typescript` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | n<5, not scored |",
+    "| `unused-import@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `weak-crypto@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
 ]
 
 
@@ -100,17 +100,18 @@ def test_fixture_corpus_scores_exactly(tmp_path, home):
     assert run["unlabelled"] == 0 and run["excluded"] == 0 and run["gone"] == [] and run["publishable"] is True
     assert run["findings"] == 11
     assert run["locrin"] == f"v{version}"
-    assert run["not_publishable"] == [] and run["labels"] == {"versions": [f"v{version}"], "other_version": [], "missing": []}
+    assert run["not_publishable"] == [] and run["labels"] == {"versions": [f"v{version}"], "other_version": [], "missing": [],
+                                                            "unconfirmed": [], "unreproduced": []}
     from bench import inputs
     assert run["inputs"] == {"corpus": inputs.digest(ROOT / "fixtures" / "corpus"),
                              "labels": inputs.digest(ROOT / "fixtures" / "labels")}
 
     table = (results / "table.md").read_text(encoding="utf-8")
     lines = table.splitlines()
-    assert lines[0] == f"Locrin v{version}, 10 of 10 diffs ran, 0 unlabelled findings."
+    assert lines[0] == f"Locrin v{version}, 10 of 10 diffs ran, 0 unlabelled findings, 0 excluded until their label passes agree."
     for row in RULE_ROWS:
         assert row in lines, row
-    pair_head = lines.index("| Pair | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Note |")
+    pair_head = lines.index("| Pair | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Excluded | Note |")
     assert lines[pair_head + 2:pair_head + 2 + len(PAIR_ROWS)] == PAIR_ROWS
     assert lines[pair_head + 2 + len(PAIR_ROWS):] == [
         "", "Locrin reads PHP and Python only when `[languages]` turns them on, so their pairs ship opt-in; "
@@ -133,18 +134,37 @@ def test_fixture_corpus_scores_exactly(tmp_path, home):
     assert updated == b"# r\n\n<!-- results:start -->\n" + table.encode("utf-8") + b"<!-- results:end -->\n\n## tail\n"
 
 
-@pytest.mark.parametrize("change", ["unlabelled", "other-version"])
+def _as_template(raw: dict) -> dict:
+    """A label file as `label.py new` writes it: every finding entry marked `?`, no missed entry, pass two not recorded."""
+    return dict(raw, pass2=None, entries=[dict(e, pass1="?", pass2="?") for e in raw["entries"] if e["id"] is not None])
+
+
+@pytest.mark.parametrize("change", ["unlabelled", "other-version", "pass-two-null", "templates",
+                                    "unreproduced-false-positive", "unreproduced-true"])
 def test_labels_that_do_not_cover_the_run_publish_nothing(tmp_path, change):
-    # A finding a new locrin version adds has no label entry, and label files written for another version
-    # would score it with stale verdicts: either way the run exits 4 and the README keeps its table.
+    # A finding a new locrin version adds has no label entry; label files written for another version would
+    # score it with stale verdicts; a file pass two never confirmed would drop its findings from the numbers;
+    # a labelled finding this run does not report means the run did not reproduce what was labelled. Every
+    # one exits 4 and the README keeps its table.
     labels = tmp_path / "labels"
     shutil.copytree(ROOT / "fixtures" / "labels", labels)
     target = labels / "fx-01-debug.json"
     raw = json.loads(target.read_text(encoding="utf-8"))
     if change == "unlabelled":
         raw["entries"] = [e for e in raw["entries"] if e["file"] != "src/logger.ts"]
-    else:
+    elif change == "other-version":
         raw["locrin"] = "v0.4.0"
+    elif change == "pass-two-null":
+        raw["pass2"] = None
+    elif change == "templates":
+        for other in labels.glob("*.json"):
+            tpl = _as_template(json.loads(other.read_text(encoding="utf-8")))
+            other.write_bytes((json.dumps(tpl, indent=2) + "\n").encode("utf-8"))
+        raw = _as_template(raw)
+    else:
+        verdict = change.removeprefix("unreproduced-")
+        raw["entries"].append({"rule": "leftover-debug", "file": "src/logger.ts", "line": 7, "id": "f" * 16,
+                               "pass1": verdict, "pass2": verdict, "note": "a finding this run does not report"})
     target.write_bytes((json.dumps(raw, indent=2) + "\n").encode("utf-8"))
     readme = tmp_path / "README.md"
     before = b"# r\n\n<!-- results:start -->\nNo results yet.\n<!-- results:end -->\n"
@@ -163,6 +183,14 @@ def test_labels_that_do_not_cover_the_run_publish_nothing(tmp_path, change):
     table = (out / LOCRIN_VERSION / "table.md").read_text(encoding="utf-8")
     if change == "unlabelled":
         assert run["unlabelled"] == 1
-        assert "| `leftover-debug` | on | 100% | 100% | 3 | 0 | 0 | 1 | n<5, not scored |" in table
-    else:
+        assert "| `leftover-debug` | on | 100% | 100% | 3 | 0 | 0 | 1 | 0 | n<5, not scored |" in table
+    elif change == "other-version":
         assert run["labels"]["other_version"] == ["fx-01-debug"]
+    elif change == "pass-two-null":
+        assert run["unlabelled"] == 0 and run["labels"]["unconfirmed"] == ["fx-01-debug"]
+    elif change == "templates":
+        assert run["unlabelled"] == 0 and len(run["labels"]["unconfirmed"]) == 10
+    else:
+        assert run["unlabelled"] == 0 and run["labels"]["unconfirmed"] == []
+        assert [(u["diff"], u["file"], u["line"], u["id"]) for u in run["labels"]["unreproduced"]] == [
+            ("fx-01-debug", "src/logger.ts", 7, "f" * 16)]

@@ -37,24 +37,29 @@ class Score:
     reason: str
     # Findings on this rule or pair that no label entry covers; they count nowhere.
     unlabelled: int = 0
+    # Findings and missed entries on this rule or pair whose label has no verdict that counts
+    # (its passes disagree, or pass two never confirmed its file); they count nowhere.
+    excluded: int = 0
 
 
-def _tally(counts: dict[str, list[int]], keys_in_order: list[str], unlabelled: dict[str, int]) -> list[Score]:
+def _tally(counts: dict[str, list[int]], keys_in_order: list[str], unlabelled: dict[str, int],
+           left_out: dict[str, int]) -> list[Score]:
     out = []
     for key in keys_in_order:
         t, fp, m = counts.get(key, [0, 0, 0])
         u = unlabelled.get(key, 0)
+        x = left_out.get(key, 0)
         rule = key.split("@", 1)[0]
         precision = t / (t + fp) if t + fp else None
         recall = t / (t + m) if t + m else None
         if rule in NOT_BENCHMARKED:
-            out.append(Score(key, t, fp, m, precision, recall, False, f"not benchmarked: {NOT_BENCHMARKED[rule]}", u))
+            out.append(Score(key, t, fp, m, precision, recall, False, f"not benchmarked: {NOT_BENCHMARKED[rule]}", u, x))
         elif t + fp < MIN_N:
             # The gate counts confirmed labelled findings (true plus false positive), as the
             # engine's own gate counts findings; missed entries are not findings.
-            out.append(Score(key, t, fp, m, precision, recall, False, "n<5, not scored", u))
+            out.append(Score(key, t, fp, m, precision, recall, False, "n<5, not scored", u, x))
         else:
-            out.append(Score(key, t, fp, m, precision, recall, True, "", u))
+            out.append(Score(key, t, fp, m, precision, recall, True, "", u, x))
     return out
 
 
@@ -160,6 +165,35 @@ def _stale(labels: dict[str, LabelFile], matched: dict[int, Entry]) -> list[tupl
     return sorted(out, key=lambda de: (de[0], de[1].rule, de[1].file, de[1].line))
 
 
+def _unreproduced(labels: dict[str, LabelFile], matched: dict[int, Entry]) -> list[tuple[str, Entry]]:
+    used = {id(e) for e in matched.values()}
+    out = [(d, e) for d, lf in labels.items() for e in lf.entries if not _is_missed(e) and id(e) not in used]
+    return sorted(out, key=lambda de: (de[0], de[1].rule, de[1].file, de[1].line))
+
+
+def unreproduced(findings: list[Finding], labels: dict[str, LabelFile], ran: set[str] | None = None) -> list[tuple[str, Entry]]:
+    """Every entry for a reported finding that no finding of the run matches, as (diff, entry).
+
+    Whatever its verdict (true, false-positive, not-applicable, disagreeing or unfilled): a
+    label file names the locrin version it was written from, so for a run of that version an
+    entry no finding matches means the run did not reproduce the engine output that was
+    labelled. Missed entries are never listed. With ran given, only label files for those diff
+    ids are read. Sorted by diff, rule, file and line.
+    """
+    labels = _ran(labels, ran)
+    return _unreproduced(labels, _match(findings, labels))
+
+
+def _excluded_missed(labels: dict[str, LabelFile]) -> list[tuple[str, Entry]]:
+    return [(d, e) for d, lf in labels.items() for e in lf.entries if _is_missed(e) and _verdict(lf, e) is None]
+
+
+def excluded_count(findings: list[Finding], labels: dict[str, LabelFile], ran: set[str] | None = None) -> int:
+    """How many findings and missed entries count nowhere because their label has no verdict that counts."""
+    labels = _ran(labels, ran)
+    return len(excluded(findings, labels)) + len(_excluded_missed(labels))
+
+
 def stale(findings: list[Finding], labels: dict[str, LabelFile], ran: set[str] | None = None) -> list[tuple[str, Entry]]:
     """Confirmed true entries that no finding of the scored run matches, as (diff, entry).
 
@@ -193,19 +227,30 @@ def score(findings: list[Finding], labels: dict[str, LabelFile], rules: dict[str
 
     Each finding is matched to at most one entry and each entry to at most one finding (see
     _match). Only confirmed entries count; a finding whose entry is unfilled or disagrees
-    counts nowhere but is not unlabelled, because the label file already lists it. A finding
+    counts nowhere but is not unlabelled, because the label file already lists it: it is
+    counted in its rule's and pair's excluded count, as is a missed entry without a verdict
+    that counts. bench.main refuses to publish unless the only such entries disagree. A finding
     with no matching entry is unlabelled and counts nowhere. A missed entry never matches a
     finding: it is counted straight from the label file, so a miss on the same line as a
     reported finding still counts toward recall, and a finding that lands on a missed
     entry's line is unlabelled so it gets relabelled. A confirmed true entry that no finding
     matches meets the missed definition for this run, so it counts as missed; stale() lists
-    those entries.
+    those entries. Within one locrin version that cannot happen in a published run:
+    unreproduced() lists every such entry, and bench.main refuses to publish while any exist.
     """
     labels = _ran(labels, ran)
     rule_counts: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
     pair_counts: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
     label_rules: set[str] = set()
     pairs: set[str] = set()
+    rule_excluded: dict[str, int] = defaultdict(int)
+    pair_excluded: dict[str, int] = defaultdict(int)
+
+    def leave_out(rule: str, lang: str | None) -> None:
+        rule_excluded[rule] += 1
+        if lang:
+            pair_excluded[f"{rule}@{lang}"] += 1
+            pairs.add(f"{rule}@{lang}")
 
     def miss(e: Entry) -> None:
         rule_counts[e.rule][2] += 1
@@ -223,6 +268,8 @@ def score(findings: list[Finding], labels: dict[str, LabelFile], rules: dict[str
                 pairs.add(f"{e.rule}@{lang}")
             if e.verdict == "missed":
                 miss(e)
+    for _, e in _excluded_missed(labels):
+        leave_out(e.rule, language_of(e.file))
     matched = _match(findings, labels)
     pending = _pending(labels)
     for _, e in _stale(labels, matched):
@@ -241,17 +288,20 @@ def score(findings: list[Finding], labels: dict[str, LabelFile], rules: dict[str
                 pair_unlabelled[f"{f.rule}@{f.language}"] += 1
             continue
         v = None if id(entry) in pending else entry.verdict
+        if v is None:
+            leave_out(f.rule, f.language)
+            continue
         if v not in ("true", "false-positive"):
             continue
         idx = 0 if v == "true" else 1
         rule_counts[f.rule][idx] += 1
         if f.language:
             pair_counts[f"{f.rule}@{f.language}"][idx] += 1
-    extra = (label_rules | set(rule_counts) | set(rule_unlabelled)) - set(rules)
+    extra = (label_rules | set(rule_counts) | set(rule_unlabelled) | set(rule_excluded)) - set(rules)
     rule_order = list(rules.keys()) + sorted(extra)
     pair_order = sorted(pairs)
-    return (_tally(rule_counts, rule_order, rule_unlabelled), _tally(pair_counts, pair_order, pair_unlabelled),
-            unlabelled)
+    return (_tally(rule_counts, rule_order, rule_unlabelled, rule_excluded),
+            _tally(pair_counts, pair_order, pair_unlabelled, pair_excluded), unlabelled)
 
 
 def _pct(v: float | None) -> str:
@@ -268,7 +318,7 @@ def _cell(v: float | None, is_precision: bool, scored: bool) -> str:
     return s
 
 
-def render_markdown(per_rule: list[Score], per_pair: list[Score], version: str, corpus_size: int, unlabelled: int, rules: dict[str, RuleMeta] | None = None, ran: int | None = None) -> str:
+def render_markdown(per_rule: list[Score], per_pair: list[Score], version: str, corpus_size: int, unlabelled: int, rules: dict[str, RuleMeta] | None = None, ran: int | None = None, excluded: int = 0) -> str:
     rules = rules or {}
 
     def ships(key: str) -> str:
@@ -282,16 +332,17 @@ def render_markdown(per_rule: list[Score], per_pair: list[Score], version: str, 
         return "locked" if rule in LOCKED else "on"
 
     def rows(scores: list[Score], head: str) -> list[str]:
-        out = [f"| {head} | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Note |",
-               "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+        out = [f"| {head} | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Excluded | Note |",
+               "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
         for s in scores:
             out.append(f"| `{s.key}` | {ships(s.key)} | {_cell(s.precision, True, s.scored)} | {_cell(s.recall, False, s.scored)} "
-                       f"| {s.true} | {s.false_positive} | {s.missed} | {s.unlabelled} | {s.reason} |")
+                       f"| {s.true} | {s.false_positive} | {s.missed} | {s.unlabelled} | {s.excluded} | {s.reason} |")
         return out
 
     # With ran, the heading says how many diffs were actually scored, so a table with failures never looks complete.
     diffs = f"{corpus_size} diffs" if ran is None else f"{ran} of {corpus_size} diffs ran"
-    lines = [f"Locrin {version}, {diffs}, {unlabelled} unlabelled findings.", ""]
+    # The heading always says how many findings and missed entries the numbers leave out.
+    lines = [f"Locrin {version}, {diffs}, {unlabelled} unlabelled findings, {excluded} excluded until their label passes agree.", ""]
     # The rules the benchmark never scores are always listed, with the reason, even when no diff ran.
     listed = {s.key for s in per_rule}
     per_rule = per_rule + [Score(rule, 0, 0, 0, None, None, False, f"not benchmarked: {reason}")

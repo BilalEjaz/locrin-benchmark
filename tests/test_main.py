@@ -85,7 +85,7 @@ def test_failed_diffs_are_listed_the_rest_scored_and_their_labels_ignored(tmp_pa
     assert run["locrin"] == "v0.5.0" and run["started"] and run["finished"]
     table = (out / "v0.5.0" / "table.md").read_text(encoding="utf-8")
     # One true reported, one stale true counted missed; fx-02's true and fx-03's miss count nowhere.
-    assert "| `leftover-debug` | on | 100% | 50% | 1 | 0 | 1 | 1 | n<5, not scored |" in table
+    assert "| `leftover-debug` | on | 100% | 50% | 1 | 0 | 1 | 1 | 0 | n<5, not scored |" in table
     lines = (out / "v0.5.0" / "findings.jsonl").read_bytes().split(b"\n")
     assert lines[-1] == b"" and len(lines) == 3 and b"\r" not in b"".join(lines)
     assert json.loads(lines[0]) == {"diff": "fx-01-ok", "rule": "leftover-debug", "file": "src/x.ts", "line": 2,
@@ -97,7 +97,7 @@ def test_failed_diffs_are_listed_the_rest_scored_and_their_labels_ignored(tmp_pa
     assert "materialise failed: fx-02-nomat: git init failed: boom" in err
     assert "run failed: fx-03-norun: locrin exit 2: bad" in err
     assert f"unlabelled: fx-01-ok leftover-debug src/y.ts:7 {'d' * 16}" in err
-    assert f"stale: fx-01-ok leftover-debug src/x.ts:9 {'b' * 16}" in err
+    assert f"unreproduced: fx-01-ok leftover-debug src/x.ts:9 {'b' * 16} true/true" in err
 
 
 def test_all_diffs_ran_exits_zero_and_missing_readme_is_left_alone(tmp_path, monkeypatch):
@@ -273,7 +273,7 @@ def test_only_confirmed_gone_sources_exit_three_publish_and_record_the_evidence(
     args = _setup(tmp_path, monkeypatch, ["fx-01-ok", "fx-02-gone"], {"fx-02-gone": gone})
     assert main_mod.main(args) == 3
     table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
-    assert table.startswith("Locrin v0.5.0, 1 of 2 diffs ran, 0 unlabelled findings.\n")
+    assert table.startswith("Locrin v0.5.0, 1 of 2 diffs ran, 0 unlabelled findings, 0 excluded until their label passes agree.\n")
     run = _run_json(tmp_path)
     assert run["diffs"] == 2 and run["ran"] == 1 and run["publishable"] is True
     assert run["gone"] == [{"id": "fx-02-gone", "evidence": "commit 1111 is not on acme/w after an explicit fetch: not our ref 1111"}]
@@ -340,6 +340,12 @@ def test_findings_matched_to_unconfirmed_entries_are_listed_as_excluded(tmp_path
     run = _run_json(tmp_path)
     assert run["excluded"] == 1 and run["unlabelled"] == 0 and run["publishable"] is True
     assert f"excluded: fx-01-ok leftover-debug src/x.ts:3 {'b' * 16}" in capsys.readouterr().err
+    # A published table always says how many findings it left out, in its heading and per rule and pair.
+    table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
+    assert table.startswith("Locrin v0.5.0, 1 of 1 diffs ran, 0 unlabelled findings, 1 excluded until their label passes agree.\n")
+    assert "| `leftover-debug` | on | 100% | 100% | 1 | 0 | 0 | 0 | 1 | n<5, not scored |" in table
+    assert "| `leftover-debug@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 1 | n<5, not scored |" in table
+    assert (tmp_path / "README.md").read_bytes() == b"x\n<!-- results:start -->\n" + table.encode("utf-8") + b"<!-- results:end -->\n"
 
 
 def test_an_unexpected_error_while_materialising_fails_that_diff_by_name_and_the_rest_run(tmp_path, monkeypatch, capsys):
@@ -385,7 +391,7 @@ def test_an_unlabelled_finding_makes_the_run_not_publishable_exit_four(tmp_path,
     assert any("1 unlabelled finding" in r for r in run["not_publishable"])
     assert (tmp_path / "README.md").read_bytes() == OLD_README
     table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
-    assert "| `leftover-debug` | on | 100% | 100% | 1 | 0 | 0 | 1 | n<5, not scored |" in table
+    assert "| `leftover-debug` | on | 100% | 100% | 1 | 0 | 0 | 1 | 0 | n<5, not scored |" in table
     assert "not publishable" in capsys.readouterr().err
 
 
@@ -396,7 +402,8 @@ def test_labels_written_for_another_locrin_version_make_the_run_not_publishable(
     assert main_mod.main(args) == 4
     run = _run_json(tmp_path)
     assert run["publishable"] is False
-    assert run["labels"] == {"versions": ["v0.4.0", "v0.5.0"], "other_version": ["fx-02-ok"], "missing": []}
+    assert run["labels"] == {"versions": ["v0.4.0", "v0.5.0"], "other_version": ["fx-02-ok"], "missing": [],
+                             "unconfirmed": [], "unreproduced": []}
     assert any("v0.4.0" in r for r in run["not_publishable"])
     assert (tmp_path / "README.md").read_bytes() == OLD_README
 
@@ -427,6 +434,54 @@ def test_run_json_ties_the_results_to_their_inputs(tmp_path, monkeypatch):
     assert run["publishable"] is True and run["not_publishable"] == []
     assert run["inputs"] == {"corpus": inputs.digest(corpus), "labels": inputs.digest(tmp_path / "labels")}
     assert run["harness"] == inputs.harness_commit()
-    assert run["labels"] == {"versions": ["v0.5.0"], "other_version": [], "missing": []}
+    assert run["labels"] == {"versions": ["v0.5.0"], "other_version": [], "missing": [], "unconfirmed": [], "unreproduced": []}
     ok, _ = inputs.complete(tmp_path / "r" / "v0.5.0" / "run.json", "v0.5.0", corpus, tmp_path / "labels")
     assert ok is True
+
+
+@pytest.mark.parametrize("how", ["pass-two-never-recorded", "unfilled-entry", "template"])
+def test_a_label_file_pass_two_never_confirmed_makes_the_run_not_publishable(tmp_path, monkeypatch, capsys, how):
+    labels = tmp_path / "labels"
+    labels.mkdir()
+    write_label(labels, "fx-01-ok", [entry("src/x.ts", 2, "a" * 16, "true"), entry("src/x.ts", 3, "b" * 16, "false-positive")])
+    write_label(labels, "fx-02-ok", [])
+    raw = json.loads((labels / "fx-01-ok.json").read_bytes())
+    if how in ("pass-two-never-recorded", "template"):
+        raw["pass2"] = None
+    if how in ("unfilled-entry", "template"):
+        for e in raw["entries"][1 if how == "unfilled-entry" else 0:]:
+            e["pass2"] = "?"
+            if how == "template":
+                e["pass1"] = "?"
+    (labels / "fx-01-ok.json").write_bytes(json.dumps(raw).encode("utf-8"))
+    args = _setup(tmp_path, monkeypatch, ["fx-01-ok", "fx-02-ok"], {})
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif(
+        [result("src/x.ts", 2, "a" * 16), result("src/x.ts", 3, "b" * 16)] if diff_id == "fx-01-ok" else []))
+    assert main_mod.main(args) == 4
+    run = _run_json(tmp_path)
+    assert run["publishable"] is False and run["unlabelled"] == 0
+    assert run["labels"]["unconfirmed"] == ["fx-01-ok"]
+    assert any("fx-01-ok" in r and "confirm" in r for r in run["not_publishable"])
+    assert (tmp_path / "README.md").read_bytes() == OLD_README
+    assert "not publishable" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("verdict", ["false-positive", "true", "not-applicable"])
+def test_a_labelled_finding_the_run_does_not_reproduce_makes_the_run_not_publishable(tmp_path, monkeypatch, capsys, verdict):
+    # Labels name this locrin version, so every finding entry came from this version's output: one the run
+    # does not report means the run did not reproduce what was labelled, whichever way it would move the numbers.
+    labels = tmp_path / "labels"
+    labels.mkdir()
+    write_label(labels, "fx-01-ok", [entry("src/x.ts", 2, "a" * 16, "true"), entry("src/logger.ts", 3, "b" * 16, verdict),
+                                     entry("src/x.ts", 8, None, "missed")])
+    args = _setup(tmp_path, monkeypatch, ["fx-01-ok"], {})
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif([result("src/x.ts", 2, "a" * 16)]))
+    assert main_mod.main(args) == 4
+    run = _run_json(tmp_path)
+    assert run["publishable"] is False and run["unlabelled"] == 0
+    assert run["labels"]["unreproduced"] == [{"diff": "fx-01-ok", "rule": "leftover-debug", "file": "src/logger.ts",
+                                              "line": 3, "id": "b" * 16, "pass1": verdict, "pass2": verdict}]
+    assert any("1 labelled finding not reproduced" in r for r in run["not_publishable"])
+    assert (tmp_path / "README.md").read_bytes() == OLD_README
+    err = capsys.readouterr().err
+    assert f"unreproduced: fx-01-ok leftover-debug src/logger.ts:3 {'b' * 16} {verdict}/{verdict}" in err

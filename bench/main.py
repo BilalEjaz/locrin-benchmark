@@ -14,12 +14,13 @@ from bench.labels import LabelError, load_labels
 from bench.materialise import MaterialiseError, SourceGone, materialise
 from bench.readme_table import replace_table
 from bench.run import Finding, RuleMeta, RunError, ignore_files_above, install_locrin, normalise, run_check
-from bench.score import excluded, render_markdown, score, stale
+from bench.score import excluded, excluded_count, render_markdown, score, unreproduced
 
 
 # Exit codes. Only 0 and 3 are publishable, and only then is the README table rewritten. Publishable also
-# needs labels that cover the run: every diff that ran has a label file written for this locrin version, and
-# every finding has a label entry.
+# needs labels that cover the run: every diff that ran has a label file written for this locrin version and
+# confirmed by pass two with no entry left `?`, every finding has a label entry, and every labelled finding
+# is reported again by this run. Entries whose two passes disagree are excluded, and the table counts them.
 # 0 every diff ran.
 # 1 not publishable: locrin or the harness failed on a diff, a source could not be materialised for any
 #   reason other than being confirmed gone (a network, DNS, server or disk error may pass), or no diff ran.
@@ -27,7 +28,8 @@ from bench.score import excluded, render_markdown, score, stale
 # 3 at least one diff ran, and every diff that did not is a confirmed gone source: its repository answers
 #   404 or the server lacks its commit after an explicit fetch. run.json lists them under "gone".
 # 4 not publishable: everything that could run ran, but the labels do not cover the run (a finding with no
-#   label entry, a diff with no label file, or a label file written for another locrin version).
+#   label entry, a diff with no label file, a label file written for another locrin version, a label file
+#   pass two never confirmed or with an entry still `?`, or a labelled finding this run did not report).
 EXIT_RUN_FAILED = 1
 EXIT_SETUP = 2
 EXIT_SOURCE_GONE = 3
@@ -118,10 +120,17 @@ def main(argv: list[str] | None = None) -> int:
     findings.sort(key=lambda f: (f.diff, f.rule, f.file, f.line, f.id))
     # Only diffs that ran are scored, so a failed diff neither adds its misses nor loses its true entries.
     per_rule, per_pair, unlabelled = score(findings, labels, rules, ran=ran)
-    unreported = stale(findings, labels, ran=ran)
     left_out = excluded(findings, labels, ran=ran)
+    left_out_total = excluded_count(findings, labels, ran=ran)
     missing = sorted(d for d in ran if d not in labels)
     other_version = sorted(d for d in ran if d in labels and labels[d].locrin != a.version)
+    # label.py new writes every entry as `?` with pass two unrecorded; such a file only looks like labels.
+    unconfirmed = sorted(d for d in ran if d in labels and (
+        labels[d].pass2 is None or any("?" in (e.pass1, e.pass2) for e in labels[d].entries)))
+    # Labels for this version were written from this version's output, so an entry no finding matches means
+    # the run did not reproduce what was labelled (another engine build, checkout or machine difference).
+    not_reproduced = unreproduced(findings, labels, ran=ran)
+    not_reproduced_here = [(d, e) for d, e in not_reproduced if labels[d].locrin == a.version]
     label_versions = sorted({labels[d].locrin for d in ran if d in labels})
     reasons = []
     if not ran:
@@ -137,18 +146,26 @@ def main(argv: list[str] | None = None) -> int:
     if other_version:
         found = ", ".join(v for v in label_versions if v != a.version)
         reasons.append(f"labels written for locrin {found}, not {a.version}: {', '.join(other_version)}")
+    if unconfirmed:
+        reasons.append(f"labels pass two has not confirmed, or with an entry still `?`: {', '.join(unconfirmed)}")
+    if not_reproduced_here:
+        n = len(not_reproduced_here)
+        reasons.append(f"{n} labelled finding{'' if n == 1 else 's'} not reproduced by this run")
     publishable = not reasons
     out = Path(a.out) / a.version
     out.mkdir(parents=True, exist_ok=True)
     _write(out / "findings.jsonl", "".join(json.dumps(dataclasses.asdict(f), sort_keys=True) + "\n" for f in findings))
     table = render_markdown(per_rule, per_pair, a.version, corpus_size=len(diffs), unlabelled=len(unlabelled), rules=rules,
-                           ran=len(ran))
+                           ran=len(ran), excluded=left_out_total)
     _write(out / "table.md", table)
     _write(out / "run.json", json.dumps({
         "locrin": a.version, "diffs": len(diffs), "ran": len(ran), "findings": len(findings), "unlabelled": len(unlabelled),
-        "excluded": len(left_out), "publishable": publishable, "not_publishable": reasons, "gone": gone,
+        "excluded": left_out_total, "publishable": publishable, "not_publishable": reasons, "gone": gone,
         "materialise_failures": mat_fail, "run_failures": run_fail,
-        "labels": {"versions": label_versions, "other_version": other_version, "missing": missing},
+        "labels": {"versions": label_versions, "other_version": other_version, "missing": missing,
+                   "unconfirmed": unconfirmed,
+                   "unreproduced": [{"diff": d, "rule": e.rule, "file": e.file, "line": e.line, "id": e.id,
+                                     "pass1": e.pass1, "pass2": e.pass2} for d, e in not_reproduced_here]},
         "inputs": measured, "harness": harness, "started": started, "finished": _now(),
     }, indent=2) + "\n")
     readme = Path(a.readme)
@@ -157,8 +174,8 @@ def main(argv: list[str] | None = None) -> int:
         _write(readme, replace_table(text, table))
     for f in unlabelled:
         print(f"unlabelled: {f.diff} {f.rule} {f.file}:{f.line} {f.id}", file=sys.stderr)
-    for diff_id, e in unreported:
-        print(f"stale: {diff_id} {e.rule} {e.file}:{e.line} {e.id}", file=sys.stderr)
+    for diff_id, e in not_reproduced:
+        print(f"unreproduced: {diff_id} {e.rule} {e.file}:{e.line} {e.id} {e.pass1}/{e.pass2}", file=sys.stderr)
     for f in left_out:
         print(f"excluded: {f.diff} {f.rule} {f.file}:{f.line} {f.id}", file=sys.stderr)
     print(table)
