@@ -6,11 +6,13 @@ Open an issue titled `label: <diff id> <rule> <file>:<line>` saying which verdic
 
 ## Adding a diff
 
-Run `python -m bench.build_corpus --repo owner/name --sha <commit>`; it refuses licences outside MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause and ISC. Then label it with `python label.py new <id>` and get a second pass with `python label.py confirm <id>`.
+Run `python -m bench.build_corpus --repo owner/name --sha <commit>`; it refuses licences outside MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause and ISC. Then label it with `python label.py new <id> --locrin <version> --by <name>` and, once a second pass has filled `pass2`, record it with `python label.py confirm <id> --by <name>` (see LABELLING.md).
 
 ## Pruning a diff whose commit is gone
 
-A repository that is deleted, made private or rewritten takes its commits with it. The results job then publishes the diffs that still check out, says how many ran, and fails with the list of the ones that did not. Run `python -m bench.build_corpus --check-gone` to list every record whose commit GitHub no longer serves, and remove those records and their labels in one pull request.
+A repository that is deleted, made private or rewritten takes its commits with it. When every diff that did not run has a source that is confirmed gone (the repository answers HTTP 404, or GitHub reports the commit missing after an explicit fetch), the results job publishes the rest, says how many ran, and fails with the list. A clone or fetch that fails for any other reason publishes nothing, and the next scheduled run tries again.
+
+Run `python -m bench.build_corpus --check-gone` to list, as `gone:` lines, every record whose commit GitHub answers 404 or 422 for. If gh fails any other way (not installed, not signed in, a network or server error) the check stops with `build_corpus: stopped:` and lists nothing more. Remove only the records listed as `gone:`, together with their labels, in one pull request.
 
 ## Rules for this repository
 

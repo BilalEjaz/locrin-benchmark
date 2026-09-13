@@ -1,6 +1,6 @@
 # Labelling protocol
 
-Every label is written twice, by two independent passes, and counts only when both agree. Pass one runs `python label.py new <id> --locrin <version> --by <name>`, which runs the engine on the diff and writes `labels/<id>.json` with every reported finding as an entry marked `?`. `new` refuses to overwrite an existing label file, so filled verdicts are never lost; pass `--force` only to discard one on purpose. The labeller reads the diff and the code around each finding and sets `pass1` on every entry, then adds `missed` entries for anything a rule should have reported and did not. Pass two works from a copy of the unfilled template that `new` wrote, so it never sees `pass1`: it sets `pass2` on every entry and adds its own `missed` entries, its verdicts are merged into `labels/<id>.json`, and then it runs `python label.py confirm <id> --by <name>`. `confirm` refuses a file that still has an entry marked `?` in either pass.
+Every label is written twice, by two independent passes, and counts only when both agree. Pass one runs `python label.py new <id> --locrin <version> --by <name>`, which runs the engine on the diff and writes `labels/<id>.json` with every reported finding as an entry marked `?`. `new` refuses to overwrite an existing label file, so filled verdicts are never lost; pass `--force` only to discard one on purpose. The labeller reads the diff and the code around each finding and sets `pass1` on every entry, then adds `missed` entries for anything a rule should have reported and did not. Pass two works from a copy of the unfilled template that `new` wrote, so it never sees `pass1`: it sets `pass2` on every entry and adds its own `missed` entries, its verdicts are merged into `labels/<id>.json`, and then it runs `python label.py confirm <id> --by <name>`. `confirm` refuses a file that still has an entry marked `?` in either pass. Until `confirm` has recorded pass two in the file, none of its entries count: a finding on one is listed as `excluded` by the run.
 
 Verdicts:
 
@@ -27,8 +27,8 @@ Verdicts:
 - `html-injection`: unescaped interpolation into innerHTML, dangerouslySetInnerHTML or a template rendered as HTML.
 - `supabase-service-role-in-client`, `supabase-table-without-rls`, `express-cors-wildcard-on-authenticated`, `express-cookie-insecure`: the named construct in code that runs on the client (or the server, for the Express pair) exactly as the rule name says.
 
-Not labelled: `vulnerable-dependency` (advisory feed), `boundary-violation` and `express-route-without-auth` (need per-repository config). Entries for these rules are set to `not-applicable`.
+Not scored: `vulnerable-dependency` (advisory feed), `boundary-violation` and `express-route-without-auth` (need per-repository config). The table never gives them a number, but an entry for one still gets a truthful verdict under the definitions above: `true` when the finding is a real instance of what the rule name describes, `false-positive` when it is not. `not-applicable` keeps its one meaning, a file the diff did not really change.
 
 ## Disputes
 
-An entry where the two passes disagree is listed by `python label.py status` and excluded from every number until a maintainer settles it by editing both passes with a note that says why.
+An entry where the two passes disagree is listed by `python label.py status --labels labels` (a `disagree:` line under its file's counts) and excluded from every number until a maintainer settles it by editing both passes with a note that says why.
