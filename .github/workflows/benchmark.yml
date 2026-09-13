@@ -13,6 +13,9 @@ on:
         default: true
 permissions:
   contents: write
+concurrency:
+  group: benchmark
+  cancel-in-progress: false
 jobs:
   measure:
     runs-on: ubuntu-latest

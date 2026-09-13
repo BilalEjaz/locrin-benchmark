@@ -49,6 +49,11 @@ def test_benchmark_commits_only_on_schedule_or_when_commit_is_true():
     assert "permissions:\n  contents: write\n" in bm
 
 
+def test_benchmark_runs_one_at_a_time_so_two_runs_never_race_to_push():
+    bm = read("benchmark.yml")
+    assert "concurrency:\n  group: benchmark\n  cancel-in-progress: false\n" in bm
+
+
 def test_benchmark_uses_the_workflow_token_through_gh_and_no_secret():
     bm = read("benchmark.yml")
     assert "GH_TOKEN: ${{ github.token }}" in step(bm, "Resolve version")
