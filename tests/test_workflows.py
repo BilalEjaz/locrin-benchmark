@@ -1,5 +1,12 @@
 """Text checks on the two workflows. The standard library has no YAML parser, so these read lines."""
+import json
+import os
+import shutil
+import subprocess
+import sys
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = ROOT / ".github" / "workflows"
@@ -85,14 +92,115 @@ def test_benchmark_schedule_skips_until_the_corpus_and_labels_exist():
     assert resolve.count('echo "skip=true" >> "$GITHUB_OUTPUT"') == 1
 
 
-def test_benchmark_publishes_when_only_source_checkouts_failed_then_flags_them():
+def test_benchmark_publishes_when_only_confirmed_gone_sources_failed_then_flags_them():
     bm = read("benchmark.yml")
     run = step(bm, "Run")
     assert "id: run\n" in run
     assert './run.sh "$V" || code=$?' in run
     assert 'echo "code=$code" >> "$GITHUB_OUTPUT"' in run
-    assert 'if [[ "$code" != 0 && "$code" != 3 ]]; then exit "$code"; fi' in run
-    flag = step(bm, "Flag diffs that could not be checked out")
+    flag = step(bm, "Flag diffs whose source is gone")
     assert "if: steps.run.outputs.code == '3'" in flag
-    assert "materialise_failures" in flag and "exit 1" in flag
-    assert bm.index("- name: Commit results\n") < bm.index("- name: Flag diffs that could not be checked out\n")
+    assert '["gone"]' in flag and "exit 1" in flag
+    assert "materialise_failures" not in flag
+    assert bm.index("- name: Commit results\n") < bm.index("- name: Flag diffs whose source is gone\n")
+
+
+# The step scripts themselves, run with bash, so the skip and publish logic is tested, not just its text.
+
+def _bash() -> str | None:
+    found = shutil.which("bash")
+    # On Windows, System32\bash.exe is the WSL launcher, which cannot see these paths.
+    if found is None or "system32" in found.lower():
+        return None
+    return found
+
+
+needs_bash = pytest.mark.skipif(_bash() is None, reason="no POSIX bash")
+
+
+def script(text: str, name: str) -> str:
+    """The shell script of one step's `run: |` block, dedented."""
+    block = step(text, name)
+    lines = block.split("\n")
+    start = next(i for i, line in enumerate(lines) if line.strip() == "run: |") + 1
+    body = [line for line in lines[start:]]
+    indent = min(len(line) - len(line.lstrip(" ")) for line in body if line.strip())
+    return "\n".join(line[indent:] for line in body).strip("\n") + "\n"
+
+
+def _run_step(tmp_path: Path, name: str, env: dict[str, str]) -> tuple[subprocess.CompletedProcess, dict[str, str]]:
+    (tmp_path / "step.sh").write_bytes(script(read("benchmark.yml"), name).encode("utf-8"))
+    output = tmp_path / "github_output"
+    output.write_bytes(b"")
+    path = os.pathsep.join([str(Path(sys.executable).parent), os.environ.get("PATH", "")])
+    full = dict(os.environ, PATH=path, GITHUB_OUTPUT=str(output), **env)
+    proc = subprocess.run([_bash(), "-e", "step.sh"], cwd=tmp_path, env=full, capture_output=True, text=True)
+    outputs = dict(line.split("=", 1) for line in output.read_text(encoding="utf-8").splitlines() if "=" in line)
+    return proc, outputs
+
+
+def _scheduled_tree(tmp_path: Path, run_json: dict | None) -> None:
+    (tmp_path / "corpus").mkdir()
+    (tmp_path / "corpus" / "acme__w__1234567.json").write_bytes(b"{}")
+    (tmp_path / "labels").mkdir()
+    (tmp_path / "labels" / "acme__w__1234567.json").write_bytes(b"{}")
+    if run_json is not None:
+        (tmp_path / "results" / "v0.5.0").mkdir(parents=True)
+        (tmp_path / "results" / "v0.5.0" / "run.json").write_bytes(json.dumps(run_json).encode("utf-8"))
+
+
+@needs_bash
+@pytest.mark.parametrize("run_json, skip", [
+    ({"diffs": 3, "ran": 3, "publishable": True, "gone": []}, True),
+    ({"diffs": 3, "ran": 2, "publishable": True, "gone": [{"id": "x", "evidence": "404"}]}, True),
+    ({"diffs": 3, "ran": 1, "publishable": False, "gone": []}, False),
+    ({"diffs": 3, "ran": 0, "materialise_failures": ["x: git clone failed"]}, False),
+    (None, False),
+])
+def test_scheduled_run_skips_a_version_only_when_its_run_json_records_a_publishable_run(tmp_path, run_json, skip):
+    _scheduled_tree(tmp_path, run_json)
+    proc, outputs = _run_step(tmp_path, "Resolve version", {"VERSION": "v0.5.0", "EVENT": "schedule"})
+    assert proc.returncode == 0, proc.stderr
+    assert outputs["version"] == "v0.5.0"
+    assert (outputs.get("skip") == "true") is skip, proc.stdout
+
+
+@needs_bash
+def test_a_malformed_run_json_is_measured_again_not_skipped(tmp_path):
+    _scheduled_tree(tmp_path, None)
+    (tmp_path / "results" / "v0.5.0").mkdir(parents=True)
+    (tmp_path / "results" / "v0.5.0" / "run.json").write_bytes(b"not json")
+    proc, outputs = _run_step(tmp_path, "Resolve version", {"VERSION": "v0.5.0", "EVENT": "schedule"})
+    assert proc.returncode == 0, proc.stderr
+    assert "skip" not in outputs
+
+
+@needs_bash
+def test_a_dispatched_run_never_skips(tmp_path):
+    _scheduled_tree(tmp_path, {"publishable": True})
+    proc, outputs = _run_step(tmp_path, "Resolve version", {"VERSION": "v0.5.0", "EVENT": "workflow_dispatch"})
+    assert proc.returncode == 0, proc.stderr
+    assert "skip" not in outputs
+
+
+@needs_bash
+@pytest.mark.parametrize("code, passes", [(0, True), (3, True), (1, False), (2, False), (4, False)])
+def test_the_run_step_lets_only_publishable_exit_codes_through(tmp_path, code, passes):
+    (tmp_path / "run.sh").write_bytes(f"#!/usr/bin/env bash\nexit {code}\n".encode("utf-8"))
+    os.chmod(tmp_path / "run.sh", 0o755)
+    proc, outputs = _run_step(tmp_path, "Run", {"V": "v0.5.0"})
+    assert (proc.returncode == 0) is passes, proc.stderr
+    assert outputs["code"] == str(code)
+
+
+@needs_bash
+def test_the_flag_step_prints_each_gone_diff_as_one_json_string_and_fails(tmp_path):
+    (tmp_path / "results" / "v0.5.0").mkdir(parents=True)
+    gone = [{"id": "acme__w__1234567", "evidence": "::error::https://github.com/acme/w answers HTTP 404"}]
+    (tmp_path / "results" / "v0.5.0" / "run.json").write_bytes(json.dumps({"gone": gone}).encode("utf-8"))
+    proc, _ = _run_step(tmp_path, "Flag diffs whose source is gone", {"V": "v0.5.0"})
+    assert proc.returncode == 1
+    lines = proc.stdout.splitlines()
+    assert lines[0] == "source gone: " + json.dumps("acme__w__1234567: ::error::https://github.com/acme/w answers HTTP 404")
+    assert not any(line.startswith("::") for line in lines)
+    assert "build_corpus --check-gone" in proc.stdout
