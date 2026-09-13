@@ -73,3 +73,26 @@ def test_benchmark_schedule_only_runs_on_main_so_it_never_commits_to_a_feature_b
     bm = read("benchmark.yml")
     job = bm[bm.index("  measure:\n"):bm.index("    steps:\n")]
     assert "    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'\n" in job
+
+
+def test_benchmark_schedule_skips_until_the_corpus_and_labels_exist():
+    # Without this guard the first scheduled run on main publishes an empty v0.5.0 table and
+    # every later run skips that version because run.json exists.
+    resolve = step(read("benchmark.yml"), "Resolve version")
+    assert 'if [[ "$EVENT" == "schedule" ]]; then' in resolve
+    assert 'compgen -G "labels/*.json"' in resolve
+    assert 'compgen -G "corpus/*.json"' in resolve
+    assert resolve.count('echo "skip=true" >> "$GITHUB_OUTPUT"') == 1
+
+
+def test_benchmark_publishes_when_only_source_checkouts_failed_then_flags_them():
+    bm = read("benchmark.yml")
+    run = step(bm, "Run")
+    assert "id: run\n" in run
+    assert './run.sh "$V" || code=$?' in run
+    assert 'echo "code=$code" >> "$GITHUB_OUTPUT"' in run
+    assert 'if [[ "$code" != 0 && "$code" != 3 ]]; then exit "$code"; fi' in run
+    flag = step(bm, "Flag diffs that could not be checked out")
+    assert "if: steps.run.outputs.code == '3'" in flag
+    assert "materialise_failures" in flag and "exit 1" in flag
+    assert bm.index("- name: Commit results\n") < bm.index("- name: Flag diffs that could not be checked out\n")
