@@ -1,0 +1,32 @@
+{
+  "diff": "fx-04-marker",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-13"
+  },
+  "pass2": {
+    "by": "opus-recheck",
+    "date": "2026-09-13"
+  },
+  "entries": [
+    {
+      "rule": "leftover-agent-marker",
+      "file": "lib/d.js",
+      "line": 2,
+      "id": "c670da920cdf5fb0",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "TODO added by the change"
+    },
+    {
+      "rule": "leftover-agent-marker",
+      "file": "lib/d.js",
+      "line": 6,
+      "id": "7df29f25a71671a1",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "FIXME added by the change"
+    }
+  ]
+}

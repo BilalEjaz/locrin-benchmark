@@ -1,0 +1,23 @@
+{
+  "diff": "fx-02-unused-import",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-13"
+  },
+  "pass2": {
+    "by": "opus-recheck",
+    "date": "2026-09-13"
+  },
+  "entries": [
+    {
+      "rule": "unused-import",
+      "file": "src/b.ts",
+      "line": 1,
+      "id": "f361ec40d7d410e3",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "join is never used"
+    }
+  ]
+}

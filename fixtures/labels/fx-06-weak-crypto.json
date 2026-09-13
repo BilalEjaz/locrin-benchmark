@@ -1,0 +1,23 @@
+{
+  "diff": "fx-06-weak-crypto",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-13"
+  },
+  "pass2": {
+    "by": "opus-recheck",
+    "date": "2026-09-13"
+  },
+  "entries": [
+    {
+      "rule": "weak-crypto",
+      "file": "src/f.ts",
+      "line": 4,
+      "id": "55e17c6e15830034",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "md5 hashing a password"
+    }
+  ]
+}

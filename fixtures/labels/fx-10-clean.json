@@ -1,0 +1,13 @@
+{
+  "diff": "fx-10-clean",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-13"
+  },
+  "pass2": {
+    "by": "opus-recheck",
+    "date": "2026-09-13"
+  },
+  "entries": []
+}

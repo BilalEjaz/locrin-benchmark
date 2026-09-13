@@ -1,0 +1,23 @@
+{
+  "diff": "fx-07-test-no-assert",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-13"
+  },
+  "pass2": {
+    "by": "opus-recheck",
+    "date": "2026-09-13"
+  },
+  "entries": [
+    {
+      "rule": "test-no-assert",
+      "file": "src/g.test.ts",
+      "line": 8,
+      "id": "6c38b8dcc9567ca4",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "test x calls run() with no expectation"
+    }
+  ]
+}

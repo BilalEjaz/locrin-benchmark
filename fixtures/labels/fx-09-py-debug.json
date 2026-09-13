@@ -1,0 +1,23 @@
+{
+  "diff": "fx-09-py-debug",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-13"
+  },
+  "pass2": {
+    "by": "opus-recheck",
+    "date": "2026-09-13"
+  },
+  "entries": [
+    {
+      "rule": "leftover-debug",
+      "file": "pkg/i.py",
+      "line": 5,
+      "id": "f084da92fc3ef653",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "breakpoint() left in"
+    }
+  ]
+}

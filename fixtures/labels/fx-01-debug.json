@@ -1,0 +1,32 @@
+{
+  "diff": "fx-01-debug",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-13"
+  },
+  "pass2": {
+    "by": "opus-recheck",
+    "date": "2026-09-13"
+  },
+  "entries": [
+    {
+      "rule": "leftover-debug",
+      "file": "src/a.ts",
+      "line": 5,
+      "id": "29cc6238d682a721",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "debug print of the running sum inside the loop"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "src/logger.ts",
+      "line": 3,
+      "id": "01b73e4aa766c158",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "the module's real logging: exported info() writes to stdout"
+    }
+  ]
+}

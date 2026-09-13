@@ -1,0 +1,23 @@
+{
+  "diff": "fx-08-php-debug",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-13"
+  },
+  "pass2": {
+    "by": "opus-recheck",
+    "date": "2026-09-13"
+  },
+  "entries": [
+    {
+      "rule": "leftover-debug",
+      "file": "app/h.php",
+      "line": 5,
+      "id": "9c0b4c076e0d8256",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "var_dump left in"
+    }
+  ]
+}

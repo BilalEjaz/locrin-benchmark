@@ -1,0 +1,32 @@
+{
+  "diff": "fx-03-unreachable",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-13"
+  },
+  "pass2": {
+    "by": "opus-recheck",
+    "date": "2026-09-13"
+  },
+  "entries": [
+    {
+      "rule": "unreachable",
+      "file": "src/c.ts",
+      "line": 5,
+      "id": "6b1d18a3e80982a9",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "statement after return n"
+    },
+    {
+      "rule": "unreachable",
+      "file": "src/c.ts",
+      "line": 9,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "if (false) return \"never\": a branch whose condition is a literal"
+    }
+  ]
+}
