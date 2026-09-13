@@ -159,6 +159,46 @@ def test_tree_source_ignores_hostile_global_git_config(tmp_path, monkeypatch):
     assert tree == ["lib/d.js", "package.json"]
 
 
+def _hostile_user_git_dir(tmp_path: Path, monkeypatch, how: str, ignore: str, attributes: str) -> None:
+    # Git reads $XDG_CONFIG_HOME/git/ignore and attributes (or $HOME/.config/git/...)
+    # even when no config file names them.
+    home = tmp_path / "home"
+    xdg = home / ".config"
+    (xdg / "git").mkdir(parents=True)
+    (xdg / "git" / "ignore").write_text(ignore, newline="\n")
+    (xdg / "git" / "attributes").write_text(attributes, newline="\n")
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    if how == "xdg":
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(xdg))
+    else:
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+
+
+@pytest.mark.parametrize("how", ["xdg", "home"])
+@pytest.mark.parametrize("attributes", ["*.js working-tree-encoding=UTF-16LE\n", "* text=auto\n"])
+def test_tree_source_ignores_default_global_ignore_and_attributes_files(tmp_path, monkeypatch, how, attributes):
+    _hostile_user_git_dir(tmp_path, monkeypatch, how, "lib/\n", attributes)
+    d = next(x for x in load_corpus(FIXTURES) if x.id == "fx-04-marker")
+    co = materialise(d, FIXTURES, tmp_path / "cache")
+    tree = subprocess.run(["git", "ls-tree", "-r", "--name-only", "HEAD"], cwd=co.root, capture_output=True, text=True,
+                          check=True).stdout.split()
+    assert tree == ["lib/d.js", "package.json"]
+    assert co.base_ref == "22d4783be682980439e633d89ffbb82bd691ad6a"
+
+
+@pytest.mark.parametrize("how", ["xdg", "home"])
+def test_tree_source_keeps_crlf_under_a_global_text_auto_attributes_file(tmp_path, monkeypatch, how):
+    _hostile_user_git_dir(tmp_path, monkeypatch, how, "", "* text=auto\n")
+    d, corpus = tree_diff(tmp_path)
+    content = b"export const a = 2;\r\nexport const b = 3;\r\n"
+    (corpus / "fx-x" / "after" / "src" / "a.ts").write_bytes(content)
+    co = materialise(d, corpus, tmp_path / "cache")
+    blob = subprocess.run(["git", "cat-file", "blob", "HEAD:src/a.ts"], cwd=co.root,
+                          capture_output=True, check=True).stdout
+    assert blob == content
+
+
 def _run(args: list[str], cwd: Path) -> str:
     env = dict(os.environ)
     env.update({"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid",
@@ -197,6 +237,40 @@ def test_git_source_with_relative_cache_clones_into_the_cache(tmp_path, monkeypa
         assert co.base_ref == parent
         assert (co.root / "src" / "a.ts").read_bytes() == b"export const a = 2;\n"
     assert not (run_dir / "cache" / "repos" / "cache").exists()
+
+
+def _local_upstream(tmp_path: Path, monkeypatch) -> Diff:
+    work = tmp_path / "upstream"
+    work.mkdir()
+    _run(["init", "-q", "-b", "main"], work)
+    (work / "src").mkdir()
+    (work / "src" / "a.ts").write_bytes(b"export const a = 1;\n")
+    _run(["add", "src/a.ts"], work)
+    _run(["commit", "-q", "--no-verify", "-m", "one"], work)
+    parent = _run(["rev-parse", "HEAD"], work).strip()
+    (work / "src" / "a.ts").write_bytes(b"export const a = 2;\n")
+    _run(["commit", "-q", "--no-verify", "-am", "two"], work)
+    sha = _run(["rev-parse", "HEAD"], work).strip()
+    remotes = tmp_path / "remotes"
+    (remotes / "acme").mkdir(parents=True)
+    _run(["clone", "-q", "--bare", str(work), str(remotes / "acme" / "w.git")], tmp_path)
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", f"url.{remotes.as_uri()}/.insteadOf")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "https://github.com/")
+    return Diff(id=f"acme__w__{sha[:7]}", source="git", repo="acme/w", sha=sha, parent=parent,
+                licence="MIT", language="typescript", url="u", files=["src/a.ts"])
+
+
+@pytest.mark.parametrize("how", ["xdg", "home"])
+def test_git_source_ignores_default_global_ignore_and_attributes_files(tmp_path, monkeypatch, how):
+    d = _local_upstream(tmp_path, monkeypatch)
+    _hostile_user_git_dir(tmp_path, monkeypatch, how, "stale.ts\n", "*.ts text eol=crlf\n")
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    assert (co.root / "src" / "a.ts").read_bytes() == b"export const a = 2;\n"
+    (co.root / "stale.ts").write_bytes(b"left over from an earlier run\n")
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    assert not (co.root / "stale.ts").exists()
+    assert (co.root / "src" / "a.ts").read_bytes() == b"export const a = 2;\n"
 
 
 def test_git_failure_names_the_diff(tmp_path, monkeypatch):

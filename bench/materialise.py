@@ -19,15 +19,27 @@ _ENV = {
     "GIT_COMMITTER_EMAIL": "bench@example.invalid",
     "GIT_COMMITTER_DATE": "2026-01-01T00:00:00+0000",
     "GIT_TERMINAL_PROMPT": "0",
+    # Skip the system-wide gitattributes file, which no config setting can turn off.
+    "GIT_ATTR_NOSYSTEM": "1",
 }
-# Applied to every git call so line endings and signing never depend on the
-# machine's git configuration.
-_CONFIG = ("-c", "core.autocrlf=false", "-c", "commit.gpgsign=false")
+# Settings that keep line endings, blob contents, the set of committed or
+# cleaned files, and signing independent of the machine. They go on every git
+# call and into each repository's own config. Git reads a default ignore file
+# and attributes file ($XDG_CONFIG_HOME/git/ or ~/.config/git/) even when no
+# config file names them, so point both at the null device explicitly.
+_SETTINGS = (
+    ("core.autocrlf", "false"),
+    ("core.excludesFile", os.devnull),
+    ("core.attributesFile", os.devnull),
+    ("commit.gpgsign", "false"),
+)
+_CONFIG = tuple(arg for key, value in _SETTINGS for arg in ("-c", f"{key}={value}"))
 # Variables that let the machine's environment inject configuration, templates
 # or a different object format. Isolated calls drop them.
 _LEAKY_ENV_PREFIXES = ("GIT_CONFIG",)
 _LEAKY_ENV = ("GIT_TEMPLATE_DIR", "GIT_DEFAULT_HASH", "GIT_DIR", "GIT_WORK_TREE",
-              "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES")
+              "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+              "GIT_ATTR_SOURCE")
 
 
 class MaterialiseError(Exception):
@@ -44,11 +56,12 @@ class Checkout:
 def _git(args: list[str], cwd: Path, *, isolated: bool = False) -> str:
     """Run git in cwd.
 
-    isolated=True ignores the global and system git configuration and the
-    environment overrides above, so the throwaway tree repositories get the
-    same files, hooks (none) and shas on every machine. Git-source calls stay
-    unisolated because clone and the lazy blob fetches of a partial clone may
-    need the machine's network settings (proxy, CA bundle).
+    Every call carries _CONFIG and skips the default global ignore and
+    attributes files. isolated=True also ignores the global and system git
+    configuration and the environment overrides above, so the throwaway tree
+    repositories get the same files, hooks (none) and shas on every machine.
+    Git-source calls stay unisolated because clone and the lazy blob fetches of
+    a partial clone may need the machine's network settings (proxy, CA bundle).
     """
     env = dict(os.environ)
     if isolated:
@@ -91,6 +104,14 @@ def _clear_worktree(root: Path) -> None:
         _rmtree(p) if p.is_dir() else p.unlink()
 
 
+def _persist_settings(git) -> None:
+    # Written to the repository's own config so locrin's later git calls in the
+    # checkout see the same line endings, attributes and ignore rules.
+    for key, value in _SETTINGS:
+        if key != "commit.gpgsign":
+            git(["config", key, value])
+
+
 def _strip_engine_files(root: Path) -> list[str]:
     removed = []
     for name in ENGINE_FILES:
@@ -114,7 +135,7 @@ def _materialise_tree(diff: Diff, corpus_root: Path, cache: Path) -> Checkout:
         return _git(args, root, isolated=True)
 
     git(["init", "-q", "--template=", "--object-format=sha1", "-b", "main"])
-    git(["config", "core.autocrlf", "false"])
+    _persist_settings(git)
     _copy_tree(src / "before", root)
     _strip_engine_files(root)
     git(["add", "-A"])
@@ -134,7 +155,7 @@ def _materialise_git(diff: Diff, cache: Path) -> Checkout:
     if not root.exists():
         root.parent.mkdir(parents=True, exist_ok=True)
         _git(["clone", "--filter=blob:none", f"https://github.com/{diff.repo}.git", str(root)], root.parent)
-        _git(["config", "core.autocrlf", "false"], root)
+        _persist_settings(lambda args: _git(args, root))
     _git(["checkout", "--detach", "-f", diff.sha], root)
     _git(["clean", "-fdq"], root)
     removed = _strip_engine_files(root)
