@@ -1,0 +1,519 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "exitCode": 1
+        }
+      ],
+      "results": [
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/a.ts",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 27,
+                  "endLine": 5,
+                  "startColumn": 1,
+                  "startLine": 5
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "console.log(\"debug\", sum); Fix: Remove the debug statement or route it through the project logger"
+          },
+          "partialFingerprints": {
+            "locrin/id": "29cc6238d682a721"
+          },
+          "properties": {
+            "category": "erosion",
+            "confidence": "high",
+            "related": []
+          },
+          "ruleId": "leftover-debug",
+          "ruleIndex": 0
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/logger.ts",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 30,
+                  "endLine": 3,
+                  "startColumn": 1,
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "console.log(`[info] ${msg}`); Fix: Remove the debug statement or route it through the project logger"
+          },
+          "partialFingerprints": {
+            "locrin/id": "01b73e4aa766c158"
+          },
+          "properties": {
+            "category": "erosion",
+            "confidence": "high",
+            "related": []
+          },
+          "ruleId": "leftover-debug",
+          "ruleIndex": 0
+        }
+      ],
+      "tool": {
+        "driver": {
+          "informationUri": "https://locrin.com",
+          "name": "locrin",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "error"
+              },
+              "id": "leftover-debug",
+              "name": "leftover-debug",
+              "properties": {
+                "category": "erosion",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript",
+                  "php",
+                  "python"
+                ]
+              },
+              "shortDescription": {
+                "text": "A debug statement left in code"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "warning"
+              },
+              "id": "leftover-commented-code",
+              "name": "leftover-commented-code",
+              "properties": {
+                "category": "erosion",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript",
+                  "php",
+                  "python"
+                ]
+              },
+              "shortDescription": {
+                "text": "Three or more consecutive commented-out statements"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "note"
+              },
+              "id": "leftover-agent-marker",
+              "name": "leftover-agent-marker",
+              "properties": {
+                "category": "erosion",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript",
+                  "php",
+                  "python"
+                ]
+              },
+              "shortDescription": {
+                "text": "TODO or FIXME without an issue reference"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "note"
+              },
+              "id": "unused-import",
+              "name": "unused-import",
+              "properties": {
+                "category": "erosion",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "Imported name that the file never references"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "warning"
+              },
+              "id": "unreachable",
+              "name": "unreachable",
+              "properties": {
+                "category": "erosion",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "Code after an unconditional return, throw, break, or continue"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "note"
+              },
+              "id": "dead-export",
+              "name": "dead-export",
+              "properties": {
+                "category": "erosion",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "Exported symbol that no file imports"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": false,
+                "level": "warning"
+              },
+              "id": "dead-file",
+              "name": "dead-file",
+              "properties": {
+                "category": "erosion",
+                "enabledByDefault": false,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "Source file that nothing imports and no framework loads"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "error"
+              },
+              "id": "boundary-violation",
+              "name": "boundary-violation",
+              "properties": {
+                "category": "erosion",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "Import that crosses a direction the config forbids"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": false,
+                "level": "warning"
+              },
+              "id": "swallowed-error",
+              "name": "swallowed-error",
+              "properties": {
+                "category": "erosion",
+                "enabledByDefault": false,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "An error that nothing acts on: an empty catch, a log-only catch, or an unheld promise"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "note"
+              },
+              "id": "test-no-assert",
+              "name": "test-no-assert",
+              "properties": {
+                "category": "erosion",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "A test case that runs code without asserting anything, so it passes unless the body throws"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "warning"
+              },
+              "id": "test-newly-skipped",
+              "name": "test-newly-skipped",
+              "properties": {
+                "category": "erosion",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "A test case this change stopped running, so the suite still passes with the case's ground uncovered"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "error"
+              },
+              "id": "secret-exposed",
+              "name": "secret-exposed",
+              "properties": {
+                "category": "security",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript",
+                  "php",
+                  "python"
+                ]
+              },
+              "shortDescription": {
+                "text": "A provider credential committed to source, which is live until it is revoked"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "error"
+              },
+              "id": "weak-crypto",
+              "name": "weak-crypto",
+              "properties": {
+                "category": "security",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "A broken hash over a credential, a guessable secret, or a fixed initialisation vector"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": false,
+                "level": "error"
+              },
+              "id": "injection-sink",
+              "name": "injection-sink",
+              "properties": {
+                "category": "security",
+                "enabledByDefault": false,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "A built string reaching an evaluator, a shell, or a SQL driver"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "error"
+              },
+              "id": "html-injection",
+              "name": "html-injection",
+              "properties": {
+                "category": "security",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "Unsanitised markup reaching an HTML sink"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "error"
+              },
+              "id": "vulnerable-dependency",
+              "name": "vulnerable-dependency",
+              "properties": {
+                "category": "security",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript",
+                  "php",
+                  "python"
+                ]
+              },
+              "shortDescription": {
+                "text": "Installed dependency with a published security advisory"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "error"
+              },
+              "id": "supabase-service-role-in-client",
+              "name": "supabase-service-role-in-client",
+              "properties": {
+                "category": "security",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "Supabase service-role key referenced outside server code"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "error"
+              },
+              "id": "supabase-table-without-rls",
+              "name": "supabase-table-without-rls",
+              "properties": {
+                "category": "security",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "Supabase table created without row-level security"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "error"
+              },
+              "id": "express-route-without-auth",
+              "name": "express-route-without-auth",
+              "properties": {
+                "category": "security",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "Express route registered without an auth middleware"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "error"
+              },
+              "id": "express-cors-wildcard-on-authenticated",
+              "name": "express-cors-wildcard-on-authenticated",
+              "properties": {
+                "category": "security",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "Wildcard CORS on an authenticated Express route"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "enabled": true,
+                "level": "error"
+              },
+              "id": "express-cookie-insecure",
+              "name": "express-cookie-insecure",
+              "properties": {
+                "category": "security",
+                "enabledByDefault": true,
+                "languages": [
+                  "typescript",
+                  "tsx",
+                  "javascript"
+                ]
+              },
+              "shortDescription": {
+                "text": "Cookie set without httpOnly or secure"
+              }
+            }
+          ],
+          "version": "0.5.0"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}
