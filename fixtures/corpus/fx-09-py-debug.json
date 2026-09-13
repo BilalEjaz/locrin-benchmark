@@ -1,0 +1,13 @@
+{
+  "id": "fx-09-py-debug",
+  "source": "tree",
+  "repo": null,
+  "sha": null,
+  "parent": null,
+  "licence": "MIT",
+  "language": "python",
+  "url": "fixture",
+  "files": [
+    "pkg/i.py"
+  ]
+}

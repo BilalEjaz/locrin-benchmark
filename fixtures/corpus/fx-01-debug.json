@@ -1,0 +1,14 @@
+{
+  "id": "fx-01-debug",
+  "source": "tree",
+  "repo": null,
+  "sha": null,
+  "parent": null,
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "fixture",
+  "files": [
+    "src/a.ts",
+    "src/logger.ts"
+  ]
+}

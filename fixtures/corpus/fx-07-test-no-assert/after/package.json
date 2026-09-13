@@ -1,0 +1,8 @@
+{
+  "name": "fx-07-test-no-assert",
+  "private": true,
+  "exports": {
+    ".": "./src/g.ts",
+    "./test": "./src/g.test.ts"
+  }
+}

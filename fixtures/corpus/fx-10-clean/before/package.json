@@ -1,0 +1,7 @@
+{
+  "name": "fx-10-clean",
+  "private": true,
+  "exports": {
+    ".": "./src/j.ts"
+  }
+}

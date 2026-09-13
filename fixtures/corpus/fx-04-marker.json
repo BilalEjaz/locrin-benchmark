@@ -1,0 +1,13 @@
+{
+  "id": "fx-04-marker",
+  "source": "tree",
+  "repo": null,
+  "sha": null,
+  "parent": null,
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "fixture",
+  "files": [
+    "lib/d.js"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "name": "fx-06-weak-crypto",
+  "private": true,
+  "exports": {
+    ".": "./src/f.ts"
+  }
+}

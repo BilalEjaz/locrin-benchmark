@@ -1,0 +1,8 @@
+{
+  "name": "fx-01-debug",
+  "private": true,
+  "exports": {
+    "./a": "./src/a.ts",
+    "./logger": "./src/logger.ts"
+  }
+}

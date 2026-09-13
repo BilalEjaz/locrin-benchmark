@@ -1,0 +1,13 @@
+{
+  "id": "fx-03-unreachable",
+  "source": "tree",
+  "repo": null,
+  "sha": null,
+  "parent": null,
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "fixture",
+  "files": [
+    "src/c.ts"
+  ]
+}

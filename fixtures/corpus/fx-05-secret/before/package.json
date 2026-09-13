@@ -1,0 +1,7 @@
+{
+  "name": "fx-05-secret",
+  "private": true,
+  "exports": {
+    ".": "./src/e.ts"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "fx-08-php-debug",
+  "private": true,
+  "exports": {
+    ".": "./app/h.php"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "fx-08-php-debug",
+  "source": "tree",
+  "repo": null,
+  "sha": null,
+  "parent": null,
+  "licence": "MIT",
+  "language": "php",
+  "url": "fixture",
+  "files": [
+    "app/h.php"
+  ]
+}

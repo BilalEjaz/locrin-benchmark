@@ -1,0 +1,7 @@
+{
+  "name": "fx-03-unreachable",
+  "private": true,
+  "exports": {
+    ".": "./src/c.ts"
+  }
+}

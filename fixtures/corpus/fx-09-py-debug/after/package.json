@@ -1,0 +1,7 @@
+{
+  "name": "fx-09-py-debug",
+  "private": true,
+  "exports": {
+    ".": "./pkg/i.py"
+  }
+}

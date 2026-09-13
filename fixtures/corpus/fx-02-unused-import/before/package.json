@@ -1,0 +1,7 @@
+{
+  "name": "fx-02-unused-import",
+  "private": true,
+  "exports": {
+    ".": "./src/b.ts"
+  }
+}

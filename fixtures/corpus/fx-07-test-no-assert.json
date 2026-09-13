@@ -1,0 +1,13 @@
+{
+  "id": "fx-07-test-no-assert",
+  "source": "tree",
+  "repo": null,
+  "sha": null,
+  "parent": null,
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "fixture",
+  "files": [
+    "src/g.test.ts"
+  ]
+}

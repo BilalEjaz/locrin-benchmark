@@ -1,0 +1,7 @@
+{
+  "name": "fx-04-marker",
+  "private": true,
+  "exports": {
+    ".": "./lib/d.js"
+  }
+}
