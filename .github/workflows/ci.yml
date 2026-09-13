@@ -1,0 +1,27 @@
+name: ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest
+      - name: Install locrin 0.5.0
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/BilalEjaz/locrin/main/install.sh | bash -s v0.5.0
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: locrin --version
+      - run: python -m pytest -q
+      - name: Fixture run end to end
+        run: LOCRIN_BIN="$HOME/.local/bin/locrin" ./run.sh v0.5.0 --corpus fixtures/corpus --labels fixtures/labels --out /tmp/results --readme /tmp/README.md
+      - name: No em dashes
+        run: |
+          if grep -rIl $'\xe2\x80\x94' --exclude-dir=.git --exclude-dir=corpus --exclude-dir=.cache --exclude-dir=.work . ; then echo "em dash found" >&2; exit 1; fi

@@ -1,0 +1,51 @@
+name: benchmark
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Locrin version tag to measure (blank: latest release)"
+        default: ""
+      commit:
+        description: "Commit and push the results (false: run only)"
+        type: boolean
+        default: true
+permissions:
+  contents: write
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Resolve version
+        id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          v="$VERSION"
+          if [[ -z "$v" ]]; then v=$(gh release view --repo BilalEjaz/locrin --json tagName --jq .tagName); fi
+          if [[ ! "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "not a version tag: $v" >&2; exit 1; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          if [[ -f "results/$v/run.json" && "$EVENT" == "schedule" ]]; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
+      - name: Run
+        if: steps.v.outputs.skip != 'true'
+        env:
+          V: ${{ steps.v.outputs.version }}
+        run: ./run.sh "$V"
+      - name: Commit results
+        if: steps.v.outputs.skip != 'true' && (github.event_name == 'schedule' || inputs.commit)
+        env:
+          V: ${{ steps.v.outputs.version }}
+        run: |
+          git config user.name "locrin-benchmark"
+          git config user.email "benchmark@locrin.com"
+          git add "results/$V" README.md
+          git diff --cached --quiet || git commit -m "results: locrin $V"
+          git push
