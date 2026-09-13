@@ -101,7 +101,8 @@ def _git(args: list[str], cwd: Path, *, hermetic: Path, isolated: bool = False) 
     Every call ignores the system config, reads an empty global config, runs no hooks,
     uses no credential helper, takes _CONFIG, and drops the environment overrides above,
     so clones, fetches, checkouts and the throwaway tree repositories behave the same on
-    every machine. Network access still works: proxies and CA bundles set in the
+    every machine. Output is decoded as UTF-8 whatever the locale: git prints path names as
+    raw bytes, and the Windows code page leaves some UTF-8 bytes undefined. Network access still works: proxies and CA bundles set in the
     environment (HTTPS_PROXY, GIT_SSL_CAINFO) pass through, and public https clones need
     no credentials. Clone and init also pass --template= themselves.
 
@@ -119,7 +120,7 @@ def _git(args: list[str], cwd: Path, *, hermetic: Path, isolated: bool = False) 
     config = [*_CONFIG, "-c", "credential.helper=", "-c", f"core.hooksPath={(hermetic / 'hooks').as_posix()}"]
     try:
         return subprocess.run(["git", *config, *args], cwd=cwd, env=env, check=True,
-                              capture_output=True, text=True).stdout
+                              capture_output=True, encoding="utf-8", errors="surrogateescape").stdout
     except subprocess.CalledProcessError as e:
         raise subprocess.CalledProcessError(e.returncode, ["git", *args], e.output, e.stderr) from None
 

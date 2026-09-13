@@ -719,3 +719,27 @@ def test_repository_status_reports_the_http_status_or_none(monkeypatch):
 
     monkeypatch.setattr(m.urllib.request, "urlopen", timed_out)
     assert m._repository_status("acme/w") is None
+
+
+def test_a_non_ascii_path_anywhere_in_the_tree_materialises(tmp_path, monkeypatch):
+    # git prints raw UTF-8 names; decoded with the Windows code page, the byte 0x81 in "Á" would lose all output.
+    before = {"src/a.ts": b"export const a = 1;\n", "src/Á.ts": b"export const b = 1;\n"}
+    after = {"src/a.ts": b"console.log(1);\nexport const a = 1;\n", "src/Á.ts": b"export const b = 1;\n"}
+    d = _local_upstream(tmp_path, monkeypatch, before, after)
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    assert (co.root / "src" / "Á.ts").read_bytes() == b"export const b = 1;\n"
+    assert co.base_ref == d.parent
+
+
+def test_git_output_is_decoded_as_utf8_whatever_the_locale(tmp_path, monkeypatch):
+    import bench.materialise as m
+
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        seen.update(kw)
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(m.subprocess, "run", fake_run)
+    m._git(["status"], tmp_path, hermetic=m._hermetic(tmp_path / "cache"))
+    assert seen["encoding"] == "utf-8" and seen["errors"] == "surrogateescape"

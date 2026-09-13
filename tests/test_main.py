@@ -330,3 +330,28 @@ def test_findings_matched_to_unconfirmed_entries_are_listed_as_excluded(tmp_path
     run = _run_json(tmp_path)
     assert run["excluded"] == 1 and run["unlabelled"] == 0 and run["publishable"] is True
     assert f"excluded: fx-01-ok leftover-debug src/x.ts:3 {'b' * 16}" in capsys.readouterr().err
+
+
+def test_an_unexpected_error_while_materialising_fails_that_diff_by_name_and_the_rest_run(tmp_path, monkeypatch, capsys):
+    args = _setup(tmp_path, monkeypatch, ["fx-01-bad", "fx-02-ok"],
+                  {"fx-01-bad": AttributeError("'NoneType' object has no attribute 'split'")})
+    ran = []
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: ran.append(diff_id) or sarif([]))
+    assert main_mod.main(args) == 1
+    assert ran == ["fx-02-ok"]
+    run = _run_json(tmp_path)
+    assert run["publishable"] is False and run["ran"] == 1
+    assert len(run["materialise_failures"]) == 1
+    assert run["materialise_failures"][0].startswith("fx-01-bad: unexpected error: AttributeError")
+    assert "materialise failed: fx-01-bad: unexpected error" in capsys.readouterr().err
+
+
+def test_an_unexpected_error_while_running_fails_that_diff_by_name(tmp_path, monkeypatch):
+    args = _setup(tmp_path, monkeypatch, ["fx-01-bad"], {})
+
+    def boom(locrin, co, work, diff_id):
+        raise RuntimeError("harness bug")
+
+    monkeypatch.setattr(main_mod, "run_check", boom)
+    assert main_mod.main(args) == 1
+    assert _run_json(tmp_path)["run_failures"][0].startswith("fx-01-bad: unexpected error: RuntimeError")

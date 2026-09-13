@@ -90,4 +90,14 @@ def main(argv: list[str] | None = None) -> int:
     except LabelError as e:
         print(f"label.py: {e}", file=sys.stderr)
         return 1
+    except Exception as e:
+        # A materialise or run failure, or a harness bug, while running the engine for `new`: name the diff, no traceback.
+        from bench.materialise import MaterialiseError
+        from bench.run import RunError
+        msg = str(e) if isinstance(e, (MaterialiseError, RunError)) else f"unexpected error: {e!r}"
+        diff_id = getattr(a, "diff", None)
+        if diff_id and not msg.startswith(f"{diff_id}: "):
+            msg = f"{diff_id}: {msg}"
+        print(f"label.py: {msg}", file=sys.stderr)
+        return 1
     return 0

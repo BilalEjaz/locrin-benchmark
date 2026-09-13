@@ -79,6 +79,12 @@ def main(argv: list[str] | None = None) -> int:
             mat_fail.append(str(e))
             print(f"materialise failed: {e}", file=sys.stderr)
             continue
+        except Exception as e:
+            # A harness bug on one diff fails that diff by name; the rest still run and the run is not publishable.
+            msg = f"{d.id}: unexpected error: {e!r}"
+            mat_fail.append(msg)
+            print(f"materialise failed: {msg}", file=sys.stderr)
+            continue
         try:
             doc = run_check(locrin, co, Path(a.work), d.id)
             fs, rs = normalise(d.id, doc)
@@ -88,6 +94,11 @@ def main(argv: list[str] | None = None) -> int:
             continue
         except (KeyError, IndexError, TypeError, ValueError) as e:
             msg = f"{d.id}: unexpected SARIF shape: {e!r}"
+            run_fail.append(msg)
+            print(f"run failed: {msg}", file=sys.stderr)
+            continue
+        except Exception as e:
+            msg = f"{d.id}: unexpected error: {e!r}"
             run_fail.append(msg)
             print(f"run failed: {msg}", file=sys.stderr)
             continue

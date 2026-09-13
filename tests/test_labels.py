@@ -211,3 +211,23 @@ def test_cli_confirm_refusal_exits_1(tmp_path, capsys):
     new("fx-01-debug", fs, "v0.5.0", tmp_path, by="opus", date="2026-09-14")
     assert main(["confirm", "fx-01-debug", "--by", "fable", "--labels", str(tmp_path)]) == 1
     assert "unfilled" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("error", [AttributeError("'NoneType' object has no attribute 'split'"),
+                                   "materialise", "run"])
+def test_cli_new_reports_a_harness_failure_naming_the_diff_and_exits_1(tmp_path, monkeypatch, capsys, error):
+    from bench.materialise import MaterialiseError
+    from bench.run import RunError
+
+    exc = {"materialise": MaterialiseError("fx-01-debug: git clone failed: x"),
+           "run": RunError("fx-01-debug: locrin exit 2: bad")}.get(error, error)
+
+    def failing(diff_id, locrin_version, corpus_root, work):
+        raise exc
+
+    monkeypatch.setattr(label_tool, "_findings_for", failing)
+    rc = main(["new", "fx-01-debug", "--locrin", "v0.5.0", "--by", "opus", "--labels", str(tmp_path / "labels")])
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert err.startswith("label.py: fx-01-debug: ") and "Traceback" not in err
+    assert not (tmp_path / "labels" / "fx-01-debug.json").exists()
