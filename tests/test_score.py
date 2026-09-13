@@ -10,8 +10,8 @@ from bench.score import Score, render_markdown, score
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def F(diff, rule, file, line, lang="typescript"):
-    return Finding(diff, rule, file, line, "0" * 16, "high", lang)
+def F(diff, rule, file, line, lang="typescript", ident="0" * 16):
+    return Finding(diff, rule, file, line, ident, "high", lang)
 
 
 def E(rule, file, line, v, ident="0" * 16):
@@ -85,7 +85,7 @@ def test_language_of_is_imported_at_module_top():
     assert bench.score.language_of is bench.corpus.language_of
 
 
-def test_scored_rows_need_five_and_ships_column_reads_rule_metadata():
+def test_scored_rows_need_five_confirmed_findings_and_mark_below_line():
     fs = [F("a", "dead-file", f"f{i}.ts", 1) for i in range(5)]
     ls = labels(a=[E("dead-file", f"f{i}.ts", 1, "true") for i in range(4)] + [E("dead-file", "f4.ts", 1, "false-positive")])
     per_rule, per_pair, _ = score(fs, ls, RULES)
@@ -182,3 +182,100 @@ def test_fixture_labels_produce_the_truthful_numbers():
     assert "| `dead-file` | off |  |  | 0 | 0 | 0 | n<5, not scored |" in md
     assert "| `vulnerable-dependency` | on |  |  | 0 | 0 | 0 | not benchmarked: advisory feed changes daily |" in md
     assert "| `leftover-debug@typescript` | on | 50% | 100% | 1 | 1 | 0 | n<5, not scored |" in md
+
+
+A, B, C, D = "a" * 16, "b" * 16, "c" * 16, "d" * 16
+
+
+def counts(per_rule, key):
+    s = {s.key: s for s in per_rule}[key]
+    return (s.true, s.false_positive, s.missed)
+
+
+def test_same_line_findings_match_their_own_entries_by_engine_id():
+    fs = [F("a", "unused-import", "x.ts", 1, ident=A), F("a", "unused-import", "x.ts", 1, ident=B)]
+    ls = labels(a=[E("unused-import", "x.ts", 1, "true", A), E("unused-import", "x.ts", 1, "false-positive", B)])
+    per_rule, per_pair, unlabelled = score(fs, ls, RULES)
+    assert counts(per_rule, "unused-import") == (1, 1, 0)
+    assert {s.key: s for s in per_rule}["unused-import"].precision == 0.5
+    assert [(s.key, s.true, s.false_positive) for s in per_pair] == [("unused-import@typescript", 1, 1)]
+    assert unlabelled == []
+
+
+def test_a_disagreeing_sibling_on_the_same_line_does_not_borrow_the_confirmed_verdict():
+    fs = [F("a", "unused-import", "x.ts", 1, ident=A), F("a", "unused-import", "x.ts", 1, ident=B)]
+    ls = labels(a=[E("unused-import", "x.ts", 1, "true", A),
+                   Entry("unused-import", "x.ts", 1, B, "true", "false-positive", "")])
+    per_rule, _, unlabelled = score(fs, ls, RULES)
+    assert counts(per_rule, "unused-import") == (1, 0, 0)
+    assert unlabelled == []
+
+
+def test_an_id_match_on_another_line_still_decides_the_finding():
+    fs = [F("a", "unreachable", "x.ts", 7, ident=A)]
+    ls = labels(a=[E("unreachable", "x.ts", 3, "false-positive", A)])
+    per_rule, _, unlabelled = score(fs, ls, RULES)
+    assert counts(per_rule, "unreachable") == (0, 1, 0)
+    assert unlabelled == []
+
+
+def test_line_fallback_needs_exactly_one_unclaimed_entry_and_one_finding():
+    # The id changed but one entry sits on the line: that entry decides.
+    per_rule, _, unlabelled = score([F("a", "unreachable", "x.ts", 3, ident=C)],
+                                    labels(a=[E("unreachable", "x.ts", 3, "true", A)]), RULES)
+    assert counts(per_rule, "unreachable") == (1, 0, 0) and unlabelled == []
+    # Two entries on the line and no id match: ambiguous, so unlabelled.
+    per_rule, _, unlabelled = score([F("a", "unreachable", "x.ts", 3, ident=C)],
+                                    labels(a=[E("unreachable", "x.ts", 3, "true", A), E("unreachable", "x.ts", 3, "false-positive", B)]), RULES)
+    assert counts(per_rule, "unreachable") == (0, 0, 0) and [f.id for f in unlabelled] == [C]
+    # A new finding beside one whose id matches does not take its sibling's entry.
+    per_rule, _, unlabelled = score([F("a", "unreachable", "x.ts", 3, ident=A), F("a", "unreachable", "x.ts", 3, ident=D)],
+                                    labels(a=[E("unreachable", "x.ts", 3, "true", A)]), RULES)
+    assert counts(per_rule, "unreachable") == (1, 0, 0) and [f.id for f in unlabelled] == [D]
+    # Two findings with new ids and one entry on the line: ambiguous, both unlabelled.
+    per_rule, _, unlabelled = score([F("a", "unreachable", "x.ts", 3, ident=C), F("a", "unreachable", "x.ts", 3, ident=D)],
+                                    labels(a=[E("unreachable", "x.ts", 3, "true", A)]), RULES)
+    assert counts(per_rule, "unreachable") == (0, 0, 0) and sorted(f.id for f in unlabelled) == [C, D]
+
+
+def test_a_finding_on_a_missed_only_key_is_unlabelled():
+    fs = [F("a", "unreachable", "x.ts", 7, ident=A)]
+    ls = labels(a=[E("unreachable", "x.ts", 7, "missed")])
+    per_rule, _, unlabelled = score(fs, ls, RULES)
+    assert counts(per_rule, "unreachable") == (0, 0, 1)
+    assert [(f.file, f.line) for f in unlabelled] == [("x.ts", 7)]
+
+
+def test_the_n_gate_counts_confirmed_findings_not_missed_entries():
+    fs = [F("a", "unreachable", "x.ts", 1, ident=A)]
+    ls = labels(a=[E("unreachable", "x.ts", 1, "false-positive", A)] + [E("unreachable", "x.ts", 10 + i, "missed") for i in range(4)])
+    per_rule, per_pair, _ = score(fs, ls, RULES)
+    row = {s.key: s for s in per_rule}["unreachable"]
+    assert (row.true, row.false_positive, row.missed) == (0, 1, 4)
+    assert row.scored is False and row.reason == "n<5, not scored"
+    assert {s.key: s for s in per_pair}["unreachable@typescript"].scored is False
+    md = render_markdown(per_rule, per_pair, "v0.5.0", 1, 0, rules=RULES)
+    assert "| `unreachable` | on | 0% | 0% | 0 | 1 | 4 | n<5, not scored |" in md
+    assert "below line" not in md
+
+
+def test_ships_column_follows_rule_metadata_over_the_fallback():
+    rules = {"swallowed-error": RuleMeta("swallowed-error", True, ["typescript"]),
+             "leftover-debug": RuleMeta("leftover-debug", False, ["typescript"])}
+    md = render_markdown([Score("swallowed-error", 0, 0, 0, None, None, False, "n<5, not scored"),
+                          Score("leftover-debug", 0, 0, 0, None, None, False, "n<5, not scored")],
+                         [Score("swallowed-error@typescript", 0, 0, 0, None, None, False, "n<5, not scored"),
+                          Score("leftover-debug@typescript", 0, 0, 0, None, None, False, "n<5, not scored")], "v0.5.0", 1, 0, rules=rules)
+    assert "| `swallowed-error` | on |" in md and "| `swallowed-error@typescript` | on |" in md
+    assert "| `leftover-debug` | off |" in md and "| `leftover-debug@typescript` | off |" in md
+
+
+def test_pairs_shipped_off_render_off_even_when_the_rule_ships_on():
+    rules = {"leftover-commented-code": RuleMeta("leftover-commented-code", True, ["typescript", "python"])}
+    md = render_markdown([Score("leftover-commented-code", 1, 0, 0, 1.0, 1.0, False, "n<5, not scored")],
+                         [Score("leftover-commented-code@python", 1, 0, 0, 1.0, 1.0, False, "n<5, not scored"),
+                          Score("leftover-commented-code@typescript", 0, 0, 0, None, None, False, "n<5, not scored")], "v0.5.0", 1, 0, rules=rules)
+    assert "| `leftover-commented-code` | on |" in md
+    assert "| `leftover-commented-code@python` | off | 100% | 100% | 1 | 0 | 0 | n<5, not scored |" in md
+    assert "| `leftover-commented-code@typescript` | on |" in md
+    assert "| `leftover-commented-code@python` | off |" in render_markdown([], [Score("leftover-commented-code@python", 0, 0, 0, None, None, False, "n<5, not scored")], "v0.5.0", 1, 0)

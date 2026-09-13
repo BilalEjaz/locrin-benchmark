@@ -5,7 +5,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 from bench.corpus import language_of
-from bench.labels import LabelFile
+from bench.labels import Entry, LabelFile
 from bench.run import Finding, RuleMeta
 
 NOT_BENCHMARKED = {
@@ -15,6 +15,9 @@ NOT_BENCHMARKED = {
 }
 LOCKED = {"secret-exposed"}
 SHIPS_OFF = {"dead-file", "swallowed-error", "injection-sink"}
+# Pairs the engine ships off although their rule ships on. SARIF carries only the rule
+# default, so these come from the engine README "Per-language defaults" table.
+PAIRS_OFF = {"leftover-commented-code@python"}
 MIN_N = 5
 LINE = 0.85
 
@@ -40,31 +43,76 @@ def _tally(counts: dict[str, list[int]], keys_in_order: list[str]) -> list[Score
         recall = t / (t + m) if t + m else None
         if rule in NOT_BENCHMARKED:
             out.append(Score(key, t, fp, m, precision, recall, False, f"not benchmarked: {NOT_BENCHMARKED[rule]}"))
-        elif t + fp + m < MIN_N:
+        elif t + fp < MIN_N:
+            # The gate counts confirmed labelled findings (true plus false positive), as the
+            # engine's own gate counts findings; missed entries are not findings.
             out.append(Score(key, t, fp, m, precision, recall, False, "n<5, not scored"))
         else:
             out.append(Score(key, t, fp, m, precision, recall, True, ""))
     return out
 
 
+def _is_missed(e: Entry) -> bool:
+    return e.id is None or "missed" in (e.pass1, e.pass2)
+
+
+def _match(findings: list[Finding], labels: dict[str, LabelFile]) -> dict[int, Entry]:
+    """Pair each finding (by index) with the one entry that describes it, if any.
+
+    Candidates are the entries on the same (diff, rule, file) that are not missed entries,
+    in any pass state. An entry whose engine id equals the finding's id decides it; if
+    several share that id, the one on the finding's line decides it. With no id match the
+    line decides, but only when exactly one finding and exactly one entry remain on that
+    line, and only entries whose id no finding in the run carries. Anything else is
+    ambiguous and the finding stays unmatched rather than borrowing a sibling's verdict.
+    """
+    pool: dict[tuple[str, str, str], list[Entry]] = defaultdict(list)
+    for diff, lf in labels.items():
+        for e in lf.entries:
+            if not _is_missed(e):
+                pool[(diff, e.rule, e.file)].append(e)
+    groups: dict[tuple[str, str, str], list[int]] = defaultdict(list)
+    for i, f in enumerate(findings):
+        groups[(f.diff, f.rule, f.file)].append(i)
+    matched: dict[int, Entry] = {}
+    for key, idxs in groups.items():
+        entries = pool.get(key, [])
+        claimed = {findings[i].id for i in idxs}
+        pending: dict[int, list[int]] = defaultdict(list)
+        for i in idxs:
+            f = findings[i]
+            same_id = [e for e in entries if e.id == f.id]
+            if not same_id:
+                pending[f.line].append(i)
+                continue
+            if len(same_id) > 1:
+                same_id = [e for e in same_id if e.line == f.line]
+            if len(same_id) == 1:
+                matched[i] = same_id[0]
+        for line, waiting in pending.items():
+            free = [e for e in entries if e.line == line and e.id not in claimed]
+            if len(waiting) == 1 and len(free) == 1:
+                matched[waiting[0]] = free[0]
+    return matched
+
+
 def score(findings: list[Finding], labels: dict[str, LabelFile], rules: dict[str, RuleMeta]) -> tuple[list[Score], list[Score], list[Finding]]:
     """Per-rule scores, per-pair scores and the findings no label entry covers.
 
-    A finding matches an entry on (diff, rule, file, line). Only confirmed entries count;
-    a finding whose entries are unfilled or disagree counts nowhere but is not unlabelled,
-    because the label file already lists it. A finding with no entry at all is unlabelled.
+    Each finding is matched to at most one entry (see _match): by engine id first, then by
+    line when that is unambiguous. Only confirmed entries count; a finding whose entry is
+    unfilled or disagrees counts nowhere but is not unlabelled, because the label file
+    already lists it. A finding with no matching entry is unlabelled and counts nowhere.
     A missed entry never matches a finding: it is counted straight from the label file,
-    so a miss on the same line as a reported finding still counts toward recall.
+    so a miss on the same line as a reported finding still counts toward recall, and a
+    finding that lands on a missed entry's line is unlabelled so it gets relabelled.
     """
     rule_counts: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
     pair_counts: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
     label_rules: set[str] = set()
     pairs: set[str] = set()
-    by_key: dict[tuple[str, str, str, int], str] = {}
-    entry_keys: set[tuple[str, str, str, int]] = set()
     for diff, lf in labels.items():
         for e in lf.entries:
-            entry_keys.add((diff, e.rule, e.file, e.line))
             if not e.confirmed:
                 continue
             label_rules.add(e.rule)
@@ -75,18 +123,17 @@ def score(findings: list[Finding], labels: dict[str, LabelFile], rules: dict[str
                 rule_counts[e.rule][2] += 1
                 if lang:
                     pair_counts[f"{e.rule}@{lang}"][2] += 1
-            else:
-                by_key[(diff, e.rule, e.file, e.line)] = e.verdict
+    matched = _match(findings, labels)
     unlabelled: list[Finding] = []
-    for f in findings:
+    for i, f in enumerate(findings):
         if f.language:
             pairs.add(f"{f.rule}@{f.language}")
-        k = (f.diff, f.rule, f.file, f.line)
-        if k not in entry_keys:
+        entry = matched.get(i)
+        if entry is None:
             unlabelled.append(f)
             continue
-        v = by_key.get(k)
-        if v is None or v == "not-applicable":
+        v = entry.verdict
+        if v not in ("true", "false-positive"):
             continue
         idx = 0 if v == "true" else 1
         rule_counts[f.rule][idx] += 1
@@ -116,6 +163,8 @@ def render_markdown(per_rule: list[Score], per_pair: list[Score], version: str, 
         rule = key.split("@", 1)[0]
         if rule in LOCKED:
             return "locked"
+        if key in PAIRS_OFF:
+            return "off"
         meta = rules.get(rule)
         if meta is None:
             return "off" if rule in SHIPS_OFF else "on"
