@@ -42,12 +42,16 @@ jobs:
           if [[ "$EVENT" == "schedule" ]]; then
             # A scheduled run publishes, so it waits for a labelled corpus: an empty table committed
             # now would also stop every later run from measuring this version. It skips a version only
-            # when its run.json records a publishable run, so a run that failed is measured again.
+            # when its run.json records a publishable run of that version over the current corpus and
+            # labels, so a failed run, or a version whose corpus or labels changed since, is measured again.
             reason=""
-            if [[ -f "results/$v/run.json" ]] && python -c 'import json, sys; sys.exit(0 if json.load(open(sys.argv[1])).get("publishable") is True else 1)' "results/$v/run.json" 2>/dev/null; then
-              reason="results/$v/run.json records a publishable run"
-            elif ! compgen -G "corpus/*.json" >/dev/null; then reason="corpus/ holds no record yet"
-            elif ! compgen -G "labels/*.json" >/dev/null; then reason="labels/ holds no label file yet"
+            if complete=$(python -m bench.inputs --complete "results/$v/run.json" --version "$v" --corpus corpus --labels labels); then
+              reason="$complete"
+            else
+              echo "measure: $complete"
+              if ! compgen -G "corpus/*.json" >/dev/null; then reason="corpus/ holds no record yet"
+              elif ! compgen -G "labels/*.json" >/dev/null; then reason="labels/ holds no label file yet"
+              fi
             fi
             if [[ -n "$reason" ]]; then echo "skip: $reason"; echo "skip=true" >> "$GITHUB_OUTPUT"; fi
           fi
@@ -63,7 +67,9 @@ jobs:
           # 3: at least one diff ran and every diff that did not is a confirmed gone source (its repository
           # answers 404, or the server lacks its commit after a fetch). The table says how many ran, so the
           # results still publish and the last step flags them. Any other failure, a network error included,
-          # stops here and nothing is committed; the next scheduled run measures the version again.
+          # stops here and nothing is committed; the next scheduled run measures the version again. 4 means
+          # the labels do not cover the run (unlabelled findings, a diff with no label file, or labels written
+          # for another locrin version): relabel for this version, and the next scheduled run measures it.
           if [[ "$code" != 0 && "$code" != 3 ]]; then exit "$code"; fi
       - name: Commit results
         if: steps.v.outputs.skip != 'true' && (github.event_name == 'schedule' || inputs.commit)

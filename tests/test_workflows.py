@@ -133,36 +133,57 @@ def _run_step(tmp_path: Path, name: str, env: dict[str, str]) -> tuple[subproces
     output = tmp_path / "github_output"
     output.write_bytes(b"")
     path = os.pathsep.join([str(Path(sys.executable).parent), os.environ.get("PATH", "")])
-    full = dict(os.environ, PATH=path, GITHUB_OUTPUT=str(output), **env)
+    # The steps run from the repository root, where `python -m bench...` finds the harness.
+    full = dict(os.environ, PATH=path, GITHUB_OUTPUT=str(output), PYTHONPATH=str(ROOT), **env)
     proc = subprocess.run([_bash(), "-e", "step.sh"], cwd=tmp_path, env=full, capture_output=True, text=True)
     outputs = dict(line.split("=", 1) for line in output.read_text(encoding="utf-8").splitlines() if "=" in line)
     return proc, outputs
 
 
 def _scheduled_tree(tmp_path: Path, run_json: dict | None) -> None:
+    from bench import inputs
+
     (tmp_path / "corpus").mkdir()
     (tmp_path / "corpus" / "acme__w__1234567.json").write_bytes(b"{}")
     (tmp_path / "labels").mkdir()
     (tmp_path / "labels" / "acme__w__1234567.json").write_bytes(b"{}")
     if run_json is not None:
+        run_json = dict(run_json)
+        if run_json.get("inputs") == "current":
+            run_json["inputs"] = {"corpus": inputs.digest(tmp_path / "corpus"), "labels": inputs.digest(tmp_path / "labels")}
         (tmp_path / "results" / "v0.5.0").mkdir(parents=True)
         (tmp_path / "results" / "v0.5.0" / "run.json").write_bytes(json.dumps(run_json).encode("utf-8"))
 
 
 @needs_bash
 @pytest.mark.parametrize("run_json, skip", [
-    ({"diffs": 3, "ran": 3, "publishable": True, "gone": []}, True),
-    ({"diffs": 3, "ran": 2, "publishable": True, "gone": [{"id": "x", "evidence": "404"}]}, True),
-    ({"diffs": 3, "ran": 1, "publishable": False, "gone": []}, False),
+    ({"locrin": "v0.5.0", "ran": 3, "publishable": True, "gone": [], "inputs": "current"}, True),
+    ({"locrin": "v0.5.0", "ran": 2, "publishable": True, "gone": [{"id": "x", "evidence": "404"}], "inputs": "current"}, True),
+    # Published before run.json recorded its inputs, or over other labels or corpus: measured again.
+    ({"locrin": "v0.5.0", "ran": 3, "publishable": True, "gone": []}, False),
+    ({"locrin": "v0.5.0", "ran": 3, "publishable": True, "inputs": {"corpus": "sha256:0", "labels": "sha256:0"}}, False),
+    ({"locrin": "v0.4.0", "ran": 3, "publishable": True, "inputs": "current"}, False),
+    ({"locrin": "v0.5.0", "ran": 1, "publishable": False, "gone": [], "inputs": "current"}, False),
+    ({"locrin": "v0.5.0", "ran": 3, "publishable": False, "not_publishable": ["1 unlabelled finding"], "inputs": "current"}, False),
     ({"diffs": 3, "ran": 0, "materialise_failures": ["x: git clone failed"]}, False),
     (None, False),
 ])
-def test_scheduled_run_skips_a_version_only_when_its_run_json_records_a_publishable_run(tmp_path, run_json, skip):
+def test_scheduled_run_skips_a_version_only_when_its_run_json_records_a_publishable_run_over_the_current_inputs(tmp_path, run_json, skip):
     _scheduled_tree(tmp_path, run_json)
     proc, outputs = _run_step(tmp_path, "Resolve version", {"VERSION": "v0.5.0", "EVENT": "schedule"})
     assert proc.returncode == 0, proc.stderr
     assert outputs["version"] == "v0.5.0"
     assert (outputs.get("skip") == "true") is skip, proc.stdout
+
+
+@needs_bash
+def test_a_version_is_measured_again_after_its_labels_change(tmp_path):
+    _scheduled_tree(tmp_path, {"locrin": "v0.5.0", "publishable": True, "inputs": "current"})
+    (tmp_path / "labels" / "acme__w__1234567.json").write_bytes(b'{"relabelled": true}')
+    proc, outputs = _run_step(tmp_path, "Resolve version", {"VERSION": "v0.5.0", "EVENT": "schedule"})
+    assert proc.returncode == 0, proc.stderr
+    assert "skip" not in outputs
+    assert "labels changed" in proc.stdout
 
 
 @needs_bash
