@@ -40,10 +40,11 @@ jobs:
           if [[ ! "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "not a version tag: $v" >&2; exit 1; fi
           echo "version=$v" >> "$GITHUB_OUTPUT"
           if [[ "$EVENT" == "schedule" ]]; then
-            # A scheduled run publishes, so it waits for a labelled corpus: an empty table committed
-            # now would also stop every later run from measuring this version. It skips a version only
-            # when its run.json records a publishable run of that version over the current corpus and
-            # labels, so a failed run, or a version whose corpus or labels changed since, is measured again.
+            # A scheduled run publishes only when the labels cover it (bench/main.py exits 4 otherwise, and
+            # nothing is committed): every label file confirmed by pass two, every finding labelled, every
+            # labelled finding reproduced. It skips a version only when its run.json records such a complete,
+            # publishable run of that version over the current corpus and labels, so a failed or uncovered
+            # run, or a version whose corpus or labels changed since, is measured again.
             reason=""
             if complete=$(python -m bench.inputs --complete "results/$v/run.json" --version "$v" --corpus corpus --labels labels); then
               reason="$complete"
@@ -68,8 +69,9 @@ jobs:
           # answers 404, or the server lacks its commit after a fetch). The table says how many ran, so the
           # results still publish and the last step flags them. Any other failure, a network error included,
           # stops here and nothing is committed; the next scheduled run measures the version again. 4 means
-          # the labels do not cover the run (unlabelled findings, a diff with no label file, or labels written
-          # for another locrin version): relabel for this version, and the next scheduled run measures it.
+          # the labels do not cover the run (unlabelled findings, a diff with no label file, labels written for
+          # another locrin version, a label file pass two never confirmed, or a labelled finding this run did
+          # not report): fix the labels for this version, and the next scheduled run measures it.
           if [[ "$code" != 0 && "$code" != 3 ]]; then exit "$code"; fi
       - name: Commit results
         if: steps.v.outputs.skip != 'true' && (github.event_name == 'schedule' || inputs.commit)
