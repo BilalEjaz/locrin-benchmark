@@ -9,7 +9,31 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 LOCRIN = shutil.which("locrin")
-pytestmark = pytest.mark.skipif(LOCRIN is None, reason="locrin not on PATH")
+
+
+def _locrin_version() -> str | None:
+    if LOCRIN is None:
+        return None
+    proc = subprocess.run([LOCRIN, "--version"], capture_output=True, text=True)
+    words = proc.stdout.split()
+    return f"v{words[-1]}" if proc.returncode == 0 and words else None
+
+
+def _fixture_labels_version() -> str:
+    versions = {json.loads(p.read_text(encoding="utf-8"))["locrin"] for p in (ROOT / "fixtures" / "labels").glob("*.json")}
+    assert len(versions) == 1, versions
+    return versions.pop()
+
+
+LOCRIN_VERSION = _locrin_version()
+FIXTURE_VERSION = _fixture_labels_version()
+# The expected numbers below are the fixture labels' truth for one locrin version; another version
+# may report differently, which is not a harness failure.
+pytestmark = [
+    pytest.mark.skipif(LOCRIN is None, reason="locrin not on PATH"),
+    pytest.mark.skipif(LOCRIN is not None and LOCRIN_VERSION != FIXTURE_VERSION,
+                       reason=f"fixture labels are for locrin {FIXTURE_VERSION}, locrin on PATH is {LOCRIN_VERSION}"),
+]
 
 # The truthful fixture labels (Task 5) on locrin 0.5.0: leftover-debug has one genuine false
 # positive (src/logger.ts is that module's real logging) and unreachable one genuine miss
@@ -32,8 +56,8 @@ RULE_ROWS = [
 ]
 PAIR_ROWS = [
     "| `leftover-agent-marker@javascript` | on | 100% | 100% | 2 | 0 | 0 | n<5, not scored |",
-    "| `leftover-debug@php` | on | 100% | 100% | 1 | 0 | 0 | n<5, not scored |",
-    "| `leftover-debug@python` | on | 100% | 100% | 1 | 0 | 0 | n<5, not scored |",
+    "| `leftover-debug@php` | opt-in | 100% | 100% | 1 | 0 | 0 | n<5, not scored |",
+    "| `leftover-debug@python` | opt-in | 100% | 100% | 1 | 0 | 0 | n<5, not scored |",
     "| `leftover-debug@typescript` | on | 50% | 100% | 1 | 1 | 0 | n<5, not scored |",
     "| `secret-exposed@typescript` | locked | 100% | 100% | 1 | 0 | 0 | n<5, not scored |",
     "| `test-no-assert@typescript` | on | 100% | 100% | 1 | 0 | 0 | n<5, not scored |",
@@ -73,7 +97,7 @@ def test_fixture_corpus_scores_exactly(tmp_path, home):
     results = out / f"v{version}"
     run = json.loads((results / "run.json").read_text(encoding="utf-8"))
     assert run["diffs"] == 10 and run["ran"] == 10 and run["run_failures"] == [] and run["materialise_failures"] == []
-    assert run["unlabelled"] == 0
+    assert run["unlabelled"] == 0 and run["excluded"] == 0 and run["gone"] == [] and run["publishable"] is True
     assert run["findings"] == 11
     assert run["locrin"] == f"v{version}"
 
@@ -83,7 +107,10 @@ def test_fixture_corpus_scores_exactly(tmp_path, home):
     for row in RULE_ROWS:
         assert row in lines, row
     pair_head = lines.index("| Pair | Ships | Precision | Recall | True | False positive | Missed | Note |")
-    assert lines[pair_head + 2:] == PAIR_ROWS
+    assert lines[pair_head + 2:pair_head + 2 + len(PAIR_ROWS)] == PAIR_ROWS
+    assert lines[pair_head + 2 + len(PAIR_ROWS):] == [
+        "", "Locrin reads PHP and Python only when `[languages]` turns them on, so their pairs ship opt-in; "
+            "the benchmark turns both on."]
     # At least one row below 100 percent precision and one below 100 percent recall.
     assert any("| 75% |" in r or "| 50% | 100% |" in r for r in lines)
     assert any("| 100% | 50% |" in r for r in lines)

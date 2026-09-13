@@ -10,15 +10,19 @@ from pathlib import Path
 
 from bench.corpus import CorpusError, load_corpus
 from bench.labels import LabelError, load_labels
-from bench.materialise import MaterialiseError, materialise
+from bench.materialise import MaterialiseError, SourceGone, materialise
 from bench.readme_table import replace_table
 from bench.run import Finding, RuleMeta, RunError, ignore_files_above, install_locrin, normalise, run_check
-from bench.score import render_markdown, score, stale
+from bench.score import excluded, render_markdown, score, stale
 
 
-# Exit codes: 0 every diff ran; 1 locrin or the harness failed on a diff; 2 setup failed, nothing ran;
-# 3 every diff that failed could not be checked out (a source commit the server no longer serves, say),
-# every other diff ran, and the results are complete for those.
+# Exit codes. Only 0 and 3 are publishable, and only then is the README table rewritten.
+# 0 every diff ran.
+# 1 not publishable: locrin or the harness failed on a diff, a source could not be materialised for any
+#   reason other than being confirmed gone (a network, DNS, server or disk error may pass), or no diff ran.
+# 2 setup failed (no locrin, a bad or empty corpus, bad labels), nothing ran.
+# 3 at least one diff ran, and every diff that did not is a confirmed gone source: its repository answers
+#   404 or the server lacks its commit after an explicit fetch. run.json lists them under "gone".
 EXIT_RUN_FAILED = 1
 EXIT_SETUP = 2
 EXIT_SOURCE_GONE = 3
@@ -52,6 +56,8 @@ def main(argv: list[str] | None = None) -> int:
                            f"remove {names} or pass a --cache outside that directory")
         locrin = install_locrin(a.version, Path(a.cache))
         diffs = load_corpus(Path(a.corpus))
+        if not diffs:
+            raise CorpusError(f"corpus directory {a.corpus} holds no record")
         labels = load_labels(Path(a.labels))
     except (RunError, CorpusError, LabelError) as e:
         print(f"bench: {e}", file=sys.stderr)
@@ -60,10 +66,15 @@ def main(argv: list[str] | None = None) -> int:
     rules: dict[str, RuleMeta] = {}
     ran: set[str] = set()
     mat_fail: list[str] = []
+    gone: list[dict[str, str]] = []
     run_fail: list[str] = []
     for d in diffs:
         try:
             co = materialise(d, Path(a.corpus), Path(a.cache))
+        except SourceGone as e:
+            gone.append({"id": d.id, "evidence": str(e).removeprefix(f"{d.id}: ")})
+            print(f"source gone: {e}", file=sys.stderr)
+            continue
         except MaterialiseError as e:
             mat_fail.append(str(e))
             print(f"materialise failed: {e}", file=sys.stderr)
@@ -88,6 +99,8 @@ def main(argv: list[str] | None = None) -> int:
     # Only diffs that ran are scored, so a failed diff neither adds its misses nor loses its true entries.
     per_rule, per_pair, unlabelled = score(findings, labels, rules, ran=ran)
     unreported = stale(findings, labels, ran=ran)
+    left_out = excluded(findings, labels, ran=ran)
+    publishable = bool(ran) and not mat_fail and not run_fail
     out = Path(a.out) / a.version
     out.mkdir(parents=True, exist_ok=True)
     _write(out / "findings.jsonl", "".join(json.dumps(dataclasses.asdict(f), sort_keys=True) + "\n" for f in findings))
@@ -96,20 +109,25 @@ def main(argv: list[str] | None = None) -> int:
     _write(out / "table.md", table)
     _write(out / "run.json", json.dumps({
         "locrin": a.version, "diffs": len(diffs), "ran": len(ran), "findings": len(findings), "unlabelled": len(unlabelled),
+        "excluded": len(left_out), "publishable": publishable, "gone": gone,
         "materialise_failures": mat_fail, "run_failures": run_fail, "started": started, "finished": _now(),
     }, indent=2) + "\n")
     readme = Path(a.readme)
-    if readme.exists():
+    if publishable and readme.exists():
         text = readme.read_bytes().decode("utf-8")
         _write(readme, replace_table(text, table))
     for f in unlabelled:
         print(f"unlabelled: {f.diff} {f.rule} {f.file}:{f.line} {f.id}", file=sys.stderr)
     for diff_id, e in unreported:
         print(f"stale: {diff_id} {e.rule} {e.file}:{e.line} {e.id}", file=sys.stderr)
+    for f in left_out:
+        print(f"excluded: {f.diff} {f.rule} {f.file}:{f.line} {f.id}", file=sys.stderr)
     print(table)
-    if run_fail:
+    if not publishable:
+        why = f"{len(ran)} of {len(diffs)} diffs ran, {len(run_fail)} run failures, {len(mat_fail)} materialise failures"
+        print(f"bench: not publishable ({why}); the README was left unchanged", file=sys.stderr)
         return EXIT_RUN_FAILED
-    return EXIT_SOURCE_GONE if mat_fail else 0
+    return EXIT_SOURCE_GONE if gone else 0
 
 
 if __name__ == "__main__":

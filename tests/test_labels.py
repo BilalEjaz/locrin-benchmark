@@ -165,7 +165,11 @@ def test_half_filled_entries_count_as_unfilled_and_never_as_disagreements(tmp_pa
     assert [(d, e.line) for d, e in disagreements(labels)] == [("fx-01-debug", 9)]
     assert [e.confirmed for e in labels["fx-01-debug"].entries] == [True, False, False, False]
     status(tmp_path)
-    assert capsys.readouterr().out.strip() == "fx-01-debug: entries=4 confirmed=1 unfilled=2 disagree=1"
+    # Each disagreement is listed under its file's counts, so a maintainer can settle it.
+    assert capsys.readouterr().out.splitlines() == [
+        "fx-01-debug: entries=4 confirmed=1 unfilled=2 disagree=1",
+        "  disagree: leftover-debug src/a.ts:9 pass1=true pass2=false-positive",
+    ]
 
 
 def test_cli_new_runs_the_harness_for_that_diff_and_keys_the_cache_on_it(tmp_path, monkeypatch):

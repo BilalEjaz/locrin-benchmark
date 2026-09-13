@@ -90,7 +90,9 @@ def test_failed_diffs_are_listed_the_rest_scored_and_their_labels_ignored(tmp_pa
     assert lines[-1] == b"" and len(lines) == 3 and b"\r" not in b"".join(lines)
     assert json.loads(lines[0]) == {"diff": "fx-01-ok", "rule": "leftover-debug", "file": "src/x.ts", "line": 2,
                                     "id": "a" * 16, "confidence": "high", "language": "typescript"}
-    assert readme.read_bytes() == b"x\n<!-- results:start -->\n" + table.encode("utf-8") + b"<!-- results:end -->\n"
+    # A run with failures that are not confirmed gone sources publishes nothing: the README keeps its table.
+    assert run["publishable"] is False
+    assert readme.read_bytes() == b"x\n<!-- results:start -->\nold\n<!-- results:end -->\n"
     err = capsys.readouterr().err
     assert "materialise failed: fx-02-nomat: git init failed: boom" in err
     assert "run failed: fx-03-norun: locrin exit 2: bad" in err
@@ -231,28 +233,100 @@ def test_a_diff_whose_engine_file_is_a_directory_fails_alone_and_the_rest_still_
     assert len(run["materialise_failures"]) == 1 and run["materialise_failures"][0].startswith("fx-01-bad: ")
 
 
-def test_only_materialise_failures_exit_three_and_the_table_says_how_many_ran(tmp_path, monkeypatch, capsys):
-    # A corpus commit the server no longer serves is not a harness failure: results still publish.
+def _materialise_failing(tmp_path: Path, failures: dict[str, Exception]):
     def fake_materialise(d, corpus_root, cache):
-        if d.id == "fx-02-gone":
-            raise MaterialiseError(f"{d.id}: git checkout failed: fatal: unable to read tree")
+        if d.id in failures:
+            raise failures[d.id]
         return Checkout(root=tmp_path, base_ref="0" * 40, removed=[])
+    return fake_materialise
 
+
+def _setup(tmp_path: Path, monkeypatch, ids: list[str], failures: dict[str, Exception]) -> list[str]:
     monkeypatch.setattr(main_mod, "install_locrin", lambda version, cache: Path("locrin"))
-    monkeypatch.setattr(main_mod, "load_corpus", lambda root: [diff("fx-01-ok"), diff("fx-02-gone")])
-    monkeypatch.setattr(main_mod, "materialise", fake_materialise)
+    monkeypatch.setattr(main_mod, "load_corpus", lambda root: [diff(i) for i in ids])
+    monkeypatch.setattr(main_mod, "materialise", _materialise_failing(tmp_path, failures))
     monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif([]))
-    out = tmp_path / "r"
-    args = ["--version", "v0.5.0", "--labels", str(tmp_path / "labels"), "--out", str(out),
-            "--readme", str(tmp_path / "README.md")]
+    readme = tmp_path / "README.md"
+    readme.write_bytes(b"x\n<!-- results:start -->\nold\n<!-- results:end -->\n")
+    return ["--version", "v0.5.0", "--labels", str(tmp_path / "labels"), "--out", str(tmp_path / "r"),
+            "--readme", str(readme)]
+
+
+def _run_json(tmp_path: Path) -> dict:
+    return json.loads((tmp_path / "r" / "v0.5.0" / "run.json").read_text(encoding="utf-8"))
+
+
+def test_only_confirmed_gone_sources_exit_three_publish_and_record_the_evidence(tmp_path, monkeypatch, capsys):
+    from bench.materialise import SourceGone
+
+    gone = SourceGone("fx-02-gone: commit 1111 is not on acme/w after an explicit fetch: not our ref 1111")
+    args = _setup(tmp_path, monkeypatch, ["fx-01-ok", "fx-02-gone"], {"fx-02-gone": gone})
     assert main_mod.main(args) == 3
-    table = (out / "v0.5.0" / "table.md").read_text(encoding="utf-8")
+    table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
     assert table.startswith("Locrin v0.5.0, 1 of 2 diffs ran, 0 unlabelled findings.\n")
-    run = json.loads((out / "v0.5.0" / "run.json").read_text(encoding="utf-8"))
-    assert run["diffs"] == 2 and run["ran"] == 1
+    run = _run_json(tmp_path)
+    assert run["diffs"] == 2 and run["ran"] == 1 and run["publishable"] is True
+    assert run["gone"] == [{"id": "fx-02-gone", "evidence": "commit 1111 is not on acme/w after an explicit fetch: not our ref 1111"}]
+    assert run["materialise_failures"] == []
+    assert (tmp_path / "README.md").read_bytes() == b"x\n<!-- results:start -->\n" + table.encode("utf-8") + b"<!-- results:end -->\n"
+    assert "source gone: fx-02-gone: commit 1111" in capsys.readouterr().err
 
     def failing_run(locrin, co, work, diff_id):
         raise RunError(f"{diff_id}: locrin exit 2: bad")
 
     monkeypatch.setattr(main_mod, "run_check", failing_run)
     assert main_mod.main(args) == 1
+    assert _run_json(tmp_path)["publishable"] is False
+
+
+def test_a_transient_materialise_failure_beside_a_gone_source_exits_one_and_publishes_nothing(tmp_path, monkeypatch, capsys):
+    from bench.materialise import SourceGone
+
+    failures = {
+        "fx-02-gone": SourceGone("fx-02-gone: https://github.com/acme/w answers HTTP 404; git said: x"),
+        "fx-03-net": MaterialiseError("fx-03-net: git clone failed: Could not resolve host: github.com"),
+    }
+    args = _setup(tmp_path, monkeypatch, ["fx-01-ok", "fx-02-gone", "fx-03-net"], failures)
+    assert main_mod.main(args) == 1
+    run = _run_json(tmp_path)
+    assert run["publishable"] is False and run["ran"] == 1
+    assert [g["id"] for g in run["gone"]] == ["fx-02-gone"]
+    assert run["materialise_failures"] == ["fx-03-net: git clone failed: Could not resolve host: github.com"]
+    assert (tmp_path / "README.md").read_bytes() == b"x\n<!-- results:start -->\nold\n<!-- results:end -->\n"
+    assert "not publishable" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("kind", ["transient", "gone", "os"])
+def test_when_no_diff_runs_the_run_exits_one_and_publishes_nothing(tmp_path, monkeypatch, kind):
+    from bench.materialise import SourceGone
+
+    error = {"transient": MaterialiseError("fx-01-a: git clone failed: Could not read from remote repository"),
+             "gone": SourceGone("fx-01-a: https://github.com/acme/w answers HTTP 404; git said: x"),
+             "os": MaterialiseError("fx-01-a: [WinError 267] The directory name is invalid")}[kind]
+    args = _setup(tmp_path, monkeypatch, ["fx-01-a"], {"fx-01-a": error})
+    assert main_mod.main(args) == 1
+    run = _run_json(tmp_path)
+    assert run["ran"] == 0 and run["publishable"] is False
+    assert (tmp_path / "README.md").read_bytes() == b"x\n<!-- results:start -->\nold\n<!-- results:end -->\n"
+
+
+def test_an_empty_corpus_is_a_setup_error_and_leaves_the_readme_alone(tmp_path, monkeypatch, capsys):
+    args = _setup(tmp_path, monkeypatch, [], {})
+    assert main_mod.main(args) == 2
+    assert "holds no record" in capsys.readouterr().err
+    assert not (tmp_path / "r").exists()
+    assert (tmp_path / "README.md").read_bytes() == b"x\n<!-- results:start -->\nold\n<!-- results:end -->\n"
+
+
+def test_findings_matched_to_unconfirmed_entries_are_listed_as_excluded(tmp_path, monkeypatch, capsys):
+    labels = tmp_path / "labels"
+    labels.mkdir()
+    write_label(labels, "fx-01-ok", [entry("src/x.ts", 2, "a" * 16, "true"),
+                                     dict(entry("src/x.ts", 3, "b" * 16, "true"), pass2="false-positive")])
+    args = _setup(tmp_path, monkeypatch, ["fx-01-ok"], {})
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif(
+        [result("src/x.ts", 2, "a" * 16), result("src/x.ts", 3, "b" * 16)]))
+    assert main_mod.main(args) == 0
+    run = _run_json(tmp_path)
+    assert run["excluded"] == 1 and run["unlabelled"] == 0 and run["publishable"] is True
+    assert f"excluded: fx-01-ok leftover-debug src/x.ts:3 {'b' * 16}" in capsys.readouterr().err

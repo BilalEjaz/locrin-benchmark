@@ -40,8 +40,10 @@ def status(root: Path) -> None:
     for diff, lf in labels.items():
         confirmed = sum(1 for e in lf.entries if e.confirmed)
         unfilled = sum(1 for e in lf.entries if e.pass1 == "?" or e.pass2 == "?")
-        disagree = sum(1 for e in lf.entries if (diff, id(e)) in dis)
-        print(f"{diff}: entries={len(lf.entries)} confirmed={confirmed} unfilled={unfilled} disagree={disagree}")
+        disputed = [e for e in lf.entries if (diff, id(e)) in dis]
+        print(f"{diff}: entries={len(lf.entries)} confirmed={confirmed} unfilled={unfilled} disagree={len(disputed)}")
+        for e in disputed:
+            print(f"  disagree: {e.rule} {e.file}:{e.line} pass1={e.pass1} pass2={e.pass2}")
 
 
 def _findings_for(diff_id: str, locrin_version: str, corpus_root: Path, work: Path) -> list[Finding]:

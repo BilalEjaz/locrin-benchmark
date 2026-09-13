@@ -1,6 +1,7 @@
 """Join findings with confirmed labels and compute precision and recall."""
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -18,6 +19,8 @@ SHIPS_OFF = {"dead-file", "swallowed-error", "injection-sink"}
 # Pairs the engine ships off although their rule ships on. SARIF carries only the rule
 # default, so these come from the engine README "Per-language defaults" table.
 PAIRS_OFF = {"leftover-commented-code@python"}
+# Languages locrin reads only when [languages] turns them on. The benchmark turns them on.
+OPT_IN_LANGUAGES = {"php", "python"}
 MIN_N = 5
 LINE = 0.85
 
@@ -58,6 +61,16 @@ def _is_missed(e: Entry) -> bool:
 
 def _ran(labels: dict[str, LabelFile], ran: set[str] | None) -> dict[str, LabelFile]:
     return labels if ran is None else {d: lf for d, lf in labels.items() if d in ran}
+
+
+def _verdict(lf: LabelFile, e: Entry) -> str | None:
+    """The verdict that counts: the confirmed one, and only in a file pass two signed with label.py confirm."""
+    return e.verdict if lf.pass2 is not None else None
+
+
+def _pending(labels: dict[str, LabelFile]) -> set[int]:
+    """Object ids of entries in label files that pass two never confirmed."""
+    return {id(e) for lf in labels.values() if lf.pass2 is None for e in lf.entries}
 
 
 def _match(findings: list[Finding], labels: dict[str, LabelFile]) -> dict[int, Entry]:
@@ -140,7 +153,7 @@ def _match(findings: list[Finding], labels: dict[str, LabelFile]) -> dict[int, E
 def _stale(labels: dict[str, LabelFile], matched: dict[int, Entry]) -> list[tuple[str, Entry]]:
     used = {id(e) for e in matched.values()}
     out = [(d, e) for d, lf in labels.items() for e in lf.entries
-           if e.verdict == "true" and not _is_missed(e) and id(e) not in used]
+           if _verdict(lf, e) == "true" and not _is_missed(e) and id(e) not in used]
     return sorted(out, key=lambda de: (de[0], de[1].rule, de[1].file, de[1].line))
 
 
@@ -152,6 +165,20 @@ def stale(findings: list[Finding], labels: dict[str, LabelFile], ran: set[str] |
     """
     labels = _ran(labels, ran)
     return _stale(labels, _match(findings, labels))
+
+
+def excluded(findings: list[Finding], labels: dict[str, LabelFile], ran: set[str] | None = None) -> list[Finding]:
+    """Findings whose matching entry has no verdict that counts, so they count nowhere.
+
+    That is an entry left unfilled, one whose passes disagree, or any entry in a label file
+    pass two never confirmed. Findings on not-applicable entries are not listed: their
+    verdict is settled. With ran given, only label files for those diff ids are read.
+    """
+    labels = _ran(labels, ran)
+    pending = _pending(labels)
+    matched = _match(findings, labels)
+    return [f for i, f in enumerate(findings)
+            if i in matched and (matched[i].verdict is None or id(matched[i]) in pending)]
 
 
 def score(findings: list[Finding], labels: dict[str, LabelFile], rules: dict[str, RuleMeta], *, ran: set[str] | None = None) -> tuple[list[Score], list[Score], list[Finding]]:
@@ -185,7 +212,7 @@ def score(findings: list[Finding], labels: dict[str, LabelFile], rules: dict[str
 
     for diff, lf in labels.items():
         for e in lf.entries:
-            if not e.confirmed:
+            if _verdict(lf, e) is None:
                 continue
             label_rules.add(e.rule)
             lang = language_of(e.file)
@@ -194,6 +221,7 @@ def score(findings: list[Finding], labels: dict[str, LabelFile], rules: dict[str
             if e.verdict == "missed":
                 miss(e)
     matched = _match(findings, labels)
+    pending = _pending(labels)
     for _, e in _stale(labels, matched):
         miss(e)
     unlabelled: list[Finding] = []
@@ -204,7 +232,7 @@ def score(findings: list[Finding], labels: dict[str, LabelFile], rules: dict[str
         if entry is None:
             unlabelled.append(f)
             continue
-        v = entry.verdict
+        v = None if id(entry) in pending else entry.verdict
         if v not in ("true", "false-positive"):
             continue
         idx = 0 if v == "true" else 1
@@ -224,6 +252,9 @@ def _pct(v: float | None) -> str:
 def _cell(v: float | None, is_precision: bool, scored: bool) -> str:
     s = _pct(v)
     if s and is_precision and scored and v is not None and v < LINE:
+        if round(v * 100) >= round(LINE * 100):
+            # Rounded, it would read as the line itself: show one decimal, rounded down.
+            s = f"{math.floor(v * 1000) / 10:.1f}%"
         s += " (below line)"
     return s
 
@@ -232,15 +263,14 @@ def render_markdown(per_rule: list[Score], per_pair: list[Score], version: str, 
     rules = rules or {}
 
     def ships(key: str) -> str:
-        rule = key.split("@", 1)[0]
-        if rule in LOCKED:
-            return "locked"
-        if key in PAIRS_OFF:
-            return "off"
+        rule, _, language = key.partition("@")
         meta = rules.get(rule)
-        if meta is None:
-            return "off" if rule in SHIPS_OFF else "on"
-        return "on" if meta.enabled_by_default else "off"
+        rule_on = rule in LOCKED or ((rule not in SHIPS_OFF) if meta is None else meta.enabled_by_default)
+        if not rule_on or key in PAIRS_OFF:
+            return "off"
+        if language in OPT_IN_LANGUAGES:
+            return "opt-in"
+        return "locked" if rule in LOCKED else "on"
 
     def rows(scores: list[Score], head: str) -> list[str]:
         out = [f"| {head} | Ships | Precision | Recall | True | False positive | Missed | Note |", "| --- | --- | --- | --- | --- | --- | --- | --- |"]
@@ -251,8 +281,15 @@ def render_markdown(per_rule: list[Score], per_pair: list[Score], version: str, 
     # With ran, the heading says how many diffs were actually scored, so a table with failures never looks complete.
     diffs = f"{corpus_size} diffs" if ran is None else f"{ran} of {corpus_size} diffs ran"
     lines = [f"Locrin {version}, {diffs}, {unlabelled} unlabelled findings.", ""]
+    # The rules the benchmark never scores are always listed, with the reason, even when no diff ran.
+    listed = {s.key for s in per_rule}
+    per_rule = per_rule + [Score(rule, 0, 0, 0, None, None, False, f"not benchmarked: {reason}")
+                           for rule, reason in NOT_BENCHMARKED.items() if rule not in listed]
     lines += rows(per_rule, "Rule")
     if per_pair:
         lines += ["", *rows(per_pair, "Pair")]
+        if any(s.key.partition("@")[2] in OPT_IN_LANGUAGES for s in per_pair):
+            lines += ["", "Locrin reads PHP and Python only when `[languages]` turns them on, so their pairs ship "
+                          "opt-in; the benchmark turns both on."]
     return "\n".join(lines) + "\n"
 

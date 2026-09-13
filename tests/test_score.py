@@ -140,7 +140,9 @@ def test_empty_cells_and_pair_table_heading():
     assert md.startswith("Locrin v0.5.0, 2 diffs, 3 unlabelled findings.\n\n| Rule | Ships | Precision | Recall | True | False positive | Missed | Note |\n")
     assert "| `dead-export` | on |  |  | 0 | 0 | 0 | n<5, not scored |" in md
     assert "\n\n| Pair | Ships | Precision | Recall | True | False positive | Missed | Note |\n" in md
-    assert md.endswith("| `leftover-debug@php` | on | 100% | 100% | 1 | 0 | 0 | n<5, not scored |\n")
+    assert md.endswith("| `leftover-debug@php` | opt-in | 100% | 100% | 1 | 0 | 0 | n<5, not scored |\n\n"
+                       "Locrin reads PHP and Python only when `[languages]` turns them on, so their pairs ship "
+                       "opt-in; the benchmark turns both on.\n")
     assert "\r" not in md
 
 
@@ -368,3 +370,60 @@ def test_shifted_findings_sharing_an_id_pair_with_as_many_entries_in_line_order(
 def test_heading_says_how_many_diffs_ran_when_told():
     md = render_markdown([], [], "v0.5.0", corpus_size=10, unlabelled=0, ran=9)
     assert md.startswith("Locrin v0.5.0, 9 of 10 diffs ran, 0 unlabelled findings.\n")
+
+
+def test_a_precision_just_under_the_line_never_renders_as_the_line():
+    assert bench.score._cell(45 / 53, True, True) == "84.9% (below line)"
+    assert bench.score._cell(0.8, True, True) == "80% (below line)"
+    assert bench.score._cell(0.85, True, True) == "85%"
+    assert bench.score._cell(45 / 53, False, True) == "85%"
+
+
+def test_php_and_python_pairs_render_opt_in_because_those_languages_ship_off():
+    rules = {"leftover-debug": RuleMeta("leftover-debug", True, ["php", "python"]),
+             "secret-exposed": RuleMeta("secret-exposed", True, ["python"]),
+             "dead-file": RuleMeta("dead-file", False, ["python"])}
+    pairs = [Score(k, 0, 0, 0, None, None, False, "n<5, not scored") for k in
+             ("leftover-debug@php", "leftover-debug@python", "leftover-debug@typescript", "secret-exposed@python",
+              "dead-file@python", "leftover-commented-code@python")]
+    md = render_markdown([], pairs, "v0.5.0", 1, 0, rules=rules)
+    assert "| `leftover-debug@php` | opt-in |" in md
+    assert "| `leftover-debug@python` | opt-in |" in md
+    assert "| `leftover-debug@typescript` | on |" in md
+    assert "| `secret-exposed@python` | opt-in |" in md
+    assert "| `dead-file@python` | off |" in md
+    assert "| `leftover-commented-code@python` | off |" in md
+    assert "PHP and Python" in md
+
+
+def test_the_table_always_lists_the_rules_that_are_not_benchmarked():
+    md = render_markdown([], [], "v0.5.0", corpus_size=0, unlabelled=0, ran=0)
+    for rule, reason in bench.score.NOT_BENCHMARKED.items():
+        assert f"| `{rule}` | on |  |  | 0 | 0 | 0 | not benchmarked: {reason} |" in md
+    once = render_markdown([Score("vulnerable-dependency", 0, 0, 0, None, None, False,
+                                  "not benchmarked: advisory feed changes daily")], [], "v0.5.0", 1, 0)
+    assert once.count("`vulnerable-dependency`") == 1
+
+
+def test_findings_matched_to_unconfirmed_entries_are_excluded_and_count_nowhere():
+    fs = [F("a", "leftover-debug", "x.ts", 1, ident=A), F("a", "leftover-debug", "x.ts", 2, ident=B),
+          F("a", "leftover-debug", "x.ts", 3, ident=C)]
+    unfilled = Entry("leftover-debug", "x.ts", 2, B, "?", "?", "")
+    disputed = Entry("leftover-debug", "x.ts", 3, C, "true", "false-positive", "")
+    ls = labels(a=[E("leftover-debug", "x.ts", 1, "true", A), unfilled, disputed])
+    per_rule, _, unlabelled = score(fs, ls, RULES)
+    assert counts(per_rule, "leftover-debug") == (1, 0, 0)
+    assert unlabelled == []
+    assert [(f.line, f.id) for f in bench.score.excluded(fs, ls)] == [(2, B), (3, C)]
+    assert bench.score.excluded(fs, ls, ran=set()) == []
+
+
+def test_a_label_file_never_confirmed_by_pass_two_counts_nowhere():
+    fs = [F("a", "leftover-debug", "x.ts", 1, ident=A)]
+    lf = LabelFile("a", "v0.5.0", {"by": "one", "date": "d"}, None,
+                   [E("leftover-debug", "x.ts", 1, "true", A), E("leftover-debug", "x.ts", 5, "missed")])
+    per_rule, per_pair, unlabelled = score(fs, {"a": lf}, RULES)
+    assert counts(per_rule, "leftover-debug") == (0, 0, 0)
+    assert unlabelled == []
+    assert [f.id for f in bench.score.excluded(fs, {"a": lf})] == [A]
+    assert stale([], {"a": lf}) == []
