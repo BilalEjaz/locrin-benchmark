@@ -65,12 +65,25 @@ def _version_of(binary: Path) -> str:
     return words[-1]
 
 
+def _program(path: Path) -> Path:
+    """Make a program path with a directory part absolute; leave a bare name for PATH lookup.
+
+    run_check runs locrin with cwd set to the checkout root, and on POSIX a relative program
+    path is looked up from the child's cwd, so a relative path would point into the checkout.
+    abspath, not resolve, so a symlinked binary keeps the name it was invoked by.
+    """
+    path = Path(path)
+    if path.parent == Path("."):
+        return path
+    return Path(os.path.abspath(path))
+
+
 def install_locrin(version: str, cache: Path) -> Path:
     want = version[1:] if version.startswith("v") else version
     tag = f"v{want}"
     override = os.environ.get("LOCRIN_BIN")
     if override:
-        binary = Path(override)
+        binary = _program(Path(override))
         got = _version_of(binary)
         if got != want:
             raise RunError(f"LOCRIN_BIN is locrin {got}, wanted {want}")
@@ -81,11 +94,13 @@ def install_locrin(version: str, cache: Path) -> Path:
         hint = f"install.sh does not run on Windows; set LOCRIN_BIN to a locrin {want} binary"
         if not found:
             raise RunError(f"no locrin on PATH; {hint}")
-        got = _version_of(Path(found))
+        binary = _program(Path(found))
+        got = _version_of(binary)
         if got != want:
             raise RunError(f"locrin on PATH is {got}, wanted {want}; {hint}")
-        return Path(found)
-    bin_dir = Path(cache) / "bin" / tag
+        return binary
+    # Resolved so the returned binary is absolute even when the caller passes --cache .cache.
+    bin_dir = Path(cache).resolve() / "bin" / tag
     binary = bin_dir / "locrin"
     if not binary.exists():
         bin_dir.mkdir(parents=True, exist_ok=True)
@@ -133,11 +148,12 @@ def run_check(locrin: Path, checkout: Checkout, work: Path, diff_id: str) -> dic
     root = checkout.root
     (root / "locrin.toml").write_bytes(BENCH_TOML.encode("utf-8"))
     # Keyed on the diff, not the checkout: several git diffs share one checkout root.
-    cache_dir = Path(work) / "cache" / diff_id
+    # Resolved: locrin runs with cwd=root and would read a relative cache dir from inside the checkout.
+    cache_dir = Path(work).resolve() / "cache" / diff_id
     cache_dir.mkdir(parents=True, exist_ok=True)
     # GIT_ATTR_NOSYSTEM keeps the machine's system gitattributes out of locrin's own git calls.
     env = dict(os.environ, LOCRIN_CACHE_DIR=str(cache_dir), GIT_ATTR_NOSYSTEM="1")
-    cmd = [str(locrin), "check", "--root", str(root), "--base", checkout.base_ref, "--sarif", "--offline"]
+    cmd = [str(_program(locrin)), "check", "--root", str(root), "--base", checkout.base_ref, "--sarif", "--offline"]
     try:
         proc = subprocess.run(cmd, cwd=root, env=env, capture_output=True, text=True,
                               encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL)

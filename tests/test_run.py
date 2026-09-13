@@ -55,6 +55,21 @@ def test_install_uses_locrin_bin_when_set(tmp_path, monkeypatch):
     assert install_locrin("v0.5.0", tmp_path / "cache") == fake
 
 
+def test_install_makes_a_relative_locrin_bin_absolute_and_keeps_a_bare_name(tmp_path, monkeypatch):
+    tools = tmp_path / "tools"
+    tools.mkdir()
+    fake = fake_locrin(tools, "0.5.0")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("LOCRIN_BIN", f"tools/{fake.name}")
+    got = install_locrin("v0.5.0", Path("cache"))
+    assert got.is_absolute()
+    assert got == fake.resolve()
+    # A bare name has no directory part, so it is left for a PATH lookup.
+    monkeypatch.setattr("bench.run._version_of", lambda binary: "0.5.0")
+    monkeypatch.setenv("LOCRIN_BIN", "locrin")
+    assert install_locrin("v0.5.0", Path("cache")) == Path("locrin")
+
+
 def test_install_rejects_version_mismatch(tmp_path, monkeypatch):
     fake = fake_locrin(tmp_path, "0.4.0")
     monkeypatch.setenv("LOCRIN_BIN", str(fake))
@@ -103,8 +118,13 @@ def test_install_elsewhere_runs_install_sh_into_the_versioned_cache(tmp_path, mo
 
     monkeypatch.setattr("bench.run.urllib.request.urlopen", fake_urlopen)
     monkeypatch.setattr("bench.run.subprocess.run", fake_run)
-    bin_dir = tmp_path / "cache" / "bin" / "v0.5.0"
-    assert install_locrin("0.5.0", tmp_path / "cache") == bin_dir / "locrin"
+    # A relative cache, as bench.main passes by default: the returned binary must be
+    # absolute, because run_check runs it with cwd set to the checkout root.
+    monkeypatch.chdir(tmp_path)
+    bin_dir = (tmp_path / "cache" / "bin" / "v0.5.0").resolve()
+    got = install_locrin("0.5.0", Path("cache"))
+    assert got.is_absolute()
+    assert got == bin_dir / "locrin"
     assert fetched == [INSTALLER]
     (bash, bash_kw), (version, _) = calls
     assert bash == ["bash", str(bin_dir / "install.sh"), "v0.5.0"]
@@ -112,7 +132,7 @@ def test_install_elsewhere_runs_install_sh_into_the_versioned_cache(tmp_path, mo
     assert version == [str(bin_dir / "locrin"), "--version"]
     calls.clear()
     fetched.clear()
-    assert install_locrin("v0.5.0", tmp_path / "cache") == bin_dir / "locrin"
+    assert install_locrin("v0.5.0", Path("cache")) == bin_dir / "locrin"
     assert fetched == [] and [c[0] for c in calls] == [[str(bin_dir / "locrin"), "--version"]]
 
 
@@ -147,6 +167,61 @@ def test_run_check_writes_config_accepts_exit_1_and_rejects_exit_2(tmp_path, mon
     fake_run.stdout = "not json"
     with pytest.raises(RunError, match="fx-01-debug"):
         run_check(Path("/bin/locrin"), co, work, "fx-01-debug")
+
+
+def test_run_check_resolves_a_relative_work_dir_outside_the_checkout(tmp_path, monkeypatch):
+    root = tmp_path / "co"
+    root.mkdir()
+    co = Checkout(root=root, base_ref="abc")
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        seen["kw"] = kw
+        return subprocess.CompletedProcess(cmd, 0, stdout='{"runs": []}', stderr="")
+
+    monkeypatch.setattr("bench.run.subprocess.run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    run_check(Path("/bin/locrin"), co, Path("work"), "fx-01-debug")
+    cache = seen["kw"]["env"]["LOCRIN_CACHE_DIR"]
+    assert Path(cache).is_absolute()
+    assert cache == str((tmp_path / "work" / "cache" / "fx-01-debug").resolve())
+    assert Path(cache).is_dir()
+
+
+def test_run_check_makes_a_relative_locrin_path_absolute_and_keeps_a_bare_name(tmp_path, monkeypatch):
+    root = tmp_path / "co"
+    root.mkdir()
+    co = Checkout(root=root, base_ref="abc")
+    seen = []
+
+    def fake_run(cmd, **kw):
+        seen.append(cmd[0])
+        return subprocess.CompletedProcess(cmd, 0, stdout='{"runs": []}', stderr="")
+
+    monkeypatch.setattr("bench.run.subprocess.run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    run_check(Path("bin") / "locrin", co, Path("work"), "fx-01-debug")
+    run_check(Path("locrin"), co, Path("work"), "fx-01-debug")
+    assert seen == [str((tmp_path / "bin" / "locrin").resolve()), "locrin"]
+
+
+def test_run_check_really_runs_a_relative_binary_from_another_cwd(tmp_path, monkeypatch):
+    """No mock: on POSIX a relative program path is looked up from the child's cwd."""
+    root = tmp_path / "co"
+    root.mkdir()
+    tools = tmp_path / "tools"
+    tools.mkdir()
+    if os.name == "nt":
+        fake = tools / "locrin.cmd"
+        fake.write_text('@echo {"runs": [{"results": []}]}\n')
+    else:
+        fake = tools / "locrin"
+        fake.write_text('#!/bin/sh\necho \'{"runs": [{"results": []}]}\'\n')
+        fake.chmod(0o755)
+    monkeypatch.chdir(tmp_path)
+    doc = run_check(Path("tools") / fake.name, Checkout(root=root, base_ref="abc"), Path("work"), "fx-01-debug")
+    assert doc == {"runs": [{"results": []}]}
+    assert not (root / "work").exists()
 
 
 def test_bench_toml_has_no_carriage_returns_and_enables_the_ships_off_rules():
