@@ -546,3 +546,66 @@ def test_check_gone_lists_records_whose_commit_github_no_longer_serves(tmp_path,
     assert "cline__cline" not in captured.out
     monkeypatch.setattr(bc, "GitHub", FakeGitHub)
     assert bc.main(["--out", str(out), "--check-gone"]) == 0
+
+
+def test_accept_names_the_record_after_the_canonical_repository():
+    # --repo as typed, or a search hit from before a rename: the record uses GitHub's own full_name.
+    seen = {}
+    rec, _, _ = accept(FakeGitHub(), item_for("Cline/Cline", SHA), seen_repos=seen)
+    assert rec["repo"] == REPO and rec["id"] == "cline__cline__5ff11f2"
+    assert rec["url"] == f"https://github.com/{REPO}/commit/{SHA}"
+    assert seen == {REPO: 1}
+    gh = FakeGitHub()
+    accept(gh, item_for("Cline/Cline", SHA), seen_repos={})
+    assert f"repos/{REPO}/commits/{SHA}" in gh.calls
+
+
+def test_accept_caps_a_repository_whatever_case_or_old_name_the_item_carries():
+    assert accept(FakeGitHub(), item_for("CLINE/cline", SHA), seen_repos={REPO: 3}) is None
+    renamed = dict(load("repo.json"), full_name="cline/cline")
+    gh = FakeGitHub({"repos/old-owner/old-name": renamed})
+    assert accept(gh, item_for("old-owner/old-name", SHA), seen_repos={REPO: 3}) is None
+
+
+def test_main_skips_a_commit_already_recorded_under_another_name(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    rec, before, after = accept(FakeGitHub(), first_item(), seen_repos={})
+    write_record(out, rec, before, after)
+    accepted = []
+
+    def fake_accept(gh, item, seen_repos):
+        accepted.append(item["repository"]["full_name"])
+        return None
+
+    monkeypatch.setattr(bc, "GitHub", FakeGitHub)
+    monkeypatch.setattr(bc, "candidates",
+                        lambda gh, trailer, per_page=100, pages=3: [item_for("old-owner/old-name", SHA), item_for("Cline/Cline", SHA)])
+    monkeypatch.setattr(bc, "accept", fake_accept)
+    assert bc.main(["--out", str(out), "--target", "5", "--trailer", "A"]) == 0
+    assert accepted == []
+
+
+def test_main_named_commit_already_recorded_writes_nothing_new(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    monkeypatch.setattr(bc, "GitHub", FakeGitHub)
+    assert bc.main(["--out", str(out), "--repo", REPO, "--sha", SHA]) == 0
+    assert bc.main(["--out", str(out), "--repo", "Cline/Cline", "--sha", SHA]) == 0
+    assert sorted(p.name for p in out.glob("*.json")) == ["cline__cline__5ff11f2.json"]
+    assert [d.id for d in load_corpus(out)] == ["cline__cline__5ff11f2"]
+
+
+def test_main_seeds_the_repository_cap_case_insensitively(tmp_path, monkeypatch):
+    out = tmp_path / "corpus"
+    rec, before, after = accept(FakeGitHub(), first_item(), seen_repos={})
+    write_record(out, dict(rec, repo="Cline/Cline", id="Cline__Cline__5ff11f2"), before, after)
+    caps = []
+
+    def fake_accept(gh, item, seen_repos):
+        caps.append(dict(seen_repos))
+        return None
+
+    monkeypatch.setattr(bc, "GitHub", FakeGitHub)
+    monkeypatch.setattr(bc, "candidates", lambda gh, trailer, per_page=100, pages=3: [item_for(REPO, "3" * 40)])
+    monkeypatch.setattr(bc, "accept", fake_accept)
+    assert bc.main(["--out", str(out), "--target", "5", "--trailer", "A"]) == 0
+    assert caps == [{REPO: 1}]

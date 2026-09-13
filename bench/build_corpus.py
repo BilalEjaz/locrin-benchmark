@@ -170,15 +170,22 @@ def accept(gh, item: dict, seen_repos: dict[str, int]):
     stored copy on at least one side, each name is listed once, and every
     stored path is checked before anything is fetched.
     """
-    repo = item["repository"]["full_name"]
+    named = item["repository"]["full_name"]
     sha = item["sha"]
     if len(item.get("parents", [])) != 1:
-        _skip(repo, sha, "merge or root commit")
+        _skip(named, sha, "merge or root commit")
         return None
-    if seen_repos.get(repo, 0) >= PER_REPO:
+    # The cap counts repositories by lower-cased canonical name: GitHub names are case-insensitive.
+    if seen_repos.get(named.lower(), 0) >= PER_REPO:
+        _skip(named, sha, "repository cap")
+        return None
+    meta = gh.get(f"repos/{named}")
+    # The name as typed with --repo, or from a search hit made before a rename, is not the record's
+    # name: GitHub's canonical full_name is, so one commit always gets one id.
+    repo = meta.get("full_name") or named
+    if repo.lower() != named.lower() and seen_repos.get(repo.lower(), 0) >= PER_REPO:
         _skip(repo, sha, "repository cap")
         return None
-    meta = gh.get(f"repos/{repo}")
     if meta.get("private") is not False or meta.get("visibility") != "public":
         # The build search asks for is:public, but a named commit (--repo/--sha) reads with the caller's own access.
         _skip(repo, sha, f"repository is not public (private={meta.get('private')}, visibility={meta.get('visibility')})")
@@ -241,7 +248,7 @@ def accept(gh, item: dict, seen_repos: dict[str, int]):
         "url": f"https://github.com/{repo}/commit/{sha}",
         "files": names,
     }
-    seen_repos[repo] = seen_repos.get(repo, 0) + 1
+    seen_repos[repo.lower()] = seen_repos.get(repo.lower(), 0) + 1
     return rec, before, after
 
 
@@ -277,8 +284,8 @@ def write_record(out_root: Path, rec: dict, before: dict[str, bytes], after: dic
     return path
 
 
-def _existing(out_root: Path) -> dict[str, str]:
-    """Record id to repository for the records already in out_root."""
+def _existing(out_root: Path) -> dict[str, tuple[str, str]]:
+    """Record id to (repository, commit sha) for the records already in out_root."""
     found = {}
     if Path(out_root).is_dir():
         for p in Path(out_root).glob("*.json"):
@@ -287,7 +294,7 @@ def _existing(out_root: Path) -> dict[str, str]:
             except (OSError, UnicodeDecodeError, json.JSONDecodeError):
                 continue
             if isinstance(raw, dict):
-                found[p.stem] = raw.get("repo") or ""
+                found[p.stem] = (str(raw.get("repo") or ""), str(raw.get("sha") or ""))
     return found
 
 
@@ -335,6 +342,11 @@ def main(argv: list[str] | None = None) -> int:
     if a.repo:
         try:
             commit = gh.get(f"repos/{a.repo}/commits/{a.sha}")
+            recorded = [ident for ident, (_, sha) in _existing(out).items() if sha == commit["sha"]]
+            if recorded:
+                # Deduped on the full sha: the same commit under another spelling of its repository name.
+                print(out / f"{recorded[0]}.json")
+                return 0
             item = {"sha": commit["sha"], "repository": {"full_name": a.repo}, "parents": commit["parents"]}
             got = accept(gh, item, {})
             if got is None:
@@ -345,8 +357,9 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         return 0
     existing = _existing(out)
-    done = set(existing)
-    seen: dict[str, int] = dict(Counter(repo for repo in existing.values() if repo))
+    # Deduped on the full commit sha, never on the id: a renamed repository gives one commit a second name.
+    done = {sha for _, sha in existing.values() if sha}
+    seen: dict[str, int] = dict(Counter(repo.lower() for repo, _ in existing.values() if repo))
     total = len(existing)
     written = 0
     try:
@@ -356,10 +369,9 @@ def main(argv: list[str] | None = None) -> int:
             for item in candidates(gh, trailer):
                 if total >= a.target:
                     break
-                rec_id = f"{item['repository']['full_name'].replace('/', '__')}__{item['sha'][:7]}"
-                if rec_id in done:
+                if item["sha"] in done:
                     continue
-                done.add(rec_id)
+                done.add(item["sha"])
                 try:
                     got = accept(gh, item, seen)
                     if got is None:

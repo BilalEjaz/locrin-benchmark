@@ -255,3 +255,32 @@ def test_rejects_non_string_fields(tmp_path, key, value):
     (tmp_path / "acme__widgets__abc1234.json").write_text(json.dumps(good(**{key: value})), encoding="utf-8")
     with pytest.raises(CorpusError, match=f"{key} must be a string"):
         load_corpus(tmp_path)
+
+
+def _git_record(root: Path, repo: str, sha: str) -> None:
+    ident = repo.replace("/", "__") + "__" + sha[:7]
+    raw = {"id": ident, "source": "git", "repo": repo, "sha": sha, "parent": "0" * 40, "licence": "MIT",
+           "language": "typescript", "url": "u", "files": ["src/a.ts"]}
+    (root / f"{ident}.json").write_bytes(json.dumps(raw).encode("utf-8"))
+
+
+def test_load_corpus_rejects_one_commit_recorded_twice(tmp_path):
+    sha = "5ff11f2" + "a" * 33
+    _git_record(tmp_path, "old-owner/old-name", sha)
+    _git_record(tmp_path, "cline/cline", sha)
+    with pytest.raises(CorpusError, match="same commit"):
+        load_corpus(tmp_path)
+
+
+def test_load_corpus_rejects_ids_that_differ_only_by_case(tmp_path):
+    _git_record(tmp_path, "cline/cline", "5ff11f2" + "a" * 33)
+    _git_record(tmp_path, "Acme/W", "1234567" + "b" * 33)
+    load_corpus(tmp_path)
+    try:
+        _git_record(tmp_path, "acme/w", "1234567" + "c" * 33)
+    except OSError:
+        pytest.skip("filesystem refuses the second name")
+    if len(list(tmp_path.glob("*.json"))) < 3:
+        pytest.skip("case-insensitive filesystem kept one file")
+    with pytest.raises(CorpusError, match="differ only by case"):
+        load_corpus(tmp_path)

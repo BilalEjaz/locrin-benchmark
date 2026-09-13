@@ -141,4 +141,17 @@ def load_corpus(root: Path) -> list[Diff]:
     root = Path(root)
     if not root.is_dir():
         raise CorpusError(f"corpus directory {root} does not exist")
-    return sorted((_load_one(p) for p in root.glob("*.json")), key=lambda d: d.id)
+    diffs = sorted((_load_one(p) for p in root.glob("*.json")), key=lambda d: d.id)
+    by_sha: dict[str, str] = {}
+    by_folded_id: dict[str, str] = {}
+    for d in diffs:
+        # Two ids for one commit would score it twice; two ids that differ only by case check out
+        # as one file on Windows and macOS, so the corpus size would depend on the filesystem.
+        other = by_folded_id.setdefault(d.id.casefold(), d.id)
+        if other != d.id:
+            raise CorpusError(f"{other} and {d.id} differ only by case")
+        if d.source == "git":
+            other = by_sha.setdefault(d.sha, d.id)
+            if other != d.id:
+                raise CorpusError(f"{other} and {d.id} record the same commit {d.sha}")
+    return diffs
