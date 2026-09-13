@@ -18,6 +18,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   measure:
+    # Scheduled runs commit results, so they only run on main. Until main is
+    # the default branch the cron does nothing; manual dispatch still works.
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:

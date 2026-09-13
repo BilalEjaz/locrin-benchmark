@@ -67,3 +67,9 @@ def test_workflow_inputs_reach_the_shell_through_env_only():
             if "${{" in line and "inputs." in line:
                 stripped = line.strip()
                 assert stripped.startswith(("if:", "VERSION:", "COMMIT:")), (name, line)
+
+
+def test_benchmark_schedule_only_runs_on_main_so_it_never_commits_to_a_feature_branch():
+    bm = read("benchmark.yml")
+    job = bm[bm.index("  measure:\n"):bm.index("    steps:\n")]
+    assert "    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'\n" in job
