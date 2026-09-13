@@ -85,7 +85,7 @@ def test_failed_diffs_are_listed_the_rest_scored_and_their_labels_ignored(tmp_pa
     assert run["locrin"] == "v0.5.0" and run["started"] and run["finished"]
     table = (out / "v0.5.0" / "table.md").read_text(encoding="utf-8")
     # One true reported, one stale true counted missed; fx-02's true and fx-03's miss count nowhere.
-    assert "| `leftover-debug` | on | 100% | 50% | 1 | 0 | 1 | n<5, not scored |" in table
+    assert "| `leftover-debug` | on | 100% | 50% | 1 | 0 | 1 | 1 | n<5, not scored |" in table
     lines = (out / "v0.5.0" / "findings.jsonl").read_bytes().split(b"\n")
     assert lines[-1] == b"" and len(lines) == 3 and b"\r" not in b"".join(lines)
     assert json.loads(lines[0]) == {"diff": "fx-01-ok", "rule": "leftover-debug", "file": "src/x.ts", "line": 2,
@@ -101,6 +101,8 @@ def test_failed_diffs_are_listed_the_rest_scored_and_their_labels_ignored(tmp_pa
 
 
 def test_all_diffs_ran_exits_zero_and_missing_readme_is_left_alone(tmp_path, monkeypatch):
+    (tmp_path / "labels").mkdir()
+    write_label(tmp_path / "labels", "fx-01-ok", [])
     monkeypatch.setattr(main_mod, "install_locrin", lambda version, cache: Path("locrin"))
     monkeypatch.setattr(main_mod, "load_corpus", lambda root: [diff("fx-01-ok")])
     monkeypatch.setattr(main_mod, "materialise", lambda d, c, k: Checkout(root=tmp_path, base_ref="0" * 40, removed=[]))
@@ -241,7 +243,15 @@ def _materialise_failing(tmp_path: Path, failures: dict[str, Exception]):
     return fake_materialise
 
 
-def _setup(tmp_path: Path, monkeypatch, ids: list[str], failures: dict[str, Exception]) -> list[str]:
+def _setup(tmp_path: Path, monkeypatch, ids: list[str], failures: dict[str, Exception],
+           labelled: list[str] | None = None) -> list[str]:
+    """Stubs for a run over ids. Each id in labelled (default: every id) gets an empty confirmed label file
+    for v0.5.0, unless a test wrote one first, so a run is not held back by missing labels."""
+    labels = tmp_path / "labels"
+    labels.mkdir(exist_ok=True)
+    for ident in ids if labelled is None else labelled:
+        if not (labels / f"{ident}.json").exists():
+            write_label(labels, ident, [])
     monkeypatch.setattr(main_mod, "install_locrin", lambda version, cache: Path("locrin"))
     monkeypatch.setattr(main_mod, "load_corpus", lambda root: [diff(i) for i in ids])
     monkeypatch.setattr(main_mod, "materialise", _materialise_failing(tmp_path, failures))
@@ -355,3 +365,68 @@ def test_an_unexpected_error_while_running_fails_that_diff_by_name(tmp_path, mon
     monkeypatch.setattr(main_mod, "run_check", boom)
     assert main_mod.main(args) == 1
     assert _run_json(tmp_path)["run_failures"][0].startswith("fx-01-bad: unexpected error: RuntimeError")
+
+
+# A run publishes only when its labels cover it: every diff that ran has a label file written for this
+# locrin version, and no finding lacks a label entry. Otherwise it exits 4 and the README is untouched.
+
+OLD_README = b"x\n<!-- results:start -->\nold\n<!-- results:end -->\n"
+
+
+def test_an_unlabelled_finding_makes_the_run_not_publishable_exit_four(tmp_path, monkeypatch, capsys):
+    (tmp_path / "labels").mkdir()
+    write_label(tmp_path / "labels", "fx-01-ok", [entry("src/x.ts", 2, "a" * 16, "true")])
+    args = _setup(tmp_path, monkeypatch, ["fx-01-ok"], {})
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif(
+        [result("src/x.ts", 2, "a" * 16), result("src/logger.ts", 3, "b" * 16)]))
+    assert main_mod.main(args) == 4
+    run = _run_json(tmp_path)
+    assert run["publishable"] is False and run["unlabelled"] == 1
+    assert any("1 unlabelled finding" in r for r in run["not_publishable"])
+    assert (tmp_path / "README.md").read_bytes() == OLD_README
+    table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
+    assert "| `leftover-debug` | on | 100% | 100% | 1 | 0 | 0 | 1 | n<5, not scored |" in table
+    assert "not publishable" in capsys.readouterr().err
+
+
+def test_labels_written_for_another_locrin_version_make_the_run_not_publishable(tmp_path, monkeypatch):
+    args = _setup(tmp_path, monkeypatch, ["fx-01-ok", "fx-02-ok"], {})
+    p = tmp_path / "labels" / "fx-02-ok.json"
+    p.write_bytes(p.read_bytes().replace(b'"v0.5.0"', b'"v0.4.0"'))
+    assert main_mod.main(args) == 4
+    run = _run_json(tmp_path)
+    assert run["publishable"] is False
+    assert run["labels"] == {"versions": ["v0.4.0", "v0.5.0"], "other_version": ["fx-02-ok"], "missing": []}
+    assert any("v0.4.0" in r for r in run["not_publishable"])
+    assert (tmp_path / "README.md").read_bytes() == OLD_README
+
+
+def test_a_diff_that_ran_without_a_label_file_makes_the_run_not_publishable(tmp_path, monkeypatch):
+    args = _setup(tmp_path, monkeypatch, ["fx-01-ok", "fx-02-new"], {}, labelled=["fx-01-ok"])
+    assert main_mod.main(args) == 4
+    run = _run_json(tmp_path)
+    assert run["publishable"] is False and run["labels"]["missing"] == ["fx-02-new"]
+    assert (tmp_path / "README.md").read_bytes() == OLD_README
+
+
+def test_a_transient_failure_beside_uncovered_labels_still_exits_one(tmp_path, monkeypatch):
+    args = _setup(tmp_path, monkeypatch, ["fx-01-ok", "fx-02-net"],
+                  {"fx-02-net": MaterialiseError("fx-02-net: git clone failed: Could not resolve host")}, labelled=[])
+    assert main_mod.main(args) == 1
+
+
+def test_run_json_ties_the_results_to_their_inputs(tmp_path, monkeypatch):
+    from bench import inputs
+
+    args = _setup(tmp_path, monkeypatch, ["fx-01-ok"], {})
+    corpus = tmp_path / "corpus"
+    (corpus / "fx-01-ok").mkdir(parents=True)
+    (corpus / "fx-01-ok.json").write_bytes(b"{}\n")
+    assert main_mod.main(args + ["--corpus", str(corpus)]) == 0
+    run = _run_json(tmp_path)
+    assert run["publishable"] is True and run["not_publishable"] == []
+    assert run["inputs"] == {"corpus": inputs.digest(corpus), "labels": inputs.digest(tmp_path / "labels")}
+    assert run["harness"] == inputs.harness_commit()
+    assert run["labels"] == {"versions": ["v0.5.0"], "other_version": [], "missing": []}
+    ok, _ = inputs.complete(tmp_path / "r" / "v0.5.0" / "run.json", "v0.5.0", corpus, tmp_path / "labels")
+    assert ok is True

@@ -35,23 +35,26 @@ class Score:
     recall: float | None
     scored: bool
     reason: str
+    # Findings on this rule or pair that no label entry covers; they count nowhere.
+    unlabelled: int = 0
 
 
-def _tally(counts: dict[str, list[int]], keys_in_order: list[str]) -> list[Score]:
+def _tally(counts: dict[str, list[int]], keys_in_order: list[str], unlabelled: dict[str, int]) -> list[Score]:
     out = []
     for key in keys_in_order:
         t, fp, m = counts.get(key, [0, 0, 0])
+        u = unlabelled.get(key, 0)
         rule = key.split("@", 1)[0]
         precision = t / (t + fp) if t + fp else None
         recall = t / (t + m) if t + m else None
         if rule in NOT_BENCHMARKED:
-            out.append(Score(key, t, fp, m, precision, recall, False, f"not benchmarked: {NOT_BENCHMARKED[rule]}"))
+            out.append(Score(key, t, fp, m, precision, recall, False, f"not benchmarked: {NOT_BENCHMARKED[rule]}", u))
         elif t + fp < MIN_N:
             # The gate counts confirmed labelled findings (true plus false positive), as the
             # engine's own gate counts findings; missed entries are not findings.
-            out.append(Score(key, t, fp, m, precision, recall, False, "n<5, not scored"))
+            out.append(Score(key, t, fp, m, precision, recall, False, "n<5, not scored", u))
         else:
-            out.append(Score(key, t, fp, m, precision, recall, True, ""))
+            out.append(Score(key, t, fp, m, precision, recall, True, "", u))
     return out
 
 
@@ -225,12 +228,17 @@ def score(findings: list[Finding], labels: dict[str, LabelFile], rules: dict[str
     for _, e in _stale(labels, matched):
         miss(e)
     unlabelled: list[Finding] = []
+    rule_unlabelled: dict[str, int] = defaultdict(int)
+    pair_unlabelled: dict[str, int] = defaultdict(int)
     for i, f in enumerate(findings):
         if f.language:
             pairs.add(f"{f.rule}@{f.language}")
         entry = matched.get(i)
         if entry is None:
             unlabelled.append(f)
+            rule_unlabelled[f.rule] += 1
+            if f.language:
+                pair_unlabelled[f"{f.rule}@{f.language}"] += 1
             continue
         v = None if id(entry) in pending else entry.verdict
         if v not in ("true", "false-positive"):
@@ -239,10 +247,11 @@ def score(findings: list[Finding], labels: dict[str, LabelFile], rules: dict[str
         rule_counts[f.rule][idx] += 1
         if f.language:
             pair_counts[f"{f.rule}@{f.language}"][idx] += 1
-    extra = (label_rules | set(rule_counts)) - set(rules)
+    extra = (label_rules | set(rule_counts) | set(rule_unlabelled)) - set(rules)
     rule_order = list(rules.keys()) + sorted(extra)
     pair_order = sorted(pairs)
-    return _tally(rule_counts, rule_order), _tally(pair_counts, pair_order), unlabelled
+    return (_tally(rule_counts, rule_order, rule_unlabelled), _tally(pair_counts, pair_order, pair_unlabelled),
+            unlabelled)
 
 
 def _pct(v: float | None) -> str:
@@ -273,9 +282,11 @@ def render_markdown(per_rule: list[Score], per_pair: list[Score], version: str, 
         return "locked" if rule in LOCKED else "on"
 
     def rows(scores: list[Score], head: str) -> list[str]:
-        out = [f"| {head} | Ships | Precision | Recall | True | False positive | Missed | Note |", "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+        out = [f"| {head} | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Note |",
+               "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
         for s in scores:
-            out.append(f"| `{s.key}` | {ships(s.key)} | {_cell(s.precision, True, s.scored)} | {_cell(s.recall, False, s.scored)} | {s.true} | {s.false_positive} | {s.missed} | {s.reason} |")
+            out.append(f"| `{s.key}` | {ships(s.key)} | {_cell(s.precision, True, s.scored)} | {_cell(s.recall, False, s.scored)} "
+                       f"| {s.true} | {s.false_positive} | {s.missed} | {s.unlabelled} | {s.reason} |")
         return out
 
     # With ran, the heading says how many diffs were actually scored, so a table with failures never looks complete.

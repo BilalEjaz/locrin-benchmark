@@ -8,6 +8,7 @@ import json
 import sys
 from pathlib import Path
 
+from bench import inputs
 from bench.corpus import CorpusError, load_corpus
 from bench.labels import LabelError, load_labels
 from bench.materialise import MaterialiseError, SourceGone, materialise
@@ -16,16 +17,21 @@ from bench.run import Finding, RuleMeta, RunError, ignore_files_above, install_l
 from bench.score import excluded, render_markdown, score, stale
 
 
-# Exit codes. Only 0 and 3 are publishable, and only then is the README table rewritten.
+# Exit codes. Only 0 and 3 are publishable, and only then is the README table rewritten. Publishable also
+# needs labels that cover the run: every diff that ran has a label file written for this locrin version, and
+# every finding has a label entry.
 # 0 every diff ran.
 # 1 not publishable: locrin or the harness failed on a diff, a source could not be materialised for any
 #   reason other than being confirmed gone (a network, DNS, server or disk error may pass), or no diff ran.
 # 2 setup failed (no locrin, a bad or empty corpus, bad labels), nothing ran.
 # 3 at least one diff ran, and every diff that did not is a confirmed gone source: its repository answers
 #   404 or the server lacks its commit after an explicit fetch. run.json lists them under "gone".
+# 4 not publishable: everything that could run ran, but the labels do not cover the run (a finding with no
+#   label entry, a diff with no label file, or a label file written for another locrin version).
 EXIT_RUN_FAILED = 1
 EXIT_SETUP = 2
 EXIT_SOURCE_GONE = 3
+EXIT_LABELS = 4
 
 
 def _now() -> str:
@@ -62,6 +68,9 @@ def main(argv: list[str] | None = None) -> int:
     except (RunError, CorpusError, LabelError) as e:
         print(f"bench: {e}", file=sys.stderr)
         return EXIT_SETUP
+    # Taken before anything runs, so run.json names the corpus and labels this run actually read.
+    measured = {"corpus": inputs.digest(Path(a.corpus)), "labels": inputs.digest(Path(a.labels))}
+    harness = inputs.harness_commit()
     findings: list[Finding] = []
     rules: dict[str, RuleMeta] = {}
     ran: set[str] = set()
@@ -111,7 +120,24 @@ def main(argv: list[str] | None = None) -> int:
     per_rule, per_pair, unlabelled = score(findings, labels, rules, ran=ran)
     unreported = stale(findings, labels, ran=ran)
     left_out = excluded(findings, labels, ran=ran)
-    publishable = bool(ran) and not mat_fail and not run_fail
+    missing = sorted(d for d in ran if d not in labels)
+    other_version = sorted(d for d in ran if d in labels and labels[d].locrin != a.version)
+    label_versions = sorted({labels[d].locrin for d in ran if d in labels})
+    reasons = []
+    if not ran:
+        reasons.append("no diff ran")
+    if run_fail:
+        reasons.append(f"{len(run_fail)} run failures")
+    if mat_fail:
+        reasons.append(f"{len(mat_fail)} materialise failures that are not confirmed gone sources")
+    if unlabelled:
+        reasons.append(f"{len(unlabelled)} unlabelled finding{'' if len(unlabelled) == 1 else 's'}")
+    if missing:
+        reasons.append(f"no label file for {', '.join(missing)}")
+    if other_version:
+        found = ", ".join(v for v in label_versions if v != a.version)
+        reasons.append(f"labels written for locrin {found}, not {a.version}: {', '.join(other_version)}")
+    publishable = not reasons
     out = Path(a.out) / a.version
     out.mkdir(parents=True, exist_ok=True)
     _write(out / "findings.jsonl", "".join(json.dumps(dataclasses.asdict(f), sort_keys=True) + "\n" for f in findings))
@@ -120,8 +146,10 @@ def main(argv: list[str] | None = None) -> int:
     _write(out / "table.md", table)
     _write(out / "run.json", json.dumps({
         "locrin": a.version, "diffs": len(diffs), "ran": len(ran), "findings": len(findings), "unlabelled": len(unlabelled),
-        "excluded": len(left_out), "publishable": publishable, "gone": gone,
-        "materialise_failures": mat_fail, "run_failures": run_fail, "started": started, "finished": _now(),
+        "excluded": len(left_out), "publishable": publishable, "not_publishable": reasons, "gone": gone,
+        "materialise_failures": mat_fail, "run_failures": run_fail,
+        "labels": {"versions": label_versions, "other_version": other_version, "missing": missing},
+        "inputs": measured, "harness": harness, "started": started, "finished": _now(),
     }, indent=2) + "\n")
     readme = Path(a.readme)
     if publishable and readme.exists():
@@ -135,9 +163,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"excluded: {f.diff} {f.rule} {f.file}:{f.line} {f.id}", file=sys.stderr)
     print(table)
     if not publishable:
-        why = f"{len(ran)} of {len(diffs)} diffs ran, {len(run_fail)} run failures, {len(mat_fail)} materialise failures"
+        why = f"{len(ran)} of {len(diffs)} diffs ran; " + "; ".join(reasons)
         print(f"bench: not publishable ({why}); the README was left unchanged", file=sys.stderr)
-        return EXIT_RUN_FAILED
+        return EXIT_RUN_FAILED if not ran or run_fail or mat_fail else EXIT_LABELS
     return EXIT_SOURCE_GONE if gone else 0
 
 
