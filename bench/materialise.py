@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import stat
 import subprocess
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -19,34 +22,48 @@ _ENV = {
     "GIT_COMMITTER_EMAIL": "bench@example.invalid",
     "GIT_COMMITTER_DATE": "2026-01-01T00:00:00+0000",
     "GIT_TERMINAL_PROMPT": "0",
+    # Git Credential Manager can open a sign-in window even with terminal prompts off.
+    "GCM_INTERACTIVE": "never",
+    # A corpus diff is scored on the files git stores; an LFS pointer stays a pointer.
+    "GIT_LFS_SKIP_SMUDGE": "1",
     # Skip the system-wide gitattributes file, which no config setting can turn off.
     "GIT_ATTR_NOSYSTEM": "1",
 }
-# Settings that keep line endings, blob contents, the set of committed or
-# cleaned files, and signing independent of the machine. They go on every git
-# call and into each repository's own config. Git reads a default ignore file
-# and attributes file ($XDG_CONFIG_HOME/git/ or ~/.config/git/) even when no
+# Settings that keep line endings, path length limits, blob contents, the set of
+# committed or cleaned files, and signing independent of the machine. They go on
+# every git call and into each repository's own config. Git reads a default ignore
+# file and attributes file ($XDG_CONFIG_HOME/git/ or ~/.config/git/) even when no
 # config file names them, so set both to an empty path, which git treats as a
 # missing file on every platform. The null device is not an option: on Windows
 # os.devnull is "nul", and with core.fscache (on by default in Git for Windows)
 # plain `git status` and `git add` die with "cannot use nul as an exclude file".
+# core.longpaths lets Git for Windows write paths over 260 characters (Linux ignores
+# it); core.eol=lf checks out files a repository's own attributes mark as text with
+# LF on every platform.
 _SETTINGS = (
     ("core.autocrlf", "false"),
+    ("core.eol", "lf"),
+    ("core.longpaths", "true"),
     ("core.excludesFile", ""),
     ("core.attributesFile", ""),
     ("commit.gpgsign", "false"),
 )
 _CONFIG = tuple(arg for key, value in _SETTINGS for arg in ("-c", f"{key}={value}"))
-# Variables that let the machine's environment inject configuration, templates
-# or a different object format. Isolated calls drop them.
-_LEAKY_ENV_PREFIXES = ("GIT_CONFIG",)
+# Variables that let the machine's environment inject configuration files, templates,
+# another repository or a different object format. Every call drops them.
 _LEAKY_ENV = ("GIT_TEMPLATE_DIR", "GIT_DEFAULT_HASH", "GIT_DIR", "GIT_WORK_TREE",
               "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
-              "GIT_ATTR_SOURCE")
+              "GIT_ATTR_SOURCE", "GIT_CONFIG", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM")
+# A commit the server does not have, as git reports it after an explicit fetch of that sha.
+_NOT_OUR_REF = re.compile(r"not our ref|couldn't find remote ref|no such remote ref|unadvertised object", re.I)
 
 
 class MaterialiseError(Exception):
     pass
+
+
+class SourceGone(MaterialiseError):
+    """The source is confirmed gone: the repository answers 404, or the server lacks the commit after a fetch."""
 
 
 @dataclass
@@ -56,29 +73,80 @@ class Checkout:
     removed: list[str] = field(default_factory=list)
 
 
-def _git(args: list[str], cwd: Path, *, isolated: bool = False) -> str:
-    """Run git in cwd.
+def _hermetic(cache: Path) -> Path:
+    """cache/git-hermetic, holding an empty global config file and an empty hooks directory.
 
-    Every call carries _CONFIG and skips the default global ignore and
-    attributes files. isolated=True also ignores the global and system git
-    configuration and the environment overrides above, so the throwaway tree
-    repositories get the same files, hooks (none) and shas on every machine.
-    Git-source calls stay unisolated because clone and the lazy blob fetches of
-    a partial clone may need the machine's network settings (proxy, CA bundle).
+    Anything found in either is removed first, so neither can carry settings or hooks into a run.
+    """
+    base = Path(cache) / "git-hermetic"
+    hooks = base / "hooks"
+    config = base / "config"
+    if hooks.is_symlink() or (hooks.exists() and not hooks.is_dir()):
+        hooks.unlink()
+    elif hooks.is_dir() and any(hooks.iterdir()):
+        _rmtree(hooks)
+    if config.is_symlink():
+        config.unlink()
+    elif config.is_dir():
+        _rmtree(config)
+    hooks.mkdir(parents=True, exist_ok=True)
+    if not config.is_file() or config.stat().st_size:
+        config.write_bytes(b"")
+    return base
+
+
+def _git(args: list[str], cwd: Path, *, hermetic: Path, isolated: bool = False) -> str:
+    """Run git in cwd, isolated from the machine's git configuration.
+
+    Every call ignores the system config, reads an empty global config, runs no hooks,
+    uses no credential helper, takes _CONFIG, and drops the environment overrides above,
+    so clones, fetches, checkouts and the throwaway tree repositories behave the same on
+    every machine. Network access still works: proxies and CA bundles set in the
+    environment (HTTPS_PROXY, GIT_SSL_CAINFO) pass through, and public https clones need
+    no credentials. Clone and init also pass --template= themselves.
+
+    isolated=True also drops the GIT_CONFIG_COUNT and GIT_CONFIG_PARAMETERS lists from the
+    environment. Git-source calls keep them, as the documented per-process way to route a
+    remote; every setting above is given on the command line, which git reads after them.
     """
     env = dict(os.environ)
-    if isolated:
-        for key in list(env):
-            if key.startswith(_LEAKY_ENV_PREFIXES) or key in _LEAKY_ENV:
-                del env[key]
-        env["GIT_CONFIG_GLOBAL"] = os.devnull
-        env["GIT_CONFIG_NOSYSTEM"] = "1"
+    for key in list(env):
+        if key in _LEAKY_ENV or (isolated and key.startswith("GIT_CONFIG")):
+            del env[key]
+    env["GIT_CONFIG_GLOBAL"] = str(hermetic / "config")
+    env["GIT_CONFIG_NOSYSTEM"] = "1"
     env.update(_ENV)
+    config = [*_CONFIG, "-c", "credential.helper=", "-c", f"core.hooksPath={(hermetic / 'hooks').as_posix()}"]
     try:
-        return subprocess.run(["git", *_CONFIG, *args], cwd=cwd, env=env, check=True,
+        return subprocess.run(["git", *config, *args], cwd=cwd, env=env, check=True,
                               capture_output=True, text=True).stdout
     except subprocess.CalledProcessError as e:
         raise subprocess.CalledProcessError(e.returncode, ["git", *args], e.output, e.stderr) from None
+
+
+def _repository_status(repo: str) -> int | None:
+    """The HTTP status https://github.com/<repo> answers, or None when it cannot be reached.
+
+    GitHub answers 404 for a repository that is deleted or private. Everything else,
+    a redirect for a renamed repository included, means the repository is not confirmed gone.
+    """
+    req = urllib.request.Request(f"https://github.com/{repo}", method="HEAD")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return int(r.status)
+    except urllib.error.HTTPError as e:
+        return int(e.code)
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+
+
+def _gone_or_raise(diff: Diff, e: subprocess.CalledProcessError) -> None:
+    """Raise SourceGone when the repository answers 404, otherwise re-raise the git failure as it was."""
+    status = _repository_status(diff.repo)
+    if status == 404:
+        detail = (e.stderr or "").strip()
+        raise SourceGone(f"https://github.com/{diff.repo} answers HTTP 404; git said: {detail}") from e
+    raise e
 
 
 def _copy_tree(src: Path, dst: Path) -> None:
@@ -146,7 +214,7 @@ def _strip_engine_files(root: Path) -> list[str]:
     return removed
 
 
-def _materialise_tree(diff: Diff, corpus_root: Path, cache: Path) -> Checkout:
+def _materialise_tree(diff: Diff, corpus_root: Path, cache: Path, hermetic: Path) -> Checkout:
     src = corpus_root / diff.id
     if not ((src / "before").is_dir() and (src / "after").is_dir()):
         raise MaterialiseError(f"{diff.id}: tree source needs {src / 'before'} and {src / 'after'}")
@@ -156,7 +224,7 @@ def _materialise_tree(diff: Diff, corpus_root: Path, cache: Path) -> Checkout:
     root.mkdir(parents=True)
 
     def git(args: list[str]) -> str:
-        return _git(args, root, isolated=True)
+        return _git(args, root, hermetic=hermetic, isolated=True)
 
     git(["init", "-q", "--template=", "--object-format=sha1", "-b", "main"])
     _persist_settings(git)
@@ -173,45 +241,106 @@ def _materialise_tree(diff: Diff, corpus_root: Path, cache: Path) -> Checkout:
     return Checkout(root=root, base_ref=base, removed=removed)
 
 
-def _materialise_git(diff: Diff, cache: Path) -> Checkout:
+def _clear_info_exclude(root: Path) -> None:
+    # A template (init.templateDir, GIT_TEMPLATE_DIR) copies info/exclude into a clone, and
+    # locrin's file walker reads it, so a non-empty one would hide files. Clones cached
+    # before clone ran with --template= are cleaned here too.
+    exclude = root / ".git" / "info" / "exclude"
+    if exclude.is_symlink() or (exclude.is_file() and exclude.stat().st_size):
+        exclude.unlink()
+
+
+def _case_clash(names: list[str]) -> str | None:
+    """Two paths (files or directories) in one tree that differ only by case, or None."""
+    seen: dict[str, str] = {}
+    for name in names:
+        parts = name.split("/")
+        for i in range(1, len(parts) + 1):
+            path = "/".join(parts[:i])
+            other = seen.setdefault(path.casefold(), path)
+            if other != path:
+                return f"{other!r} and {path!r} differ only by case"
+    return None
+
+
+def _materialise_git(diff: Diff, cache: Path, hermetic: Path) -> Checkout:
     owner, name = diff.repo.split("/", 1)
     root = cache / "repos" / f"{owner}__{name}"
+
+    def git(args: list[str]) -> str:
+        return _git(args, root, hermetic=hermetic)
+
     if not root.exists():
         root.parent.mkdir(parents=True, exist_ok=True)
-        _git(["clone", "--filter=blob:none", f"https://github.com/{diff.repo}.git", str(root)], root.parent)
-        _persist_settings(lambda args: _git(args, root))
+        # --no-checkout: only the corpus commit is ever checked out, so a path the default
+        # branch head holds cannot fail the clone.
+        try:
+            _git(["clone", "-q", "--template=", "--no-checkout", "--filter=blob:none",
+                  f"https://github.com/{diff.repo}.git", str(root)], root.parent, hermetic=hermetic)
+        except subprocess.CalledProcessError as e:
+            # Leave nothing behind, so the next run clones afresh instead of trusting a broken clone.
+            if root.exists():
+                _rmtree(root)
+            _gone_or_raise(diff, e)
+    _persist_settings(git)
+    _clear_info_exclude(root)
     checkout = ["checkout", "--detach", "-f", diff.sha]
     try:
-        _git(checkout, root)
+        git(checkout)
     except subprocess.CalledProcessError:
-        # A clone cached before the commit landed upstream. A promisor clone fetches the commit by
-        # itself, a full clone does not. A commit the server no longer serves fails here, naming git fetch.
-        _git(["fetch", "-q", "origin", diff.sha], root)
-        _git(checkout, root)
-    _git(["clean", "-fdq"], root)
+        # A clone cached before the commit landed upstream: a promisor clone fetches the commit by
+        # itself, a full clone does not. A commit the server no longer has is confirmed by this fetch.
+        try:
+            git(["fetch", "-q", "origin", diff.sha])
+        except subprocess.CalledProcessError as e:
+            detail = (e.stderr or "").strip()
+            if _NOT_OUR_REF.search(detail):
+                raise SourceGone(f"commit {diff.sha} is not on {diff.repo} after an explicit fetch: {detail}") from e
+            _gone_or_raise(diff, e)
+        git(checkout)
+    git(["clean", "-fdq"])
+    _clear_info_exclude(root)
+    # locrin diffs against merge-base(parent, HEAD), so a parent that is not the commit's own
+    # first parent would score a different change from the one labelled.
+    first = git(["rev-parse", "--verify", f"{diff.sha}^1"]).strip()
+    if first != diff.parent:
+        raise MaterialiseError(f"recorded parent {diff.parent} is not the first parent {first or '(none)'} of {diff.sha}")
+    clash = _case_clash([n for n in git(["ls-tree", "-r", "-z", "--name-only", diff.sha]).split("\0") if n])
+    if clash:
+        raise MaterialiseError(f"the tree at {diff.sha[:7]} holds {clash}, "
+                               "so a case-insensitive filesystem would check out other files")
     removed = _strip_engine_files(root)
     # A partial clone fetches blobs lazily. run_check gives locrin an empty home, so a fetch
     # from locrin's own git calls would lose the machine's network settings (proxy, CA bundle).
     # Diffing the parent against the commit and against the worktree, with rename detection,
     # reads every blob locrin's `git diff <base>` and `git show <base>:<path>` read.
-    _git(["diff", "--stat", "-M", diff.parent, diff.sha], root)
-    _git(["diff", "--stat", "-M", diff.parent], root)
+    try:
+        git(["diff", "--stat", "-M", diff.parent, diff.sha])
+        git(["diff", "--stat", "-M", diff.parent])
+    except subprocess.CalledProcessError as e:
+        _gone_or_raise(diff, e)
     return Checkout(root=root, base_ref=diff.parent, removed=removed)
 
 
 def materialise(diff: Diff, corpus_root: Path, cache: Path) -> Checkout:
+    """A checkout of the diff's after side with its before side as base_ref.
+
+    Raises SourceGone when a git source is confirmed gone, and MaterialiseError for every
+    other failure, a clone or fetch that failed for a reason that may pass included.
+    """
     # Resolve once: git runs with cwd set inside the cache, so a relative path
     # handed to it would be resolved against the wrong directory.
     corpus_root = Path(corpus_root).resolve()
     cache = Path(cache).resolve()
     try:
+        hermetic = _hermetic(cache)
         if diff.source == "tree":
-            return _materialise_tree(diff, corpus_root, cache)
-        return _materialise_git(diff, cache)
+            return _materialise_tree(diff, corpus_root, cache, hermetic)
+        return _materialise_git(diff, cache, hermetic)
     except MaterialiseError as e:
         if str(e).startswith(f"{diff.id}: "):
             raise
-        raise MaterialiseError(f"{diff.id}: {e}") from e
+        raise type(e)(f"{diff.id}: {e}") from e
     except OSError as e:
         # A locked file, a path too long for Windows, a name the disk refuses: this diff fails, the run goes on.
         raise MaterialiseError(f"{diff.id}: {e}") from e

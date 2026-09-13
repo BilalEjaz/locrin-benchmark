@@ -70,24 +70,34 @@ def test_tree_source_repo_keeps_line_endings(tmp_path):
     assert blob == content
 
 
+def _fake_git_for(parent: str, calls: list[list[str]] | None = None, on=None):
+    """A stand-in for bench.materialise._git that answers the first-parent check with parent."""
+    def fake_git(args, cwd, **kw):
+        if calls is not None:
+            calls.append(list(args))
+        if on is not None:
+            on(args)
+        if args[0] == "clone":
+            Path(args[-1]).mkdir(parents=True, exist_ok=True)
+        if args[0] == "rev-parse" and args[-1].endswith("^1"):
+            return parent + "\n"
+        return ""
+    return fake_git
+
+
 def test_git_source_uses_cached_clone(tmp_path, monkeypatch):
     calls: list[list[str]] = []
-
-    def fake_git(args, cwd):
-        calls.append(list(args))
-        if args[:2] == ["clone", "--filter=blob:none"]:
-            Path(args[-1]).mkdir(parents=True, exist_ok=True)
-        return ""
-
-    monkeypatch.setattr("bench.materialise._git", fake_git)
     d = Diff(id="acme__w__abc1234", source="git", repo="acme/w", sha="abc1234" * 5 + "abcde",
              parent="def5678" * 5 + "defgh", licence="MIT", language="typescript",
              url="https://github.com/acme/w/commit/abc1234", files=["src/a.ts"])
+    monkeypatch.setattr("bench.materialise._git", _fake_git_for(d.parent, calls))
     co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
     assert co.base_ref == d.parent
     assert co.root == tmp_path / "cache" / "repos" / "acme__w"
-    assert calls[0][:2] == ["clone", "--filter=blob:none"]
-    assert calls[0][2] == "https://github.com/acme/w.git"
+    assert calls[0][0] == "clone"
+    # No template (hooks, info/exclude) from the machine, and no checkout of the default branch head.
+    assert {"--template=", "--no-checkout", "--filter=blob:none"} <= set(calls[0])
+    assert calls[0][-2] == "https://github.com/acme/w.git"
     materialise(d, tmp_path / "corpus", tmp_path / "cache")
     assert sum(1 for c in calls if c[0] == "clone") == 1
     checkout = ["checkout", "--detach", "-f", d.sha]
@@ -98,14 +108,13 @@ def test_git_source_uses_cached_clone(tmp_path, monkeypatch):
 def test_git_source_strips_engine_files_after_checkout(tmp_path, monkeypatch):
     root = tmp_path / "cache" / "repos" / "acme__w"
 
-    def fake_git(args, cwd):
+    def on(args):
         if args[0] == "checkout":
             root.mkdir(parents=True, exist_ok=True)
             (root / "locrin.toml").write_text("[rules]\n")
             (root / "locrin-baseline.json").write_text("{}\n")
-        return ""
 
-    monkeypatch.setattr("bench.materialise._git", fake_git)
+    monkeypatch.setattr("bench.materialise._git", _fake_git_for("b" * 40, on=on))
     root.mkdir(parents=True)
     d = Diff(id="acme__w__aaaaaaa", source="git", repo="acme/w", sha="a" * 40, parent="b" * 40,
              licence="MIT", language="typescript", url="u", files=[])
@@ -239,21 +248,32 @@ def test_git_source_with_relative_cache_clones_into_the_cache(tmp_path, monkeypa
     assert not (run_dir / "cache" / "repos" / "cache").exists()
 
 
-def _local_upstream(tmp_path: Path, monkeypatch) -> Diff:
+def _write_side(work: Path, files: dict[str, bytes]) -> None:
+    for p in work.iterdir():
+        if p.name != ".git":
+            shutil.rmtree(p) if p.is_dir() else p.unlink()
+    for name, data in files.items():
+        (work / name).parent.mkdir(parents=True, exist_ok=True)
+        (work / name).write_bytes(data)
+
+
+def _local_upstream(tmp_path: Path, monkeypatch, before: dict[str, bytes] | None = None,
+                    after: dict[str, bytes] | None = None) -> Diff:
     work = tmp_path / "upstream"
     work.mkdir()
     _run(["init", "-q", "-b", "main"], work)
-    (work / "src").mkdir()
-    (work / "src" / "a.ts").write_bytes(b"export const a = 1;\n")
-    _run(["add", "src/a.ts"], work)
+    _write_side(work, before or {"src/a.ts": b"export const a = 1;\n"})
+    _run(["add", "-A"], work)
     _run(["commit", "-q", "--no-verify", "-m", "one"], work)
     parent = _run(["rev-parse", "HEAD"], work).strip()
-    (work / "src" / "a.ts").write_bytes(b"export const a = 2;\n")
-    _run(["commit", "-q", "--no-verify", "-am", "two"], work)
+    _write_side(work, after or {"src/a.ts": b"export const a = 2;\n"})
+    _run(["add", "-A"], work)
+    _run(["commit", "-q", "--no-verify", "-m", "two"], work)
     sha = _run(["rev-parse", "HEAD"], work).strip()
     remotes = tmp_path / "remotes"
     (remotes / "acme").mkdir(parents=True)
     _run(["clone", "-q", "--bare", str(work), str(remotes / "acme" / "w.git")], tmp_path)
+    _run(["config", "uploadpack.allowFilter", "true"], remotes / "acme" / "w.git")
     monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
     monkeypatch.setenv("GIT_CONFIG_KEY_0", f"url.{remotes.as_uri()}/.insteadOf")
     monkeypatch.setenv("GIT_CONFIG_VALUE_0", "https://github.com/")
@@ -274,10 +294,11 @@ def test_git_source_ignores_default_global_ignore_and_attributes_files(tmp_path,
 
 
 def test_git_failure_names_the_diff(tmp_path, monkeypatch):
-    def boom(args, cwd):
+    def boom(args, cwd, **kw):
         raise subprocess.CalledProcessError(128, args, stderr="fatal: bad object")
 
     monkeypatch.setattr("bench.materialise._git", boom)
+    monkeypatch.setattr("bench.materialise._repository_status", lambda repo: 200)
     d = Diff(id="acme__w__abc1234", source="git", repo="acme/w", sha="a" * 40, parent="b" * 40,
              licence="MIT", language="typescript", url="u", files=[])
     with pytest.raises(MaterialiseError, match="acme__w__abc1234"):
@@ -378,12 +399,11 @@ def test_git_source_strips_a_dangling_engine_config_symlink(tmp_path, monkeypatc
     _symlink_or_skip(root / "probe", str(target))
     (root / "probe").unlink()
 
-    def fake_git(args, cwd):
+    def on(args):
         if args[0] == "checkout":
             os.symlink(str(target), root / "locrin.toml")
-        return ""
 
-    monkeypatch.setattr("bench.materialise._git", fake_git)
+    monkeypatch.setattr("bench.materialise._git", _fake_git_for("b" * 40, on=on))
     d = Diff(id="acme__w__aaaaaaa", source="git", repo="acme/w", sha="a" * 40, parent="b" * 40,
              licence="MIT", language="typescript", url="u", files=[])
     co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
@@ -411,3 +431,291 @@ def test_git_source_fetches_a_commit_the_cached_clone_does_not_have(tmp_path, mo
     co = materialise(newer, tmp_path / "corpus", tmp_path / "cache")
     assert (co.root / "src" / "a.ts").read_bytes() == b"export const a = 3;\n"
     assert co.base_ref == d.sha
+
+
+# Hermetic git for git sources: the machine's template, hooks, credentials and default
+# ignore files never reach a clone, a fetch or a checkout.
+
+MARKER_BEFORE = FIXTURES / "fx-04-marker" / "before"
+MARKER_AFTER = FIXTURES / "fx-04-marker" / "after"
+
+
+def _side(root: Path) -> dict[str, bytes]:
+    return {p.relative_to(root).as_posix(): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()}
+
+
+def _hostile_template(tmp_path: Path, monkeypatch, marker: Path) -> None:
+    """A git template and global config that would hide lib/ and run a hook on every checkout."""
+    tpl = tmp_path / "hostile-template"
+    (tpl / "info").mkdir(parents=True)
+    (tpl / "info" / "exclude").write_bytes(b"lib/\n")
+    (tpl / "hooks").mkdir()
+    hook = f'#!/bin/sh\necho ran > "{marker.as_posix()}"\n'.encode("utf-8")
+    hooks = tmp_path / "hostile-hooks"
+    hooks.mkdir()
+    for d in (tpl / "hooks", hooks):
+        (d / "post-checkout").write_bytes(hook)
+        os.chmod(d / "post-checkout", 0o755)
+    home = tmp_path / "hostile-git-home"
+    home.mkdir()
+    (home / ".gitconfig").write_bytes(
+        f"[init]\n\ttemplateDir = {tpl.as_posix()}\n[core]\n\thooksPath = {hooks.as_posix()}\n".encode("utf-8"))
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(home / ".gitconfig"))
+    monkeypatch.setenv("GIT_TEMPLATE_DIR", str(tpl))
+    # The environment's own config list, which routes the remote in these tests, carries a template too.
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "2")
+    monkeypatch.setenv("GIT_CONFIG_KEY_1", "init.templateDir")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_1", str(tpl))
+
+
+def test_git_source_clone_takes_no_template_exclude_and_runs_no_hook(tmp_path, monkeypatch):
+    d = _local_upstream(tmp_path, monkeypatch, _side(MARKER_BEFORE), _side(MARKER_AFTER))
+    marker = tmp_path / "hook-ran"
+    _hostile_template(tmp_path, monkeypatch, marker)
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    exclude = co.root / ".git" / "info" / "exclude"
+    assert not exclude.exists() or exclude.read_bytes() == b""
+    assert not marker.exists()
+    assert (co.root / "lib" / "d.js").read_bytes() == (MARKER_AFTER / "lib" / "d.js").read_bytes()
+    ignored = subprocess.run(["git", "check-ignore", "-q", "lib/d.js"], cwd=co.root, capture_output=True)
+    assert ignored.returncode == 1
+
+
+def test_a_cached_clone_with_a_non_empty_info_exclude_is_cleaned_on_every_checkout(tmp_path, monkeypatch):
+    d = _local_upstream(tmp_path, monkeypatch)
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    (co.root / ".git" / "info").mkdir(exist_ok=True)
+    (co.root / ".git" / "info" / "exclude").write_bytes(b"src/\n")
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    exclude = co.root / ".git" / "info" / "exclude"
+    assert not exclude.exists() or exclude.read_bytes() == b""
+
+
+@pytest.mark.skipif(shutil.which("locrin") is None, reason="locrin not on PATH")
+def test_git_source_findings_do_not_change_under_a_hostile_template(tmp_path, monkeypatch):
+    from bench.run import normalise, run_check
+
+    locrin = Path(shutil.which("locrin"))
+    d = _local_upstream(tmp_path, monkeypatch, _side(MARKER_BEFORE), _side(MARKER_AFTER))
+
+    def findings(cache: str) -> list[tuple]:
+        co = materialise(d, tmp_path / "corpus", tmp_path / cache)
+        fs, _ = normalise(d.id, run_check(locrin, co, tmp_path / f"work-{cache}", d.id))
+        return [(f.rule, f.file, f.line, f.id) for f in fs]
+
+    machine = findings("cache-machine")
+    assert [f[:2] for f in machine] == [("leftover-agent-marker", "lib/d.js")] * 2
+    _hostile_template(tmp_path, monkeypatch, tmp_path / "hook-ran")
+    assert findings("cache-hostile") == machine
+
+
+def test_every_git_call_is_isolated_from_machine_configuration(tmp_path, monkeypatch):
+    import bench.materialise as m
+
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        seen["cmd"], seen["env"] = cmd, kw["env"]
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setenv("GIT_TEMPLATE_DIR", "hostile")
+    monkeypatch.setenv("GIT_CONFIG_SYSTEM", "hostile")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", "hostile")
+    monkeypatch.setattr(m.subprocess, "run", fake_run)
+    hermetic = m._hermetic(tmp_path / "cache")
+    for isolated in (False, True):
+        m._git(["status"], tmp_path, hermetic=hermetic, isolated=isolated)
+        env, cmd = seen["env"], seen["cmd"]
+        assert env["GIT_CONFIG_NOSYSTEM"] == "1"
+        assert "GIT_TEMPLATE_DIR" not in env and "GIT_CONFIG_SYSTEM" not in env
+        assert Path(env["GIT_CONFIG_GLOBAL"]).is_file() and Path(env["GIT_CONFIG_GLOBAL"]).read_bytes() == b""
+        hooks = [a.split("=", 1)[1] for a in cmd if a.startswith("core.hooksPath=")]
+        assert len(hooks) == 1 and Path(hooks[0]).is_dir() and not any(Path(hooks[0]).iterdir())
+        for setting in ("credential.helper=", "core.longpaths=true", "core.eol=lf", "core.autocrlf=false"):
+            assert setting in cmd, setting
+        assert env["GCM_INTERACTIVE"] == "never" and env["GIT_LFS_SKIP_SMUDGE"] == "1"
+        assert env["GIT_TERMINAL_PROMPT"] == "0"
+        assert cmd[-1] == "status"
+
+
+def test_the_hermetic_directory_is_emptied_again_when_something_lands_in_it(tmp_path):
+    import bench.materialise as m
+
+    hermetic = m._hermetic(tmp_path / "cache")
+    (hermetic / "hooks" / "post-checkout").write_bytes(b"#!/bin/sh\n")
+    (hermetic / "config").write_bytes(b"[core]\n\thooksPath = /x\n")
+    hermetic = m._hermetic(tmp_path / "cache")
+    assert list((hermetic / "hooks").iterdir()) == []
+    assert (hermetic / "config").read_bytes() == b""
+
+
+def test_git_source_checkout_is_lf_under_an_in_repo_text_auto_attribute(tmp_path, monkeypatch):
+    files = {".gitattributes": b"* text=auto\n", "src/a.ts": b"export const a = 1;\nexport const b = 2;\n"}
+    after = dict(files, **{"src/a.ts": b"export const a = 2;\nexport const b = 3;\n"})
+    d = _local_upstream(tmp_path, monkeypatch, files, after)
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    assert (co.root / "src" / "a.ts").read_bytes() == b"export const a = 2;\nexport const b = 3;\n"
+    for key, value in (("core.longpaths", "true"), ("core.eol", "lf"), ("core.autocrlf", "false")):
+        got = subprocess.run(["git", "config", "--local", "--get", key], cwd=co.root, capture_output=True, text=True)
+        assert got.stdout.strip() == value, key
+
+
+def _commit_tree(bare: Path, parent: str, files: dict[str, bytes], tmp_path: Path) -> str:
+    """A commit on top of parent holding exactly files, written with plumbing into a bare repository."""
+    index = tmp_path / "plumbing.index"
+    if index.exists():
+        index.unlink()
+    env = dict(os.environ, GIT_INDEX_FILE=str(index), GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.invalid",
+               GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@example.invalid")
+    for name, data in files.items():
+        blob = subprocess.run(["git", "hash-object", "-w", "--stdin"], cwd=bare, input=data,
+                              capture_output=True, check=True).stdout.decode().strip()
+        subprocess.run(["git", "update-index", "--add", "--cacheinfo", f"100644,{blob},{name}"], cwd=bare, env=env,
+                       check=True, capture_output=True)
+    tree = subprocess.run(["git", "write-tree"], cwd=bare, env=env, capture_output=True, text=True,
+                          check=True).stdout.strip()
+    sha = subprocess.run(["git", "commit-tree", tree, "-p", parent, "-m", "plumbing"], cwd=bare, env=env,
+                         capture_output=True, text=True, check=True).stdout.strip()
+    subprocess.run(["git", "update-ref", "refs/heads/main", sha], cwd=bare, check=True)
+    return sha
+
+
+def test_git_source_checks_out_a_path_longer_than_the_windows_default_limit(tmp_path, monkeypatch):
+    d = _local_upstream(tmp_path, monkeypatch)
+    deep = "/".join(["some-fairly-long-directory-name-for-a-package"] * 7) + "/index.ts"
+    bare = tmp_path / "remotes" / "acme" / "w.git"
+    # Written with plumbing, so the test never needs a long worktree path of its own.
+    sha = _commit_tree(bare, d.sha, {"src/a.ts": b"export const a = 3;\n", deep: b"export const x = 1;\n"}, tmp_path)
+    deep_diff = Diff(id=f"acme__w__{sha[:7]}", source="git", repo="acme/w", sha=sha, parent=d.sha,
+                     licence="MIT", language="typescript", url="u", files=["src/a.ts"])
+    co = materialise(deep_diff, tmp_path / "corpus", tmp_path / "c")
+    assert len(str(co.root / deep)) > 260
+    assert co.base_ref == d.sha
+    assert (co.root / "src" / "a.ts").read_bytes() == b"export const a = 3;\n"
+
+
+@pytest.mark.parametrize("names", [["src/Util.ts", "src/util.ts"], ["Src/x.ts", "src/y.ts"], ["lib.ts", "LIB.ts/x.ts"]])
+def test_a_tree_holding_paths_that_differ_only_by_case_is_a_materialise_error(tmp_path, monkeypatch, names):
+    # A case-insensitive filesystem checks such a tree out differently, so the engine would see other files.
+    d = _local_upstream(tmp_path, monkeypatch)
+    bare = tmp_path / "remotes" / "acme" / "w.git"
+    files = {"src/a.ts": b"export const a = 3;\n", **{n: b"export const u = 1;\n" for n in names}}
+    sha = _commit_tree(bare, d.sha, files, tmp_path)
+    clash = Diff(id=f"acme__w__{sha[:7]}", source="git", repo="acme/w", sha=sha, parent=d.sha,
+                 licence="MIT", language="typescript", url="u", files=["src/a.ts"])
+    with pytest.raises(MaterialiseError, match=f"{clash.id}: .*differ only by case"):
+        materialise(clash, tmp_path / "corpus", tmp_path / "cache")
+
+
+def test_a_parent_that_is_not_the_commits_first_parent_is_a_materialise_error(tmp_path, monkeypatch):
+    d = _local_upstream(tmp_path, monkeypatch)
+    wrong = Diff(id=d.id, source="git", repo=d.repo, sha=d.sha, parent=d.sha, licence="MIT",
+                 language="typescript", url="u", files=d.files)
+    with pytest.raises(MaterialiseError, match=f"{d.id}: .*first parent"):
+        materialise(wrong, tmp_path / "corpus", tmp_path / "cache")
+
+
+# A source is confirmed gone only on the repository's own 404 or a commit the server
+# says it does not have after an explicit fetch. Anything else is transient.
+
+def test_a_commit_missing_after_an_explicit_fetch_is_a_confirmed_gone_source(tmp_path, monkeypatch):
+    from bench.materialise import SourceGone
+
+    d = _local_upstream(tmp_path, monkeypatch)
+    materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    monkeypatch.setattr("bench.materialise._repository_status", lambda repo: pytest.fail("no probe needed"))
+    gone = Diff(id="acme__w__1111111", source="git", repo="acme/w", sha="1" * 40, parent=d.sha, licence="MIT",
+                language="typescript", url="u", files=["src/a.ts"])
+    with pytest.raises(SourceGone, match="acme__w__1111111: .*not our ref"):
+        materialise(gone, tmp_path / "corpus", tmp_path / "cache")
+
+
+def test_a_clone_of_a_repository_that_answers_404_is_a_confirmed_gone_source(tmp_path, monkeypatch):
+    from bench.materialise import SourceGone
+
+    d = _local_upstream(tmp_path, monkeypatch)
+    (tmp_path / "remotes" / "acme" / "w.git").rename(tmp_path / "remotes" / "acme" / "moved.git")
+    monkeypatch.setattr("bench.materialise._repository_status", lambda repo: 404)
+    with pytest.raises(SourceGone, match=f"{d.id}: .*acme/w.*404"):
+        materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    assert not (tmp_path / "cache" / "repos" / "acme__w").exists()
+
+
+@pytest.mark.parametrize("status", [200, 500, 503, 429, None])
+def test_a_clone_that_fails_for_any_other_reason_is_transient_and_leaves_no_clone(tmp_path, monkeypatch, status):
+    from bench.materialise import SourceGone
+
+    d = _local_upstream(tmp_path, monkeypatch)
+    (tmp_path / "remotes" / "acme" / "w.git").rename(tmp_path / "remotes" / "acme" / "moved.git")
+    monkeypatch.setattr("bench.materialise._repository_status", lambda repo: status)
+    with pytest.raises(MaterialiseError, match=f"{d.id}: git clone") as caught:
+        materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    assert not isinstance(caught.value, SourceGone)
+    assert not (tmp_path / "cache" / "repos" / "acme__w").exists()
+
+
+def test_a_fetch_that_fails_without_not_our_ref_is_transient_unless_the_repository_answers_404(tmp_path, monkeypatch):
+    from bench.materialise import SourceGone
+
+    d = Diff(id="acme__w__aaaaaaa", source="git", repo="acme/w", sha="a" * 40, parent="b" * 40,
+             licence="MIT", language="typescript", url="u", files=[])
+    (tmp_path / "cache" / "repos" / "acme__w").mkdir(parents=True)
+
+    def fake_git(args, cwd, **kw):
+        if args[0] in ("checkout", "fetch"):
+            raise subprocess.CalledProcessError(128, args, stderr="fatal: unable to access: Could not resolve host")
+        return ""
+
+    monkeypatch.setattr("bench.materialise._git", fake_git)
+    monkeypatch.setattr("bench.materialise._repository_status", lambda repo: None)
+    with pytest.raises(MaterialiseError, match="Could not resolve host") as caught:
+        materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    assert not isinstance(caught.value, SourceGone)
+    monkeypatch.setattr("bench.materialise._repository_status", lambda repo: 404)
+    with pytest.raises(SourceGone, match="404"):
+        materialise(d, tmp_path / "corpus", tmp_path / "cache")
+
+
+def test_repository_status_reports_the_http_status_or_none(monkeypatch):
+    import urllib.error
+
+    import bench.materialise as m
+
+    class Response:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    urls = []
+
+    def ok(req, timeout):
+        urls.append((req.full_url, req.get_method()))
+        return Response()
+
+    monkeypatch.setattr(m.urllib.request, "urlopen", ok)
+    assert m._repository_status("acme/w") == 200
+    assert urls == [("https://github.com/acme/w", "HEAD")]
+
+    def not_found(req, timeout):
+        raise urllib.error.HTTPError(req.full_url, 404, "Not Found", {}, None)
+
+    monkeypatch.setattr(m.urllib.request, "urlopen", not_found)
+    assert m._repository_status("acme/w") == 404
+
+    def offline(req, timeout):
+        raise urllib.error.URLError("no route")
+
+    monkeypatch.setattr(m.urllib.request, "urlopen", offline)
+    assert m._repository_status("acme/w") is None
+
+    def timed_out(req, timeout):
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(m.urllib.request, "urlopen", timed_out)
+    assert m._repository_status("acme/w") is None
