@@ -329,7 +329,10 @@ def test_checkout_supports_plain_git_status_and_add(tmp_path, monkeypatch, sourc
     assert add.returncode == 0, add.stderr
     attrs = subprocess.run(["git", "check-attr", "-a", "src/a.ts"], cwd=co.root, capture_output=True, text=True)
     assert attrs.returncode == 0, attrs.stderr
-    assert attrs.stdout == ""
+    # The global working-tree-encoding never applies: the checkout's pinned attributes unset it and every
+    # other converting attribute, and nothing else is set.
+    assert sorted(attrs.stdout.splitlines()) == sorted(
+        f"src/a.ts: {name}: unset" for name in ("text", "eol", "ident", "filter", "working-tree-encoding"))
 
 
 def test_git_source_prefetches_the_parent_blobs_so_locrin_never_fetches(tmp_path, monkeypatch):
@@ -743,3 +746,93 @@ def test_git_output_is_decoded_as_utf8_whatever_the_locale(tmp_path, monkeypatch
     monkeypatch.setattr(m.subprocess, "run", fake_run)
     m._git(["status"], tmp_path, hermetic=m._hermetic(tmp_path / "cache"))
     assert seen["encoding"] == "utf-8" and seen["errors"] == "surrogateescape"
+
+
+# A blob stored with CRLF under an in-repo `text` attribute: git would list the file as modified
+# whenever it rehashes the index entry (a racily clean entry, a changed timestamp), so the files
+# locrin scores would depend on checkout timing. The harness pins every attribute that converts content.
+
+OLD_CRLF = b"export function old() {\r\n  console.log('old');\r\n  // TODO(agent): remove\r\n}\r\n"
+
+
+def _crlf_under_text(tmp_path: Path, monkeypatch) -> tuple[Diff, str]:
+    """(Y, c1): c1 holds aaa/old.ts as a CRLF blob plus `*.ts text`; Y adds only src/new.ts on top of c1."""
+    d = _local_upstream(tmp_path, monkeypatch)
+    bare = tmp_path / "remotes" / "acme" / "w.git"
+    base = {"src/a.ts": b"export const a = 2;\n", "aaa/old.ts": OLD_CRLF, ".gitattributes": b"*.ts text\n"}
+    c1 = _commit_tree(bare, d.sha, base, tmp_path)
+    y = _commit_tree(bare, c1, dict(base, **{"src/new.ts": b"export const n = 1;\n"}), tmp_path)
+    return Diff(id=f"acme__w__{y[:7]}", source="git", repo="acme/w", sha=y, parent=c1, licence="MIT",
+                language="typescript", url="u", files=["src/new.ts"]), c1
+
+
+def _rehash(path: Path) -> None:
+    # A timestamp the index does not hold makes git read and clean the file again, as a racily clean entry does.
+    future = path.stat().st_mtime + 3600
+    os.utime(path, (future, future))
+
+
+def _changed(root: Path, base: str) -> list[str]:
+    out = subprocess.run(["git", "diff", "--name-only", "-z", "--diff-filter=ACMR", base], cwd=root,
+                         capture_output=True, check=True).stdout
+    return sorted(n.decode("utf-8") for n in out.split(b"\0") if n)
+
+
+def test_a_crlf_blob_under_a_text_attribute_never_shows_as_changed_in_a_git_checkout(tmp_path, monkeypatch):
+    d, c1 = _crlf_under_text(tmp_path, monkeypatch)
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    assert (co.root / "aaa" / "old.ts").read_bytes() == OLD_CRLF
+    _rehash(co.root / "aaa" / "old.ts")
+    assert _changed(co.root, c1) == ["src/new.ts"]
+    assert (co.root / ".git" / "info" / "attributes").read_bytes() == b"* -text -eol -ident -filter -working-tree-encoding\n"
+
+
+def test_the_pinned_attributes_file_is_restored_on_every_checkout_of_a_cached_clone(tmp_path, monkeypatch):
+    d, c1 = _crlf_under_text(tmp_path, monkeypatch)
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    (co.root / ".git" / "info" / "attributes").write_bytes(b"*.ts text\n")
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    _rehash(co.root / "aaa" / "old.ts")
+    assert _changed(co.root, c1) == ["src/new.ts"]
+
+
+def test_a_crlf_file_under_a_text_attribute_in_a_tree_source_keeps_its_bytes_and_never_shows_as_changed(tmp_path):
+    d, corpus = tree_diff(tmp_path)
+    for side in ("before", "after"):
+        (corpus / "fx-x" / side / ".gitattributes").write_bytes(b"*.ts text\n")
+        (corpus / "fx-x" / side / "aaa").mkdir()
+        (corpus / "fx-x" / side / "aaa" / "old.ts").write_bytes(OLD_CRLF)
+    co = materialise(d, corpus, tmp_path / "cache")
+    blob = subprocess.run(["git", "cat-file", "blob", "HEAD:aaa/old.ts"], cwd=co.root, capture_output=True,
+                          check=True).stdout
+    assert blob == OLD_CRLF
+    _rehash(co.root / "aaa" / "old.ts")
+    assert "aaa/old.ts" not in _changed(co.root, co.base_ref)
+
+
+def test_a_working_tree_that_differs_from_the_commit_is_a_materialise_error(tmp_path, monkeypatch):
+    root = tmp_path / "cache" / "repos" / "acme__w"
+    root.mkdir(parents=True)
+    d = Diff(id="acme__w__aaaaaaa", source="git", repo="acme/w", sha="a" * 40, parent="b" * 40,
+             licence="MIT", language="typescript", url="u", files=[])
+    fake = _fake_git_for(d.parent)
+
+    def git(args, cwd, **kw):
+        if args[:2] == ["diff", "--name-only"]:
+            return "src/new.ts\0" if args[-1] == d.sha else "aaa/old.ts\0src/new.ts\0"
+        return fake(args, cwd, **kw)
+
+    monkeypatch.setattr("bench.materialise._git", git)
+    with pytest.raises(MaterialiseError, match=f"{d.id}: .*working tree.*aaa/old.ts"):
+        materialise(d, tmp_path / "corpus", tmp_path / "cache")
+
+
+@pytest.mark.skipif(shutil.which("locrin") is None, reason="locrin not on PATH")
+def test_findings_on_a_file_the_commit_did_not_change_never_depend_on_checkout_timing(tmp_path, monkeypatch):
+    from bench.run import normalise, run_check
+
+    d, _ = _crlf_under_text(tmp_path, monkeypatch)
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    _rehash(co.root / "aaa" / "old.ts")
+    fs, _ = normalise(d.id, run_check(Path(shutil.which("locrin")), co, tmp_path / "work", d.id))
+    assert [f.file for f in fs if f.file == "aaa/old.ts"] == []

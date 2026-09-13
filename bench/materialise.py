@@ -38,8 +38,8 @@ _ENV = {
 # os.devnull is "nul", and with core.fscache (on by default in Git for Windows)
 # plain `git status` and `git add` die with "cannot use nul as an exclude file".
 # core.longpaths lets Git for Windows write paths over 260 characters (Linux ignores
-# it); core.eol=lf checks out files a repository's own attributes mark as text with
-# LF on every platform.
+# it); core.eol=lf keeps any text conversion LF on every platform, although PINNED_ATTRIBUTES
+# below turns conversion off in every checkout.
 _SETTINGS = (
     ("core.autocrlf", "false"),
     ("core.eol", "lf"),
@@ -54,6 +54,13 @@ _CONFIG = tuple(arg for key, value in _SETTINGS for arg in ("-c", f"{key}={value
 _LEAKY_ENV = ("GIT_TEMPLATE_DIR", "GIT_DEFAULT_HASH", "GIT_DIR", "GIT_WORK_TREE",
               "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
               "GIT_ATTR_SOURCE", "GIT_CONFIG", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM")
+# Written to .git/info/attributes, which outranks every .gitattributes in the tree. It turns off each
+# attribute that converts content between the blob and the working tree, so a checked-out file always
+# holds its blob's bytes. Without it a blob stored with CRLF under an in-repo `text` attribute shows as
+# modified whenever git rehashes its index entry (a racily clean entry written in the same second as the
+# index), and locrin, which scores the files `git diff <base>` lists, would then report findings on a
+# file the commit never touched, depending on checkout timing.
+PINNED_ATTRIBUTES = b"* -text -eol -ident -filter -working-tree-encoding\n"
 # A commit the server does not have, as git reports it after an explicit fetch of that sha.
 _NOT_OUR_REF = re.compile(r"not our ref|couldn't find remote ref|no such remote ref|unadvertised object", re.I)
 
@@ -229,6 +236,8 @@ def _materialise_tree(diff: Diff, corpus_root: Path, cache: Path, hermetic: Path
 
     git(["init", "-q", "--template=", "--object-format=sha1", "-b", "main"])
     _persist_settings(git)
+    # Before anything is added, so a tree's own `text` attribute cannot rewrite the bytes git stores.
+    _pin_attributes(root)
     _copy_tree(src / "before", root)
     _strip_engine_files(root)
     git(["add", "-A"])
@@ -240,6 +249,25 @@ def _materialise_tree(diff: Diff, corpus_root: Path, cache: Path, hermetic: Path
     git(["add", "-A"])
     git(["commit", "-q", "--no-verify", "-m", "after", "--allow-empty"])
     return Checkout(root=root, base_ref=base, removed=removed)
+
+
+def _pin_attributes(root: Path) -> None:
+    info = root / ".git" / "info"
+    if info.is_symlink() or (info.exists() and not info.is_dir()):
+        info.unlink()
+    info.mkdir(parents=True, exist_ok=True)
+    attributes = info / "attributes"
+    if attributes.is_symlink():
+        attributes.unlink()
+    elif attributes.is_dir():
+        _rmtree(attributes)
+    if not attributes.is_file() or attributes.read_bytes() != PINNED_ATTRIBUTES:
+        attributes.write_bytes(PINNED_ATTRIBUTES)
+
+
+def _names(out: str) -> list[str]:
+    """The paths in git's NUL-separated -z output, sorted."""
+    return sorted(n for n in out.split("\0") if n)
 
 
 def _clear_info_exclude(root: Path) -> None:
@@ -285,6 +313,7 @@ def _materialise_git(diff: Diff, cache: Path, hermetic: Path) -> Checkout:
             _gone_or_raise(diff, e)
     _persist_settings(git)
     _clear_info_exclude(root)
+    _pin_attributes(root)
     checkout = ["checkout", "--detach", "-f", diff.sha]
     try:
         git(checkout)
@@ -301,6 +330,7 @@ def _materialise_git(diff: Diff, cache: Path, hermetic: Path) -> Checkout:
         git(checkout)
     git(["clean", "-fdq"])
     _clear_info_exclude(root)
+    _pin_attributes(root)
     # locrin diffs against merge-base(parent, HEAD), so a parent that is not the commit's own
     # first parent would score a different change from the one labelled.
     first = git(["rev-parse", "--verify", f"{diff.sha}^1"]).strip()
@@ -310,7 +340,6 @@ def _materialise_git(diff: Diff, cache: Path, hermetic: Path) -> Checkout:
     if clash:
         raise MaterialiseError(f"the tree at {diff.sha[:7]} holds {clash}, "
                                "so a case-insensitive filesystem would check out other files")
-    removed = _strip_engine_files(root)
     # A partial clone fetches blobs lazily. run_check gives locrin an empty home, so a fetch
     # from locrin's own git calls would lose the machine's network settings (proxy, CA bundle).
     # Diffing the parent against the commit and against the worktree, with rename detection,
@@ -318,8 +347,17 @@ def _materialise_git(diff: Diff, cache: Path, hermetic: Path) -> Checkout:
     try:
         git(["diff", "--stat", "-M", diff.parent, diff.sha])
         git(["diff", "--stat", "-M", diff.parent])
+        # locrin scores the files `git diff --name-only --diff-filter=ACMR <base>` lists against the working
+        # tree. They must be exactly the files the commit changed, or findings on other files would count.
+        changed = _names(git(["diff", "--name-only", "-z", "--diff-filter=ACMR", diff.parent, diff.sha]))
+        worktree = _names(git(["diff", "--name-only", "-z", "--diff-filter=ACMR", diff.parent]))
     except subprocess.CalledProcessError as e:
         _gone_or_raise(diff, e)
+    if worktree != changed:
+        extra = sorted(set(worktree) ^ set(changed))
+        raise MaterialiseError(f"the working tree differs from {diff.sha[:7]} in {', '.join(extra)}, "
+                               "so locrin would score other files than the commit changed")
+    removed = _strip_engine_files(root)
     return Checkout(root=root, base_ref=diff.parent, removed=removed)
 
 
