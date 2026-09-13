@@ -491,3 +491,40 @@ def test_main_logs_an_os_error_from_one_record_and_carries_on(tmp_path, monkeypa
 
     monkeypatch.setattr(bc, "accept", lambda gh, item, seen_repos: fake_accept(gh, items[0], seen_repos))
     assert bc.main(["--out", str(tmp_path / "one"), "--repo", "a/bad", "--sha", "1" * 40]) == 1
+
+
+def test_accept_stores_the_before_side_of_a_file_renamed_to_an_unsupported_name():
+    # A .d.ts name is not a supported source file, but the old .ts name was, so its before copy is kept.
+    files = [{"filename": "src/main.ts", "status": "modified"},
+             {"filename": "src/types.d.ts", "status": "renamed", "previous_filename": "src/types.ts"}]
+    gh = FakeGitHub({f"repos/{REPO}/commits/{SHA}": commit_with(files)})
+    rec, before, after = accept(gh, first_item(), seen_repos={})
+    assert rec["files"] == ["src/main.ts", "src/types.ts"]
+    assert set(before) == {"src/main.ts", "src/types.ts"}
+    assert set(after) == {"src/main.ts"}
+    assert set(rec["files"]) == set(before) | set(after)
+
+
+@pytest.mark.parametrize("old", ["src" + chr(92) + "x.ts", "src/a:b.ts", "src/../x.ts"])
+def test_accept_checks_the_old_name_of_a_file_renamed_to_an_unsupported_name(old, capsys):
+    files = [{"filename": "src/main.ts", "status": "modified"},
+             {"filename": "src/x.txt", "status": "renamed", "previous_filename": old}]
+    gh = FakeGitHub({f"repos/{REPO}/commits/{SHA}": commit_with(files)})
+    seen = {}
+    assert accept(gh, first_item(), seen_repos=seen) is None
+    assert seen == {}
+    assert not [c for c in gh.calls if "/contents/" in c]
+    assert "skip" in capsys.readouterr().err
+
+
+def test_accept_lists_a_renamed_then_re_added_name_once(tmp_path):
+    files = [{"filename": "src/b.ts", "status": "renamed", "previous_filename": "src/a.ts"},
+             {"filename": "src/a.ts", "status": "added"}]
+    gh = FakeGitHub({f"repos/{REPO}/commits/{SHA}": commit_with(files)})
+    rec, before, after = accept(gh, first_item(), seen_repos={})
+    assert rec["files"] == ["src/a.ts", "src/b.ts"]
+    assert set(before) == {"src/a.ts"}
+    assert set(after) == {"src/b.ts", "src/a.ts"}
+    write_record(tmp_path, rec, before, after)
+    [loaded] = load_corpus(tmp_path)
+    assert list(loaded.files) == ["src/a.ts", "src/b.ts"]

@@ -165,7 +165,10 @@ def accept(gh, item: dict, seen_repos: dict[str, int]):
     """A (record, before, after) triple for an acceptable commit, or None with the reason on stderr.
 
     Before and after hold the supported source files only. A renamed file's
-    before side is stored under its previous name, which the record lists too.
+    before side is stored under its previous name, which the record lists too,
+    even when the new name is not a supported file. Every listed file has a
+    stored copy on at least one side, each name is listed once, and every
+    stored path is checked before anything is fetched.
     """
     repo = item["repository"]["full_name"]
     sha = item["sha"]
@@ -199,21 +202,25 @@ def accept(gh, item: dict, seen_repos: dict[str, int]):
     want_after: list[str] = []
     for f in files:
         name, status = f["filename"], f.get("status")
+        # The old name of a rename is its own before-side file, whatever the new name is.
         old = f.get("previous_filename") if status == "renamed" else None
         if old and language_of(old):
             names.append(old)
+            want_before.append(old)
         if not language_of(name):
             continue
         names.append(name)
-        if status == "renamed":
-            if old and language_of(old):
-                want_before.append(old)
-        elif status not in ("added", "copied"):
+        if status not in ("added", "copied", "renamed"):
             want_before.append(name)
         if status != "removed":
             want_after.append(name)
+    names = list(dict.fromkeys(names))
+    want_before = list(dict.fromkeys(want_before))
+    want_after = list(dict.fromkeys(want_after))
     # Check every path before fetching anything: the corpus must check out on Windows and Linux.
     problem = _portable_problem(want_before) or _portable_problem(want_after)
+    if not problem and set(names) != set(want_before) | set(want_after):
+        problem = f"files {sorted(set(names) - set(want_before) - set(want_after))} have no stored copy"
     if problem:
         _skip(repo, sha, problem)
         return None
