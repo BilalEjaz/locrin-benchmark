@@ -193,3 +193,18 @@ def test_malformed_sarif_is_a_run_failure_naming_the_diff(tmp_path, monkeypatch,
     run = json.loads((tmp_path / "r" / "v0.5.0" / "run.json").read_text(encoding="utf-8"))
     assert len(run["run_failures"]) == 1 and run["run_failures"][0].startswith("fx-01-ok: unexpected SARIF shape")
     assert "run failed: fx-01-ok: unexpected SARIF shape" in capsys.readouterr().err
+
+
+def test_a_dot_ignore_above_the_cache_is_a_setup_error(tmp_path, monkeypatch, capsys):
+    # locrin's walker reads .ignore files in every parent of the checkout, which would drop files silently.
+    nest = tmp_path / "nest"
+    nest.mkdir()
+    (nest / ".ignore").write_text("lib/\n")
+    monkeypatch.setattr(main_mod, "install_locrin", lambda version, cache: Path("locrin"))
+    monkeypatch.setattr(main_mod, "load_corpus", lambda root: [diff("fx-01-ok")])
+    code = main_mod.main(["--version", "v0.5.0", "--labels", str(tmp_path / "labels"), "--out", str(tmp_path / "r"),
+                          "--cache", str(nest / "cache"), "--readme", str(tmp_path / "README.md")])
+    assert code == 2
+    err = capsys.readouterr().err
+    assert "bench:" in err and str((nest / ".ignore").resolve()) in err
+    assert not (tmp_path / "r").exists()

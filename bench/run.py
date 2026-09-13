@@ -144,15 +144,58 @@ def normalise(diff_id: str, sarif: dict) -> tuple[list[Finding], dict[str, RuleM
     return findings, rules
 
 
+# Environment variables that point git at another repository, index or configuration.
+# locrin's own git calls must see only the checkout and its repository config.
+_GIT_LOCATION_ENV = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
+                     "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CEILING_DIRECTORIES", "GIT_ATTR_SOURCE")
+# The home variables locrin's file walker reads the global gitignore through:
+# core.excludesFile in ~/.gitconfig, $XDG_CONFIG_HOME/git/ignore and ~/.config/git/ignore.
+_HOME_ENV = ("HOME", "USERPROFILE", "XDG_CONFIG_HOME")
+
+
+def ignore_files_above(cache: Path) -> list[Path]:
+    """Every .ignore file locrin's walker would read from above a checkout root.
+
+    Checkouts live in cache/tree/<id> and cache/repos/<name>. The engine's walker
+    reads a .ignore file in every parent directory of the root it walks, git
+    repository or not, so one here would silently drop files from every diff.
+    Nearest first.
+    """
+    cache = Path(cache).resolve()
+    dirs = [cache / "tree", cache / "repos", cache, *cache.parents]
+    return [d / ".ignore" for d in dirs if (d / ".ignore").is_file()]
+
+
+def _locrin_env(work: Path, cache_dir: Path) -> dict[str, str]:
+    """The parent environment with an empty home and no git location or configuration overrides.
+
+    The harness's git settings (materialise) reach git only. locrin's file walker
+    reads the machine's global gitignore itself, so it gets a home directory of its
+    own, emptied before every run. Materialise fetches every blob locrin's git calls
+    read, so those calls never need the machine's network settings.
+    """
+    home = work / "home"
+    if home.exists():
+        shutil.rmtree(home)
+    home.mkdir(parents=True)
+    env = {k: v for k, v in os.environ.items()
+           if k not in _GIT_LOCATION_ENV and not k.startswith("GIT_CONFIG")}
+    env.update({key: str(home) for key in _HOME_ENV})
+    env["LOCRIN_CACHE_DIR"] = str(cache_dir)
+    # GIT_ATTR_NOSYSTEM keeps the machine's system gitattributes out of locrin's own git calls.
+    env["GIT_ATTR_NOSYSTEM"] = "1"
+    return env
+
+
 def run_check(locrin: Path, checkout: Checkout, work: Path, diff_id: str) -> dict:
     root = checkout.root
     (root / "locrin.toml").write_bytes(BENCH_TOML.encode("utf-8"))
+    work = Path(work).resolve()
     # Keyed on the diff, not the checkout: several git diffs share one checkout root.
     # Resolved: locrin runs with cwd=root and would read a relative cache dir from inside the checkout.
-    cache_dir = Path(work).resolve() / "cache" / diff_id
+    cache_dir = work / "cache" / diff_id
     cache_dir.mkdir(parents=True, exist_ok=True)
-    # GIT_ATTR_NOSYSTEM keeps the machine's system gitattributes out of locrin's own git calls.
-    env = dict(os.environ, LOCRIN_CACHE_DIR=str(cache_dir), GIT_ATTR_NOSYSTEM="1")
+    env = _locrin_env(work, cache_dir)
     cmd = [str(_program(locrin)), "check", "--root", str(root), "--base", checkout.base_ref, "--sarif", "--offline"]
     try:
         proc = subprocess.run(cmd, cwd=root, env=env, capture_output=True, text=True,

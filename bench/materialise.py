@@ -109,7 +109,10 @@ def _clear_worktree(root: Path) -> None:
 
 def _persist_settings(git) -> None:
     # Written to the repository's own config so locrin's later git calls in the
-    # checkout see the same line endings, attributes and ignore rules.
+    # checkout see the same line endings, attributes and ignore rules. These reach
+    # git only: locrin's own file walker never reads git config from the repository,
+    # it reads the global gitignore through the home directory, which run_check
+    # replaces with an empty one.
     for key, value in _SETTINGS:
         if key != "commit.gpgsign":
             git(["config", key, value])
@@ -162,6 +165,12 @@ def _materialise_git(diff: Diff, cache: Path) -> Checkout:
     _git(["checkout", "--detach", "-f", diff.sha], root)
     _git(["clean", "-fdq"], root)
     removed = _strip_engine_files(root)
+    # A partial clone fetches blobs lazily. run_check gives locrin an empty home, so a fetch
+    # from locrin's own git calls would lose the machine's network settings (proxy, CA bundle).
+    # Diffing the parent against the commit and against the worktree, with rename detection,
+    # reads every blob locrin's `git diff <base>` and `git show <base>:<path>` read.
+    _git(["diff", "--stat", "-M", diff.parent, diff.sha], root)
+    _git(["diff", "--stat", "-M", diff.parent], root)
     return Checkout(root=root, base_ref=diff.parent, removed=removed)
 
 

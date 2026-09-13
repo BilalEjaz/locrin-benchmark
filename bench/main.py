@@ -12,7 +12,7 @@ from bench.corpus import CorpusError, load_corpus
 from bench.labels import LabelError, load_labels
 from bench.materialise import MaterialiseError, materialise
 from bench.readme_table import replace_table
-from bench.run import Finding, RuleMeta, RunError, install_locrin, normalise, run_check
+from bench.run import Finding, RuleMeta, RunError, ignore_files_above, install_locrin, normalise, run_check
 from bench.score import render_markdown, score, stale
 
 
@@ -37,6 +37,11 @@ def main(argv: list[str] | None = None) -> int:
     a = p.parse_args(argv)
     started = _now()
     try:
+        above = ignore_files_above(Path(a.cache))
+        if above:
+            names = ", ".join(str(x) for x in above)
+            raise RunError(f"locrin reads .ignore files above its checkouts, which would drop files from every diff: "
+                           f"remove {names} or pass a --cache outside that directory")
         locrin = install_locrin(a.version, Path(a.cache))
         diffs = load_corpus(Path(a.corpus))
         labels = load_labels(Path(a.labels))

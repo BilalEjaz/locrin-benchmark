@@ -43,9 +43,23 @@ PAIR_ROWS = [
 ]
 
 
-def test_fixture_corpus_scores_exactly(tmp_path):
+def _hostile_home(tmp_path: Path) -> dict[str, str]:
+    """A user home whose global ignore files would drop fixture files from locrin's own file walk."""
+    home = tmp_path / "hostile-home"
+    (home / ".config" / "git").mkdir(parents=True)
+    (home / ".config" / "git" / "ignore").write_bytes(b"lib/\nlogger.ts\n*.py\n")
+    (home / "excludes").write_bytes(b"*.php\ntests/\n")
+    (home / ".gitconfig").write_bytes(f"[core]\n\texcludesFile = {(home / 'excludes').as_posix()}\n".encode("utf-8"))
+    return {"HOME": str(home), "USERPROFILE": str(home), "XDG_CONFIG_HOME": str(home / ".config")}
+
+
+@pytest.mark.parametrize("home", ["machine", "hostile"])
+def test_fixture_corpus_scores_exactly(tmp_path, home):
     version = subprocess.run([LOCRIN, "--version"], capture_output=True, text=True, check=True).stdout.split()[-1]
     env = dict(os.environ, LOCRIN_BIN=LOCRIN)
+    if home == "hostile":
+        # The same numbers on any machine: a global gitignore must not hide files from the engine.
+        env.update(_hostile_home(tmp_path))
     out = tmp_path / "results"
     readme = tmp_path / "README.md"
     readme.write_bytes(b"# r\n\n<!-- results:start -->\nNo results yet.\n<!-- results:end -->\n\n## tail\n")

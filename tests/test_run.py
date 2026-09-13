@@ -228,3 +228,46 @@ def test_bench_toml_has_no_carriage_returns_and_enables_the_ships_off_rules():
     assert "\r" not in BENCH_TOML
     for rule in ("dead-file", "swallowed-error", "injection-sink"):
         assert f"[rules.{rule}]\nenabled = true" in BENCH_TOML
+
+
+def test_run_check_gives_locrin_an_empty_home_and_drops_git_location_overrides(tmp_path, monkeypatch):
+    # locrin's file walker reads the global gitignore through HOME, USERPROFILE and XDG_CONFIG_HOME,
+    # which the harness's own git settings never reach, so locrin gets an empty home of its own.
+    root = tmp_path / "co"
+    root.mkdir()
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        seen["env"] = kw["env"]
+        seen["home_entries"] = sorted(p.name for p in Path(kw["env"]["HOME"]).iterdir())
+        return subprocess.CompletedProcess(cmd, 0, stdout='{"runs": []}', stderr="")
+
+    monkeypatch.setattr("bench.run.subprocess.run", fake_run)
+    for key in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_COUNT",
+                "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0", "GIT_CONFIG_PARAMETERS"):
+        monkeypatch.setenv(key, "hostile")
+    work = tmp_path / "work"
+    home = (work / "home").resolve()
+    home.mkdir(parents=True)
+    (home / ".gitconfig").write_text("[core]\n\texcludesFile = /x\n")
+    run_check(Path("/bin/locrin"), Checkout(root=root, base_ref="abc"), work, "fx-01-debug")
+    env = seen["env"]
+    for key in ("HOME", "USERPROFILE", "XDG_CONFIG_HOME"):
+        assert env[key] == str(home), key
+    assert seen["home_entries"] == []
+    for key in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
+        assert key not in env, key
+    assert not [key for key in env if key.startswith("GIT_CONFIG")]
+    assert env["GIT_ATTR_NOSYSTEM"] == "1"
+
+
+def test_ignore_files_above_lists_a_dot_ignore_in_the_cache_or_any_parent(tmp_path):
+    from bench.run import ignore_files_above
+
+    cache = tmp_path / "a" / "cache"
+    assert ignore_files_above(cache) == []
+    (tmp_path / ".ignore").write_text("lib/\n")
+    (cache / "tree").mkdir(parents=True)
+    (cache / "tree" / ".ignore").write_text("*.ts\n")
+    (tmp_path / "a" / ".ignore").mkdir()
+    assert ignore_files_above(cache) == [(cache / "tree" / ".ignore").resolve(), (tmp_path / ".ignore").resolve()]

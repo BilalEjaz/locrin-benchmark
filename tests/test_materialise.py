@@ -309,3 +309,16 @@ def test_checkout_supports_plain_git_status_and_add(tmp_path, monkeypatch, sourc
     attrs = subprocess.run(["git", "check-attr", "-a", "src/a.ts"], cwd=co.root, capture_output=True, text=True)
     assert attrs.returncode == 0, attrs.stderr
     assert attrs.stdout == ""
+
+
+def test_git_source_prefetches_the_parent_blobs_so_locrin_never_fetches(tmp_path, monkeypatch):
+    # run_check gives locrin an empty home, so a lazy blob fetch there would lose the machine's
+    # network settings. Every blob locrin's base diff reads must already be local.
+    d = _local_upstream(tmp_path, monkeypatch)
+    _run(["config", "uploadpack.allowFilter", "true"], tmp_path / "remotes" / "acme" / "w.git")
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    assert _run(["config", "--get", "remote.origin.promisor"], co.root).strip() == "true"
+    env = dict(os.environ, GIT_NO_LAZY_FETCH="1")
+    probe = subprocess.run(["git", "cat-file", "-e", f"{d.parent}:src/a.ts"], cwd=co.root, env=env,
+                           capture_output=True, text=True)
+    assert probe.returncode == 0, probe.stderr
