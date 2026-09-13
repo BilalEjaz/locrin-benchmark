@@ -1,0 +1,289 @@
+"""Build corpus records from GitHub commits that carry an agent co-author trailer.
+
+Every GitHub call goes through the gh command line tool, which holds its own
+credentials: this module never reads a token.
+"""
+from __future__ import annotations
+
+import argparse
+import base64
+import json
+import shutil
+import subprocess
+import sys
+import time
+import urllib.parse
+from collections import Counter
+from pathlib import Path
+
+from bench.corpus import ALLOWED_LICENCES, _valid_file, language_of
+
+TRAILERS = ["Co-Authored-By: Claude", "Co-authored-by: Codex", "Co-authored-by: Copilot", "Co-authored-by: Cursor"]
+MAX_FILES = 30
+MAX_BYTES = 200_000
+PER_REPO = 3
+LANG_ORDER = ["typescript", "javascript", "php", "python"]
+RATE_LIMIT_SLEEP = 60
+SEARCH_PAGE_SLEEP = 2
+
+
+class BuildError(Exception):
+    pass
+
+
+class RateLimitError(BuildError):
+    """GitHub still refused after the one rate-limit wait."""
+
+
+class GitHub:
+    def __init__(self, program: str = "gh"):
+        self.program = program
+
+    def get(self, path: str, params: dict | None = None, accept: str = "application/vnd.github+json") -> dict:
+        cmd = [self.program, "api", "--method", "GET", path, "-H", f"Accept: {accept}"]
+        for key, value in (params or {}).items():
+            cmd += ["-f", f"{key}={value}"]
+        for attempt in (1, 2):
+            try:
+                r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                                   stdin=subprocess.DEVNULL)
+            except OSError as e:
+                raise BuildError(f"GET {path}: cannot run gh: {e}") from e
+            if r.returncode == 0:
+                try:
+                    return json.loads(r.stdout)
+                except json.JSONDecodeError as e:
+                    raise BuildError(f"GET {path}: gh printed no JSON: {e}") from e
+            message = r.stderr.strip() or f"gh exit {r.returncode}"
+            if "rate limit" not in message.lower():
+                raise BuildError(f"GET {path}: {message}")
+            if attempt == 2:
+                raise RateLimitError(f"GET {path}: {message}")
+            time.sleep(RATE_LIMIT_SLEEP)
+        raise AssertionError("unreachable")
+
+
+def candidates(gh, trailer: str, per_page: int = 100, pages: int = 3) -> list[dict]:
+    items = []
+    for page in range(1, pages + 1):
+        if page > 1:
+            time.sleep(SEARCH_PAGE_SLEEP)
+        doc = gh.get("search/commits", {"q": f'"{trailer}" is:public', "sort": "committer-date", "order": "desc",
+                                        "per_page": per_page, "page": page})
+        got = doc.get("items", [])
+        items.extend(got)
+        if len(got) < per_page:
+            break
+    return items
+
+
+def _corpus_language(files: list[dict]) -> str | None:
+    langs: Counter[str] = Counter()
+    for f in files:
+        lang = language_of(f["filename"])
+        if lang and f.get("status") in ("added", "modified"):
+            langs["typescript" if lang == "tsx" else lang] += 1
+    if not langs:
+        return None
+    best = max(langs.values())
+    return next(lang for lang in LANG_ORDER if langs.get(lang) == best)
+
+
+class _Skip(Exception):
+    pass
+
+
+def _contents(gh, repo: str, path: str, ref: str) -> bytes:
+    """The file at ref. Raises _Skip when it cannot be read or is over MAX_BYTES."""
+    try:
+        doc = gh.get(f"repos/{repo}/contents/{urllib.parse.quote(path)}", {"ref": ref})
+    except RateLimitError:
+        raise
+    except BuildError as e:
+        raise _Skip(f"cannot read {path} at {ref[:7]}: {e}") from e
+    if not isinstance(doc, dict) or doc.get("encoding") != "base64":
+        raise _Skip(f"{path} at {ref[:7]} is not a file under {MAX_BYTES} bytes")
+    if doc.get("size", 0) > MAX_BYTES:
+        raise _Skip(f"{path} at {ref[:7]} is over {MAX_BYTES} bytes")
+    data = base64.b64decode(doc.get("content", ""))
+    if len(data) > MAX_BYTES:
+        raise _Skip(f"{path} at {ref[:7]} is over {MAX_BYTES} bytes")
+    return data
+
+
+def _skip(repo: str, sha: str, reason: str) -> None:
+    print(f"skip {repo}@{sha[:7]}: {reason}", file=sys.stderr)
+
+
+def accept(gh, item: dict, seen_repos: dict[str, int]):
+    """A (record, before, after) triple for an acceptable commit, or None with the reason on stderr.
+
+    Before and after hold the supported source files only. A renamed file's
+    before side is stored under its previous name, which the record lists too.
+    """
+    repo = item["repository"]["full_name"]
+    sha = item["sha"]
+    if len(item.get("parents", [])) != 1:
+        _skip(repo, sha, "merge or root commit")
+        return None
+    if seen_repos.get(repo, 0) >= PER_REPO:
+        _skip(repo, sha, "repository cap")
+        return None
+    meta = gh.get(f"repos/{repo}")
+    licence = (meta.get("license") or {}).get("spdx_id")
+    if licence not in ALLOWED_LICENCES or meta.get("fork") or meta.get("archived"):
+        _skip(repo, sha, f"licence {licence}, fork={meta.get('fork')}, archived={meta.get('archived')}")
+        return None
+    commit = gh.get(f"repos/{repo}/commits/{sha}")
+    files = commit.get("files", [])
+    if not 1 <= len(files) <= MAX_FILES:
+        _skip(repo, sha, f"{len(files)} files")
+        return None
+    language = _corpus_language(files)
+    if language is None:
+        _skip(repo, sha, "no added or modified supported source file")
+        return None
+    parent = commit["parents"][0]["sha"]
+    names: list[str] = []
+    before: dict[str, bytes] = {}
+    after: dict[str, bytes] = {}
+    try:
+        for f in files:
+            name, status = f["filename"], f.get("status")
+            old = f.get("previous_filename") if status == "renamed" else None
+            for n in (old, name):
+                if n and language_of(n) and not _valid_file(n):
+                    raise _Skip(f"unsafe path {n!r}")
+            if old and language_of(old):
+                names.append(old)
+            if not language_of(name):
+                continue
+            names.append(name)
+            if status == "renamed":
+                if old and language_of(old):
+                    before[old] = _contents(gh, repo, old, parent)
+            elif status not in ("added", "copied"):
+                before[name] = _contents(gh, repo, name, parent)
+            if status != "removed":
+                after[name] = _contents(gh, repo, name, sha)
+    except _Skip as e:
+        _skip(repo, sha, str(e))
+        return None
+    rec = {
+        "id": f"{repo.replace('/', '__')}__{sha[:7]}",
+        "source": "git",
+        "repo": repo,
+        "sha": sha,
+        "parent": parent,
+        "licence": licence,
+        "language": language,
+        "url": f"https://github.com/{repo}/commit/{sha}",
+        "files": names,
+    }
+    seen_repos[repo] = seen_repos.get(repo, 0) + 1
+    return rec, before, after
+
+
+def _lf(data: bytes) -> bytes:
+    # The repository stores text with LF endings (.gitattributes), so the stored copy does too.
+    return data.replace(b"\r\n", b"\n")
+
+
+def write_record(out_root: Path, rec: dict, before: dict[str, bytes], after: dict[str, bytes]) -> Path:
+    out_root = Path(out_root)
+    path = out_root / f"{rec['id']}.json"
+    if path.exists():
+        return path
+    unsafe = [n for n in (*before, *after) if not _valid_file(n)]
+    if unsafe:
+        raise BuildError(f"{rec['id']}: unsafe file path {unsafe[0]!r}")
+    out_root.mkdir(parents=True, exist_ok=True)
+    tree = out_root / rec["id"]
+    if tree.exists():
+        # Left by an interrupted build: the record file is written last, so start clean.
+        shutil.rmtree(tree)
+    for sub, files in (("before", before), ("after", after)):
+        for name, data in files.items():
+            target = tree / sub / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(_lf(data))
+    path.write_bytes((json.dumps(rec, indent=2) + "\n").encode("utf-8"))
+    return path
+
+
+def _existing(out_root: Path) -> dict[str, str]:
+    """Record id to repository for the records already in out_root."""
+    found = {}
+    if Path(out_root).is_dir():
+        for p in Path(out_root).glob("*.json"):
+            try:
+                raw = json.loads(p.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                continue
+            if isinstance(raw, dict):
+                found[p.stem] = raw.get("repo") or ""
+    return found
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(prog="build_corpus")
+    p.add_argument("--out", default="corpus")
+    p.add_argument("--target", type=int, default=300, help="stop once the corpus holds this many records")
+    p.add_argument("--trailer", action="append")
+    p.add_argument("--repo")
+    p.add_argument("--sha")
+    a = p.parse_args(argv)
+    if bool(a.repo) != bool(a.sha):
+        p.error("--repo and --sha go together")
+    out = Path(a.out)
+    gh = GitHub()
+    if a.repo:
+        try:
+            commit = gh.get(f"repos/{a.repo}/commits/{a.sha}")
+            item = {"sha": commit["sha"], "repository": {"full_name": a.repo}, "parents": commit["parents"]}
+            got = accept(gh, item, {})
+            if got is None:
+                return 1
+            print(write_record(out, *got))
+        except BuildError as e:
+            print(f"build_corpus: {e}", file=sys.stderr)
+            return 1
+        return 0
+    existing = _existing(out)
+    done = set(existing)
+    seen: dict[str, int] = dict(Counter(repo for repo in existing.values() if repo))
+    total = len(existing)
+    written = 0
+    try:
+        for trailer in a.trailer or TRAILERS:
+            if total >= a.target:
+                break
+            for item in candidates(gh, trailer):
+                if total >= a.target:
+                    break
+                rec_id = f"{item['repository']['full_name'].replace('/', '__')}__{item['sha'][:7]}"
+                if rec_id in done:
+                    continue
+                done.add(rec_id)
+                try:
+                    got = accept(gh, item, seen)
+                    if got is None:
+                        continue
+                    print(write_record(out, *got))
+                except RateLimitError:
+                    raise
+                except BuildError as e:
+                    _skip(item["repository"]["full_name"], item["sha"], str(e))
+                    continue
+                total += 1
+                written += 1
+    except RateLimitError as e:
+        print(f"build_corpus: stopped: {e}", file=sys.stderr)
+        print(f"wrote {written} records", file=sys.stderr)
+        return 1
+    print(f"wrote {written} records", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
