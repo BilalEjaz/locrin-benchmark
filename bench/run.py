@@ -13,7 +13,11 @@ from pathlib import Path
 from bench.corpus import language_of
 from bench.materialise import Checkout
 
-INSTALLER = "https://raw.githubusercontent.com/BilalEjaz/locrin/main/install.sh"
+
+def installer_url(tag: str) -> str:
+    """install.sh as it was at the tag, so an old version installs the way it did when it was released."""
+    return f"https://raw.githubusercontent.com/BilalEjaz/locrin/{tag}/install.sh"
+
 
 BENCH_TOML = """# Written by locrin-benchmark. Every measurable rule on, every language on.
 [languages]
@@ -105,7 +109,7 @@ def install_locrin(version: str, cache: Path) -> Path:
     if not binary.exists():
         bin_dir.mkdir(parents=True, exist_ok=True)
         script = bin_dir / "install.sh"
-        with urllib.request.urlopen(INSTALLER, timeout=60) as r:
+        with urllib.request.urlopen(installer_url(tag), timeout=60) as r:
             script.write_bytes(r.read())
         env = dict(os.environ, LOCRIN_INSTALL_DIR=str(bin_dir))
         try:
@@ -182,8 +186,9 @@ def _locrin_env(work: Path, cache_dir: Path) -> dict[str, str]:
            if k not in _GIT_LOCATION_ENV and not k.startswith("GIT_CONFIG")}
     env.update({key: str(home) for key in _HOME_ENV})
     env["LOCRIN_CACHE_DIR"] = str(cache_dir)
-    # GIT_ATTR_NOSYSTEM keeps the machine's system gitattributes out of locrin's own git calls.
+    # The machine's system gitattributes and system git config stay out of locrin's own git calls.
     env["GIT_ATTR_NOSYSTEM"] = "1"
+    env["GIT_CONFIG_NOSYSTEM"] = "1"
     return env
 
 
@@ -207,6 +212,9 @@ def run_check(locrin: Path, checkout: Checkout, work: Path, diff_id: str) -> dic
     cache_dir = work / "cache" / diff_id
     try:
         _write_config(root / "locrin.toml")
+        # Emptied first: no incremental state from an earlier run, or another locrin version, carries over.
+        if cache_dir.is_dir() and not cache_dir.is_symlink():
+            shutil.rmtree(cache_dir)
         cache_dir.mkdir(parents=True, exist_ok=True)
         env = _locrin_env(work, cache_dir)
     except OSError as e:

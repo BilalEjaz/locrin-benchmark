@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from bench.materialise import Checkout
-from bench.run import BENCH_TOML, INSTALLER, Finding, RunError, install_locrin, normalise, run_check
+from bench.run import BENCH_TOML, Finding, RunError, install_locrin, installer_url, normalise, run_check
 
 SAMPLE = Path(__file__).resolve().parent.parent / "fixtures" / "sarif" / "sample.sarif"
 
@@ -125,7 +125,9 @@ def test_install_elsewhere_runs_install_sh_into_the_versioned_cache(tmp_path, mo
     got = install_locrin("0.5.0", Path("cache"))
     assert got.is_absolute()
     assert got == bin_dir / "locrin"
-    assert fetched == [INSTALLER]
+    # The installer of the tag being measured, so an old version installs the way it did at release.
+    assert fetched == [installer_url("v0.5.0")]
+    assert fetched[0] == "https://raw.githubusercontent.com/BilalEjaz/locrin/v0.5.0/install.sh"
     (bash, bash_kw), (version, _) = calls
     assert bash == ["bash", str(bin_dir / "install.sh"), "v0.5.0"]
     assert bash_kw["env"]["LOCRIN_INSTALL_DIR"] == str(bin_dir)
@@ -257,7 +259,9 @@ def test_run_check_gives_locrin_an_empty_home_and_drops_git_location_overrides(t
     assert seen["home_entries"] == []
     for key in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
         assert key not in env, key
-    assert not [key for key in env if key.startswith("GIT_CONFIG")]
+    # The system git config is skipped too; nothing else about git configuration reaches locrin.
+    assert [key for key in env if key.startswith("GIT_CONFIG")] == ["GIT_CONFIG_NOSYSTEM"]
+    assert env["GIT_CONFIG_NOSYSTEM"] == "1"
     assert env["GIT_ATTR_NOSYSTEM"] == "1"
 
 
@@ -316,3 +320,28 @@ def test_run_check_replaces_an_existing_config_file_byte_for_byte(tmp_path, monk
                         lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, stdout='{"runs": []}', stderr=""))
     run_check(Path("/bin/locrin"), Checkout(root=root, base_ref="abc"), tmp_path / "work", "fx-01-debug")
     assert (root / "locrin.toml").read_bytes() == BENCH_TOML.encode("utf-8")
+
+
+def test_run_check_starts_every_run_with_an_empty_cache_for_the_diff(tmp_path, monkeypatch):
+    # No incremental state carries over from an earlier run, or from a run of another locrin version.
+    root = tmp_path / "co"
+    root.mkdir()
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        cache = Path(kw["env"]["LOCRIN_CACHE_DIR"])
+        seen["entries"] = sorted(p.name for p in cache.iterdir())
+        return subprocess.CompletedProcess(cmd, 0, stdout='{"runs": []}', stderr="")
+
+    monkeypatch.setattr("bench.run.subprocess.run", fake_run)
+    work = tmp_path / "work"
+    stale = work / "cache" / "fx-01-debug"
+    (stale / "findings").mkdir(parents=True)
+    (stale / "findings" / "entry.bin").write_bytes(b"from locrin 0.4.0")
+    (stale / "index.db").write_bytes(b"old")
+    other = work / "cache" / "fx-02-other" / "index.db"
+    other.parent.mkdir(parents=True)
+    other.write_bytes(b"another diff")
+    run_check(Path("/bin/locrin"), Checkout(root=root, base_ref="abc"), work, "fx-01-debug")
+    assert seen["entries"] == []
+    assert other.read_bytes() == b"another diff"

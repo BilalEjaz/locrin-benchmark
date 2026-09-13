@@ -16,7 +16,7 @@ jobs:
       - run: pip install pytest
       - name: Install locrin 0.5.0
         run: |
-          curl -fsSL https://raw.githubusercontent.com/BilalEjaz/locrin/main/install.sh | bash -s v0.5.0
+          curl -fsSL https://raw.githubusercontent.com/BilalEjaz/locrin/v0.5.0/install.sh | bash -s v0.5.0
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - run: locrin --version
       - run: python -m pytest -q
