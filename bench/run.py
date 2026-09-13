@@ -189,13 +189,16 @@ def _locrin_env(work: Path, cache_dir: Path) -> dict[str, str]:
 
 def run_check(locrin: Path, checkout: Checkout, work: Path, diff_id: str) -> dict:
     root = checkout.root
-    (root / "locrin.toml").write_bytes(BENCH_TOML.encode("utf-8"))
     work = Path(work).resolve()
     # Keyed on the diff, not the checkout: several git diffs share one checkout root.
     # Resolved: locrin runs with cwd=root and would read a relative cache dir from inside the checkout.
     cache_dir = work / "cache" / diff_id
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    env = _locrin_env(work, cache_dir)
+    try:
+        (root / "locrin.toml").write_bytes(BENCH_TOML.encode("utf-8"))
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        env = _locrin_env(work, cache_dir)
+    except OSError as e:
+        raise RunError(f"{diff_id}: could not prepare the run: {e}") from e
     cmd = [str(_program(locrin)), "check", "--root", str(root), "--base", checkout.base_ref, "--sarif", "--offline"]
     try:
         proc = subprocess.run(cmd, cwd=root, env=env, capture_output=True, text=True,

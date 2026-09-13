@@ -208,3 +208,24 @@ def test_a_dot_ignore_above_the_cache_is_a_setup_error(tmp_path, monkeypatch, ca
     err = capsys.readouterr().err
     assert "bench:" in err and str((nest / ".ignore").resolve()) in err
     assert not (tmp_path / "r").exists()
+
+
+def test_a_diff_whose_engine_file_is_a_directory_fails_alone_and_the_rest_still_run(tmp_path, monkeypatch):
+    corpus = tmp_path / "corpus"
+    for ident in ("fx-01-bad", "fx-02-ok"):
+        for side in ("before", "after"):
+            (corpus / ident / side / "src").mkdir(parents=True)
+            (corpus / ident / side / "src" / "x.ts").write_text("export const x = 1;\n")
+    (corpus / "fx-01-bad" / "after" / "locrin.toml").mkdir()
+    (corpus / "fx-01-bad" / "after" / "locrin.toml" / "keep.py").write_text("x = 1\n")
+    ran = []
+    monkeypatch.setattr(main_mod, "install_locrin", lambda version, cache: Path("locrin"))
+    monkeypatch.setattr(main_mod, "load_corpus", lambda root: [diff("fx-01-bad"), diff("fx-02-ok")])
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: ran.append(diff_id) or sarif([]))
+    out = tmp_path / "r"
+    code = main_mod.main(["--version", "v0.5.0", "--corpus", str(corpus), "--labels", str(tmp_path / "labels"),
+                          "--out", str(out), "--cache", str(tmp_path / "cache"), "--readme", str(tmp_path / "README.md")])
+    assert code != 0
+    assert ran == ["fx-02-ok"]
+    run = json.loads((out / "v0.5.0" / "run.json").read_text(encoding="utf-8"))
+    assert len(run["materialise_failures"]) == 1 and run["materialise_failures"][0].startswith("fx-01-bad: ")

@@ -122,6 +122,8 @@ def _strip_engine_files(root: Path) -> list[str]:
     removed = []
     for name in ENGINE_FILES:
         p = root / name
+        if p.is_dir():
+            raise MaterialiseError(f"{name} in the checkout is a directory, not an engine config file")
         if p.exists():
             p.unlink()
             removed.append(name)
@@ -183,6 +185,13 @@ def materialise(diff: Diff, corpus_root: Path, cache: Path) -> Checkout:
         if diff.source == "tree":
             return _materialise_tree(diff, corpus_root, cache)
         return _materialise_git(diff, cache)
+    except MaterialiseError as e:
+        if str(e).startswith(f"{diff.id}: "):
+            raise
+        raise MaterialiseError(f"{diff.id}: {e}") from e
+    except OSError as e:
+        # A locked file, a path too long for Windows, a name the disk refuses: this diff fails, the run goes on.
+        raise MaterialiseError(f"{diff.id}: {e}") from e
     except subprocess.CalledProcessError as e:
         cmd = e.cmd if isinstance(e.cmd, list) else [str(e.cmd)]
         if cmd and cmd[0] == "git":

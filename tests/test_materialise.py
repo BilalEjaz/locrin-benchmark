@@ -322,3 +322,24 @@ def test_git_source_prefetches_the_parent_blobs_so_locrin_never_fetches(tmp_path
     probe = subprocess.run(["git", "cat-file", "-e", f"{d.parent}:src/a.ts"], cwd=co.root, env=env,
                            capture_output=True, text=True)
     assert probe.returncode == 0, probe.stderr
+
+
+@pytest.mark.parametrize("name", ["locrin.toml", "locrin-baseline.json"])
+def test_an_engine_file_name_held_by_a_directory_is_a_materialise_error(tmp_path, name):
+    d, corpus = tree_diff(tmp_path)
+    (corpus / "fx-x" / "after" / "locrin.toml").unlink()
+    (corpus / "fx-x" / "after" / name).mkdir()
+    (corpus / "fx-x" / "after" / name / "keep.py").write_text("x = 1\n")
+    with pytest.raises(MaterialiseError, match=f"fx-x: .*{name}.* is a directory"):
+        materialise(d, corpus, tmp_path / "cache")
+
+
+def test_an_os_error_while_materialising_names_the_diff(tmp_path, monkeypatch):
+    d, corpus = tree_diff(tmp_path)
+
+    def refuse(src, dst):
+        raise PermissionError(13, "Permission denied", str(dst))
+
+    monkeypatch.setattr("bench.materialise.shutil.copyfile", refuse)
+    with pytest.raises(MaterialiseError, match="fx-x: .*Permission denied"):
+        materialise(d, corpus, tmp_path / "cache")

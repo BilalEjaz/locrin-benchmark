@@ -271,3 +271,21 @@ def test_ignore_files_above_lists_a_dot_ignore_in_the_cache_or_any_parent(tmp_pa
     (cache / "tree" / ".ignore").write_text("*.ts\n")
     (tmp_path / "a" / ".ignore").mkdir()
     assert ignore_files_above(cache) == [(cache / "tree" / ".ignore").resolve(), (tmp_path / ".ignore").resolve()]
+
+
+def test_run_check_turns_a_config_write_or_cache_failure_into_a_run_error(tmp_path, monkeypatch):
+    def never(cmd, **kw):
+        raise AssertionError("locrin must not run")
+
+    monkeypatch.setattr("bench.run.subprocess.run", never)
+    root = tmp_path / "co"
+    (root / "locrin.toml").mkdir(parents=True)
+    with pytest.raises(RunError, match="fx-01-debug: .*locrin.toml"):
+        run_check(Path("/bin/locrin"), Checkout(root=root, base_ref="abc"), tmp_path / "work", "fx-01-debug")
+    root2 = tmp_path / "co2"
+    root2.mkdir()
+    work = tmp_path / "work2"
+    work.mkdir()
+    (work / "cache").write_text("a file where the cache directory goes\n")
+    with pytest.raises(RunError, match="fx-01-debug"):
+        run_check(Path("/bin/locrin"), Checkout(root=root2, base_ref="abc"), work, "fx-01-debug")
