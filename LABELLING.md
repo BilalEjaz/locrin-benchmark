@@ -32,3 +32,7 @@ Not scored: `vulnerable-dependency` (advisory feed), `boundary-violation` and `e
 ## Disputes
 
 An entry where the two passes disagree is listed by `python label.py status --labels labels` (a `disagree:` line under its file's counts) and excluded from every number until a maintainer settles it by editing both passes with a note that says why.
+
+## A new Locrin version
+
+Label files name the Locrin version they were written for, and a run publishes only with labels for its own version. For a new version, label every diff again with `python label.py new <id> --locrin <new version> --by <name> --force` and both passes as above; verdicts from the older file can guide the labeller, but each finding the new version reports gets an entry and a verdict of its own.
