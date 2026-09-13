@@ -82,7 +82,17 @@ def _git(args: list[str], cwd: Path, *, isolated: bool = False) -> str:
 
 
 def _copy_tree(src: Path, dst: Path) -> None:
-    for p in src.rglob("*"):
+    # A tree source holds regular files only. A symbolic link would copy bytes from
+    # outside the corpus into the checkout, so it fails the diff before anything is copied.
+    files = []
+    for dirpath, dirnames, filenames in os.walk(src, followlinks=False):
+        for name in (*dirnames, *filenames):
+            p = Path(dirpath) / name
+            if p.is_symlink():
+                rel = p.relative_to(src).as_posix()
+                raise MaterialiseError(f"{src.name}/{rel} is a symbolic link; a tree source holds regular files only")
+        files.extend(Path(dirpath) / name for name in filenames)
+    for p in files:
         if p.is_file():
             target = dst / p.relative_to(src)
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -122,6 +132,12 @@ def _strip_engine_files(root: Path) -> list[str]:
     removed = []
     for name in ENGINE_FILES:
         p = root / name
+        if p.is_symlink():
+            # exists() follows the link and says False for a dangling one, which run_check would then
+            # write through, creating a file wherever the link points.
+            p.unlink()
+            removed.append(name)
+            continue
         if p.is_dir():
             raise MaterialiseError(f"{name} in the checkout is a directory, not an engine config file")
         if p.exists():

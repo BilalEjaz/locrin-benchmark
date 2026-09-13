@@ -187,6 +187,18 @@ def _locrin_env(work: Path, cache_dir: Path) -> dict[str, str]:
     return env
 
 
+def _write_config(path: Path) -> None:
+    """Write BENCH_TOML as a new regular file, never through a symbolic link at path."""
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
+    fd = os.open(path, flags, 0o644)
+    with os.fdopen(fd, "wb") as f:
+        f.write(BENCH_TOML.encode("utf-8"))
+
+
 def run_check(locrin: Path, checkout: Checkout, work: Path, diff_id: str) -> dict:
     root = checkout.root
     work = Path(work).resolve()
@@ -194,7 +206,7 @@ def run_check(locrin: Path, checkout: Checkout, work: Path, diff_id: str) -> dic
     # Resolved: locrin runs with cwd=root and would read a relative cache dir from inside the checkout.
     cache_dir = work / "cache" / diff_id
     try:
-        (root / "locrin.toml").write_bytes(BENCH_TOML.encode("utf-8"))
+        _write_config(root / "locrin.toml")
         cache_dir.mkdir(parents=True, exist_ok=True)
         env = _locrin_env(work, cache_dir)
     except OSError as e:

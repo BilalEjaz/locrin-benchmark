@@ -343,3 +343,50 @@ def test_an_os_error_while_materialising_names_the_diff(tmp_path, monkeypatch):
     monkeypatch.setattr("bench.materialise.shutil.copyfile", refuse)
     with pytest.raises(MaterialiseError, match="fx-x: .*Permission denied"):
         materialise(d, corpus, tmp_path / "cache")
+
+
+def _symlink_or_skip(link: Path, target: str, *, directory: bool = False) -> None:
+    try:
+        os.symlink(target, link, target_is_directory=directory)
+    except (OSError, NotImplementedError) as e:
+        pytest.skip(f"cannot create symbolic links here: {e}")
+
+
+@pytest.mark.parametrize("kind", ["file", "dir"])
+def test_a_symlink_in_a_tree_source_is_a_materialise_error_and_copies_nothing_from_outside(tmp_path, kind):
+    d, corpus = tree_diff(tmp_path)
+    outside = tmp_path / "outside"
+    (outside / "sub").mkdir(parents=True)
+    (outside / "secret.ts").write_text("export const leaked = 1;\n")
+    (outside / "sub" / "secret.ts").write_text("export const leaked = 2;\n")
+    after = corpus / "fx-x" / "after" / "src"
+    if kind == "file":
+        _symlink_or_skip(after / "b.ts", str(outside / "secret.ts"))
+    else:
+        _symlink_or_skip(after / "lib", str(outside / "sub"), directory=True)
+    with pytest.raises(MaterialiseError, match="fx-x: .*symbolic link"):
+        materialise(d, corpus, tmp_path / "cache")
+    root = tmp_path / "cache" / "tree" / "fx-x"
+    assert not (root / "src" / "b.ts").exists() and not (root / "src" / "lib").exists()
+
+
+def test_git_source_strips_a_dangling_engine_config_symlink(tmp_path, monkeypatch):
+    root = tmp_path / "cache" / "repos" / "acme__w"
+    root.mkdir(parents=True)
+    target = tmp_path / "outside" / "x.yml"
+    (tmp_path / "outside").mkdir()
+    _symlink_or_skip(root / "probe", str(target))
+    (root / "probe").unlink()
+
+    def fake_git(args, cwd):
+        if args[0] == "checkout":
+            os.symlink(str(target), root / "locrin.toml")
+        return ""
+
+    monkeypatch.setattr("bench.materialise._git", fake_git)
+    d = Diff(id="acme__w__aaaaaaa", source="git", repo="acme/w", sha="a" * 40, parent="b" * 40,
+             licence="MIT", language="typescript", url="u", files=[])
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    assert co.removed == ["locrin.toml"]
+    assert not os.path.lexists(root / "locrin.toml")
+    assert not target.exists()

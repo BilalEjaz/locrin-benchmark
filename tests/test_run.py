@@ -289,3 +289,30 @@ def test_run_check_turns_a_config_write_or_cache_failure_into_a_run_error(tmp_pa
     (work / "cache").write_text("a file where the cache directory goes\n")
     with pytest.raises(RunError, match="fx-01-debug"):
         run_check(Path("/bin/locrin"), Checkout(root=root2, base_ref="abc"), work, "fx-01-debug")
+
+
+def test_run_check_never_writes_the_config_through_a_symlink(tmp_path, monkeypatch):
+    root = tmp_path / "co"
+    root.mkdir()
+    target = tmp_path / "outside" / "x.yml"
+    (tmp_path / "outside").mkdir()
+    try:
+        os.symlink(str(target), root / "locrin.toml")
+    except (OSError, NotImplementedError) as e:
+        pytest.skip(f"cannot create symbolic links here: {e}")
+    monkeypatch.setattr("bench.run.subprocess.run",
+                        lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, stdout='{"runs": []}', stderr=""))
+    run_check(Path("/bin/locrin"), Checkout(root=root, base_ref="abc"), tmp_path / "work", "fx-01-debug")
+    assert not target.exists()
+    assert not (root / "locrin.toml").is_symlink()
+    assert (root / "locrin.toml").read_bytes() == BENCH_TOML.encode("utf-8")
+
+
+def test_run_check_replaces_an_existing_config_file_byte_for_byte(tmp_path, monkeypatch):
+    root = tmp_path / "co"
+    root.mkdir()
+    (root / "locrin.toml").write_bytes(b"[languages]\r\nphp = false\r\n" * 50)
+    monkeypatch.setattr("bench.run.subprocess.run",
+                        lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, stdout='{"runs": []}', stderr=""))
+    run_check(Path("/bin/locrin"), Checkout(root=root, base_ref="abc"), tmp_path / "work", "fx-01-debug")
+    assert (root / "locrin.toml").read_bytes() == BENCH_TOML.encode("utf-8")
