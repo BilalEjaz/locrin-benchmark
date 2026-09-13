@@ -5,7 +5,7 @@ import bench.corpus
 import bench.score
 from bench.labels import Entry, LabelFile, load_labels
 from bench.run import Finding, RuleMeta, normalise
-from bench.score import Score, render_markdown, score
+from bench.score import Score, render_markdown, score, stale
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -224,10 +224,11 @@ def test_line_fallback_needs_exactly_one_unclaimed_entry_and_one_finding():
     per_rule, _, unlabelled = score([F("a", "unreachable", "x.ts", 3, ident=C)],
                                     labels(a=[E("unreachable", "x.ts", 3, "true", A)]), RULES)
     assert counts(per_rule, "unreachable") == (1, 0, 0) and unlabelled == []
-    # Two entries on the line and no id match: ambiguous, so unlabelled.
+    # Two entries on the line and no id match: ambiguous, so unlabelled. The true entry
+    # matched no finding, so it counts as missed and the unlabelled finding flags the gap.
     per_rule, _, unlabelled = score([F("a", "unreachable", "x.ts", 3, ident=C)],
                                     labels(a=[E("unreachable", "x.ts", 3, "true", A), E("unreachable", "x.ts", 3, "false-positive", B)]), RULES)
-    assert counts(per_rule, "unreachable") == (0, 0, 0) and [f.id for f in unlabelled] == [C]
+    assert counts(per_rule, "unreachable") == (0, 0, 1) and [f.id for f in unlabelled] == [C]
     # A new finding beside one whose id matches does not take its sibling's entry.
     per_rule, _, unlabelled = score([F("a", "unreachable", "x.ts", 3, ident=A), F("a", "unreachable", "x.ts", 3, ident=D)],
                                     labels(a=[E("unreachable", "x.ts", 3, "true", A)]), RULES)
@@ -235,7 +236,7 @@ def test_line_fallback_needs_exactly_one_unclaimed_entry_and_one_finding():
     # Two findings with new ids and one entry on the line: ambiguous, both unlabelled.
     per_rule, _, unlabelled = score([F("a", "unreachable", "x.ts", 3, ident=C), F("a", "unreachable", "x.ts", 3, ident=D)],
                                     labels(a=[E("unreachable", "x.ts", 3, "true", A)]), RULES)
-    assert counts(per_rule, "unreachable") == (0, 0, 0) and sorted(f.id for f in unlabelled) == [C, D]
+    assert counts(per_rule, "unreachable") == (0, 0, 1) and sorted(f.id for f in unlabelled) == [C, D]
 
 
 def test_a_finding_on_a_missed_only_key_is_unlabelled():
@@ -279,3 +280,77 @@ def test_pairs_shipped_off_render_off_even_when_the_rule_ships_on():
     assert "| `leftover-commented-code@python` | off | 100% | 100% | 1 | 0 | 0 | n<5, not scored |" in md
     assert "| `leftover-commented-code@typescript` | on |" in md
     assert "| `leftover-commented-code@python` | off |" in render_markdown([], [Score("leftover-commented-code@python", 0, 0, 0, None, None, False, "n<5, not scored")], "v0.5.0", 1, 0)
+
+
+def test_identical_same_line_findings_pair_one_to_one_with_their_entries():
+    # 0.5.0 reports one rule twice on one line with the same id (the anchor has no column).
+    fs = [F("a", "swallowed-error", "e.ts", 5, ident=A), F("a", "swallowed-error", "e.ts", 5, ident=A)]
+    per_rule, _, unlabelled = score(fs, labels(a=[E("swallowed-error", "e.ts", 5, "true", A), E("swallowed-error", "e.ts", 5, "true", A)]), RULES)
+    assert counts(per_rule, "swallowed-error") == (2, 0, 0) and unlabelled == []
+    per_rule, _, unlabelled = score(fs, labels(a=[E("swallowed-error", "e.ts", 5, "true", A), E("swallowed-error", "e.ts", 5, "false-positive", A)]), RULES)
+    assert counts(per_rule, "swallowed-error") == (1, 1, 0) and unlabelled == []
+
+
+def test_one_entry_decides_one_finding_only():
+    # Case A: labels made when the engine reported one of two identical findings.
+    fs = [F("a", "weak-crypto", "e.ts", 4, ident=A), F("a", "weak-crypto", "e.ts", 4, ident=A)]
+    per_rule, _, unlabelled = score(fs, labels(a=[E("weak-crypto", "e.ts", 4, "true", A)]), RULES)
+    assert counts(per_rule, "weak-crypto") == (1, 0, 0)
+    assert [(f.line, f.id) for f in unlabelled] == [(4, A)]
+    # Case C: secret-exposed anchors on the value, so one secret on two lines shares an id.
+    fs = [F("a", "secret-exposed", "e.ts", 2, ident=A), F("a", "secret-exposed", "e.ts", 4, ident=A)]
+    per_rule, _, unlabelled = score(fs, labels(a=[E("secret-exposed", "e.ts", 2, "false-positive", A)]), RULES)
+    assert counts(per_rule, "secret-exposed") == (0, 1, 0)
+    assert [(f.line, f.id) for f in unlabelled] == [(4, A)]
+
+
+def test_an_id_match_on_another_line_must_be_unambiguous():
+    # Two entries carry the id on other lines: neither decides the finding.
+    fs = [F("a", "unreachable", "x.ts", 7, ident=A)]
+    ls = labels(a=[E("unreachable", "x.ts", 3, "true", A), E("unreachable", "x.ts", 4, "false-positive", A)])
+    per_rule, _, unlabelled = score(fs, ls, RULES)
+    assert counts(per_rule, "unreachable")[:2] == (0, 0) and [f.line for f in unlabelled] == [7]
+    # Two findings on different lines carry the id of one entry elsewhere: ambiguous.
+    fs = [F("a", "unreachable", "x.ts", 7, ident=A), F("a", "unreachable", "x.ts", 8, ident=A)]
+    per_rule, _, unlabelled = score(fs, labels(a=[E("unreachable", "x.ts", 3, "false-positive", A)]), RULES)
+    assert counts(per_rule, "unreachable")[:2] == (0, 0) and [f.line for f in unlabelled] == [7, 8]
+
+
+def test_a_confirmed_true_entry_the_run_no_longer_reports_counts_as_missed_and_is_stale():
+    ls = labels(a=[E("unreachable", "x.ts", 2, "true", A), E("unreachable", "x.ts", 9, "missed"),
+                   E("unreachable", "x.ts", 4, "false-positive", B), Entry("unreachable", "x.ts", 6, C, "true", "?", "")])
+    per_rule, per_pair, unlabelled = score([], ls, RULES)
+    assert counts(per_rule, "unreachable") == (0, 0, 2)
+    assert {s.key: s for s in per_rule}["unreachable"].recall == 0.0
+    assert [(s.key, s.missed) for s in per_pair] == [("unreachable@typescript", 2)]
+    assert unlabelled == []
+    assert [(d, e.line, e.id) for d, e in stale([], ls)] == [("a", 2, A)]
+    # A matched true entry is not stale.
+    fs = [F("a", "unreachable", "x.ts", 2, ident=A)]
+    assert counts(score(fs, ls, RULES)[0], "unreachable") == (1, 0, 1)
+    assert stale(fs, ls) == []
+
+
+def test_label_files_for_diffs_that_did_not_run_are_ignored():
+    fs = [F("a", "unreachable", "x.ts", 2, ident=A)]
+    ls = labels(a=[E("unreachable", "x.ts", 2, "true", A)],
+                b=[E("zeta-rule", "y.ts", 2, "true", B), E("zeta-rule", "y.ts", 9, "missed")])
+    per_rule, per_pair, unlabelled = score(fs, ls, RULES, ran={"a"})
+    assert counts(per_rule, "unreachable") == (1, 0, 0)
+    assert [s.key for s in per_rule] == list(RULES)
+    assert [s.key for s in per_pair] == ["unreachable@typescript"]
+    assert unlabelled == []
+    assert stale(fs, ls, ran={"a"}) == []
+    # Without ran every label file counts, so b's true entry is stale and missed.
+    per_rule, _, _ = score(fs, ls, RULES)
+    assert counts(per_rule, "zeta-rule") == (0, 0, 2)
+    assert [(d, e.line) for d, e in stale(fs, ls)] == [("b", 2)]
+
+
+def test_shifted_findings_sharing_an_id_pair_with_as_many_entries_in_line_order():
+    # One secret on two lines shares an id; an edit above moved both lines down by one.
+    fs = [F("a", "secret-exposed", "e.ts", 3, ident=A), F("a", "secret-exposed", "e.ts", 5, ident=A)]
+    ls = labels(a=[E("secret-exposed", "e.ts", 4, "false-positive", A), E("secret-exposed", "e.ts", 2, "true", A)])
+    per_rule, _, unlabelled = score(fs, ls, RULES)
+    assert counts(per_rule, "secret-exposed") == (1, 1, 0) and unlabelled == []
+    assert stale(fs, ls) == []
