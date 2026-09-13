@@ -6,7 +6,9 @@ Precision and recall of every [Locrin](https://github.com/BilalEjaz/locrin) rule
 
     ./run.sh v0.5.0
 
-That installs the named Locrin version into `.cache/bin/`, checks out every corpus diff, runs `locrin check --base` on each, and writes `results/v0.5.0/`. It needs bash, git, curl and Python 3.12. The first run clones the source repositories into `.cache/repos/`; later runs are offline.
+That installs the named Locrin version into `.cache/bin/`, checks out every corpus diff, runs `locrin check --base` on each, and writes `results/v0.5.0/`. It needs bash, git, curl and Python 3.12. The first run clones the source repositories into `.cache/repos/`; later runs are offline. Locrin runs with an empty home directory of its own, so a global gitignore on your machine cannot change the numbers, and the run refuses to start when a `.ignore` file sits in the cache directory or any directory above it.
+
+It exits 0 when every diff ran, 1 when Locrin or the harness failed on a diff, 2 when setup failed and nothing ran, and 3 when the only failures were diffs whose source commit could not be checked out. The table always says how many diffs ran.
 
 ## Results
 
