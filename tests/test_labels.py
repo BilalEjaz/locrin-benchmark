@@ -74,6 +74,47 @@ def test_new_writes_template_with_unfilled_passes(tmp_path):
     assert rec["entries"] == [{"rule": "leftover-debug", "file": "src/a.ts", "line": 5, "id": "1" * 16, "pass1": "?", "pass2": "?", "note": ""}]
 
 
+def test_new_refuses_to_overwrite_an_existing_label_file_unless_forced(tmp_path):
+    label(tmp_path, [entry(), entry(line=9, pass1="false-positive", pass2="false-positive")])
+    p = tmp_path / "fx-01-debug.json"
+    before = p.read_bytes()
+    fs = [Finding("fx-01-debug", "leftover-debug", "src/a.ts", 5, "1" * 16, "high", "typescript")]
+    with pytest.raises(LabelError, match="already exists.*--force"):
+        new("fx-01-debug", fs, "v0.6.0", tmp_path, by="opus", date="2026-10-01")
+    assert p.read_bytes() == before
+    new("fx-01-debug", fs, "v0.6.0", tmp_path, by="opus", date="2026-10-01", force=True)
+    rec = json.loads(p.read_text())
+    assert rec["locrin"] == "v0.6.0" and [e["pass1"] for e in rec["entries"]] == ["?"]
+
+
+def test_cli_new_refuses_an_existing_file_before_running_the_engine_and_force_overwrites(tmp_path, monkeypatch, capsys):
+    calls = []
+
+    def fake_findings_for(diff_id, locrin_version, corpus_root, work):
+        calls.append(diff_id)
+        return [Finding(diff_id, "leftover-debug", "src/a.ts", 5, "2" * 16, "high", "typescript")]
+
+    monkeypatch.setattr(label_tool, "_findings_for", fake_findings_for)
+    label(tmp_path, [entry()])
+    p = tmp_path / "fx-01-debug.json"
+    before = p.read_bytes()
+    args = ["new", "fx-01-debug", "--locrin", "v0.6.0", "--by", "opus", "--labels", str(tmp_path)]
+    assert main(args) == 1
+    assert "--force" in capsys.readouterr().err
+    assert p.read_bytes() == before and calls == []
+    assert main(args + ["--force"]) == 0
+    assert json.loads(p.read_text())["entries"][0]["id"] == "2" * 16
+
+
+def test_confirm_refuses_an_entry_with_only_one_pass_filled(tmp_path):
+    label(tmp_path, [entry(), entry(line=13, pass2="?")])
+    with pytest.raises(LabelError, match="unfilled"):
+        confirm("fx-01-debug", tmp_path, by="fable", date="2026-09-15")
+    label(tmp_path, [entry(), entry(line=13, pass1="?")])
+    with pytest.raises(LabelError, match="unfilled"):
+        confirm("fx-01-debug", tmp_path, by="fable", date="2026-09-15")
+
+
 def test_confirm_sets_pass2_metadata_and_refuses_unfilled(tmp_path):
     fs = [Finding("fx-01-debug", "leftover-debug", "src/a.ts", 5, "1" * 16, "high", "typescript")]
     new("fx-01-debug", fs, "v0.5.0", tmp_path, by="opus", date="2026-09-14")
@@ -115,6 +156,16 @@ def test_status_counts(tmp_path, capsys):
     status(tmp_path)
     out = capsys.readouterr().out
     assert "fx-01-debug" in out and "confirmed=1" in out and "unfilled=1" in out and "disagree=1" in out
+
+
+def test_half_filled_entries_count_as_unfilled_and_never_as_disagreements(tmp_path, capsys):
+    label(tmp_path, [entry(), entry(line=9, pass2="false-positive"), entry(line=13, pass2="?"),
+                     entry(line=15, pass1="?", pass2="missed", id=None)])
+    labels = load_labels(tmp_path)
+    assert [(d, e.line) for d, e in disagreements(labels)] == [("fx-01-debug", 9)]
+    assert [e.confirmed for e in labels["fx-01-debug"].entries] == [True, False, False, False]
+    status(tmp_path)
+    assert capsys.readouterr().out.strip() == "fx-01-debug: entries=4 confirmed=1 unfilled=2 disagree=1"
 
 
 def test_cli_new_runs_the_harness_for_that_diff_and_keys_the_cache_on_it(tmp_path, monkeypatch):

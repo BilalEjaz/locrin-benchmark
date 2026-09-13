@@ -10,7 +10,14 @@ from bench.labels import Entry, LabelError, LabelFile, disagreements, load_label
 from bench.run import Finding
 
 
-def new(diff_id: str, findings: list[Finding], locrin_version: str, out_root: Path, by: str, date: str) -> Path:
+def _refuse_overwrite(diff_id: str, out_root: Path, force: bool) -> None:
+    if not force and (Path(out_root) / f"{diff_id}.json").exists():
+        raise LabelError(f"{diff_id}: {Path(out_root) / (diff_id + '.json')} already exists; pass --force to overwrite")
+
+
+def new(diff_id: str, findings: list[Finding], locrin_version: str, out_root: Path, by: str, date: str,
+        force: bool = False) -> Path:
+    _refuse_overwrite(diff_id, out_root, force)
     entries = [Entry(rule=f.rule, file=f.file, line=f.line, id=f.id, pass1="?", pass2="?", note="") for f in findings]
     lf = LabelFile(diff=diff_id, locrin=locrin_version, pass1={"by": by, "date": date}, pass2=None, entries=entries)
     Path(out_root).mkdir(parents=True, exist_ok=True)
@@ -59,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
     n.add_argument("--by", required=True)
     n.add_argument("--corpus", default="corpus")
     n.add_argument("--labels", default="labels")
+    n.add_argument("--force", action="store_true", help="overwrite an existing label file")
     c = sub.add_parser("confirm")
     c.add_argument("diff")
     c.add_argument("--by", required=True)
@@ -69,8 +77,9 @@ def main(argv: list[str] | None = None) -> int:
     today = dt.date.today().isoformat()
     try:
         if a.cmd == "new":
+            _refuse_overwrite(a.diff, Path(a.labels), a.force)
             findings = _findings_for(a.diff, a.locrin, Path(a.corpus), Path("."))
-            print(new(a.diff, findings, a.locrin, Path(a.labels), a.by, today))
+            print(new(a.diff, findings, a.locrin, Path(a.labels), a.by, today, force=a.force))
         elif a.cmd == "confirm":
             confirm(a.diff, Path(a.labels), a.by, today)
             print(f"{a.diff}: pass two recorded")
