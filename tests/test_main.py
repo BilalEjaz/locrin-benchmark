@@ -137,12 +137,40 @@ def test_run_sh_without_a_version_prints_usage_and_exits_two():
     assert "usage: ./run.sh <locrin version tag>" in proc.stderr
 
 
+def _fake_locrin(directory: Path, version: str) -> Path:
+    """A stand-in binary that prints `locrin <version>`: a .cmd file on Windows, an sh script elsewhere."""
+    if os.name == "nt":
+        fake = directory / "locrin.cmd"
+        fake.write_bytes(f"@echo locrin {version}\r\n".encode("ascii"))
+    else:
+        fake = directory / "locrin"
+        fake.write_bytes(f"#!/bin/sh\necho locrin {version}\n".encode("ascii"))
+        fake.chmod(0o755)
+    return fake
+
+
 @pytest.mark.skipif(_posix_bash() is None, reason="no POSIX bash")
 def test_run_sh_passes_the_version_and_options_to_bench_main(tmp_path):
-    proc = subprocess.run([_posix_bash(), "run.sh", "v0.5.0", "--help"], cwd=ROOT, capture_output=True, text=True,
-                          env=dict(os.environ))
-    assert proc.returncode == 0, proc.stderr
-    assert "--readme" in proc.stdout and "--corpus" in proc.stdout
+    # Run a copy, so a broken wrapper can never write results/ or README.md into the real checkout.
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    shutil.copy2(ROOT / "run.sh", repo / "run.sh")
+    shutil.copytree(ROOT / "bench", repo / "bench", ignore=shutil.ignore_patterns("__pycache__"))
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    env = dict(os.environ, LOCRIN_BIN=str(_fake_locrin(bin_dir, "1.2.3")))
+    out = tmp_path / "out"
+    proc = subprocess.run(
+        [_posix_bash(), "run.sh", "v1.2.3", "--corpus", "does-not-exist", "--labels", str(tmp_path / "labels"),
+         "--out", str(out), "--work", str(tmp_path / "work"), "--cache", str(tmp_path / "cache"),
+         "--readme", str(tmp_path / "R.md")],
+        cwd=repo, env=env, capture_output=True, text=True,
+    )
+    # A dropped version fails argparse, a wrong version fails the LOCRIN_BIN check, and dropped
+    # options would not name does-not-exist: only a faithful wrapper reaches the corpus check.
+    assert proc.returncode == 2, proc.stdout + proc.stderr
+    assert "bench: corpus directory does-not-exist does not exist" in proc.stderr
+    assert not out.exists() and not (repo / "results").exists() and not (repo / "README.md").exists()
 
 
 def test_run_sh_is_executable_in_git():
