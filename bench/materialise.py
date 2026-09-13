@@ -20,9 +20,14 @@ _ENV = {
     "GIT_COMMITTER_DATE": "2026-01-01T00:00:00+0000",
     "GIT_TERMINAL_PROMPT": "0",
 }
-# Applied to every git call so line endings and commits never depend on the
-# machine's global git configuration.
+# Applied to every git call so line endings and signing never depend on the
+# machine's git configuration.
 _CONFIG = ("-c", "core.autocrlf=false", "-c", "commit.gpgsign=false")
+# Variables that let the machine's environment inject configuration, templates
+# or a different object format. Isolated calls drop them.
+_LEAKY_ENV_PREFIXES = ("GIT_CONFIG",)
+_LEAKY_ENV = ("GIT_TEMPLATE_DIR", "GIT_DEFAULT_HASH", "GIT_DIR", "GIT_WORK_TREE",
+              "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES")
 
 
 class MaterialiseError(Exception):
@@ -36,8 +41,22 @@ class Checkout:
     removed: list[str] = field(default_factory=list)
 
 
-def _git(args: list[str], cwd: Path) -> str:
+def _git(args: list[str], cwd: Path, *, isolated: bool = False) -> str:
+    """Run git in cwd.
+
+    isolated=True ignores the global and system git configuration and the
+    environment overrides above, so the throwaway tree repositories get the
+    same files, hooks (none) and shas on every machine. Git-source calls stay
+    unisolated because clone and the lazy blob fetches of a partial clone may
+    need the machine's network settings (proxy, CA bundle).
+    """
     env = dict(os.environ)
+    if isolated:
+        for key in list(env):
+            if key.startswith(_LEAKY_ENV_PREFIXES) or key in _LEAKY_ENV:
+                del env[key]
+        env["GIT_CONFIG_GLOBAL"] = os.devnull
+        env["GIT_CONFIG_NOSYSTEM"] = "1"
     env.update(_ENV)
     try:
         return subprocess.run(["git", *_CONFIG, *args], cwd=cwd, env=env, check=True,
@@ -84,22 +103,28 @@ def _strip_engine_files(root: Path) -> list[str]:
 
 def _materialise_tree(diff: Diff, corpus_root: Path, cache: Path) -> Checkout:
     src = corpus_root / diff.id
+    if not ((src / "before").is_dir() and (src / "after").is_dir()):
+        raise MaterialiseError(f"{diff.id}: tree source needs {src / 'before'} and {src / 'after'}")
     root = cache / "tree" / diff.id
     if root.exists():
         _rmtree(root)
     root.mkdir(parents=True)
-    _git(["init", "-q", "-b", "main"], root)
-    _git(["config", "core.autocrlf", "false"], root)
+
+    def git(args: list[str]) -> str:
+        return _git(args, root, isolated=True)
+
+    git(["init", "-q", "--template=", "--object-format=sha1", "-b", "main"])
+    git(["config", "core.autocrlf", "false"])
     _copy_tree(src / "before", root)
     _strip_engine_files(root)
-    _git(["add", "-A"], root)
-    _git(["commit", "-q", "-m", "before", "--allow-empty"], root)
-    base = _git(["rev-parse", "HEAD"], root).strip()
+    git(["add", "-A"])
+    git(["commit", "-q", "--no-verify", "-m", "before", "--allow-empty"])
+    base = git(["rev-parse", "HEAD"]).strip()
     _clear_worktree(root)
     _copy_tree(src / "after", root)
     removed = _strip_engine_files(root)
-    _git(["add", "-A"], root)
-    _git(["commit", "-q", "-m", "after", "--allow-empty"], root)
+    git(["add", "-A"])
+    git(["commit", "-q", "--no-verify", "-m", "after", "--allow-empty"])
     return Checkout(root=root, base_ref=base, removed=removed)
 
 
@@ -117,10 +142,14 @@ def _materialise_git(diff: Diff, cache: Path) -> Checkout:
 
 
 def materialise(diff: Diff, corpus_root: Path, cache: Path) -> Checkout:
+    # Resolve once: git runs with cwd set inside the cache, so a relative path
+    # handed to it would be resolved against the wrong directory.
+    corpus_root = Path(corpus_root).resolve()
+    cache = Path(cache).resolve()
     try:
         if diff.source == "tree":
-            return _materialise_tree(diff, Path(corpus_root), Path(cache))
-        return _materialise_git(diff, Path(cache))
+            return _materialise_tree(diff, corpus_root, cache)
+        return _materialise_git(diff, cache)
     except subprocess.CalledProcessError as e:
         cmd = e.cmd if isinstance(e.cmd, list) else [str(e.cmd)]
         if cmd and cmd[0] == "git":

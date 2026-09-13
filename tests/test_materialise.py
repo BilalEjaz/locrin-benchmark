@@ -1,9 +1,11 @@
+import os
+import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
 
-from bench.corpus import Diff
+from bench.corpus import Diff, load_corpus
 from bench.materialise import Checkout, MaterialiseError, materialise
 
 
@@ -111,6 +113,90 @@ def test_git_source_strips_engine_files_after_checkout(tmp_path, monkeypatch):
     assert co.removed == ["locrin.toml", "locrin-baseline.json"]
     assert not (root / "locrin.toml").exists()
     assert not (root / "locrin-baseline.json").exists()
+
+
+def test_tree_source_missing_side_names_the_diff(tmp_path):
+    d, corpus = tree_diff(tmp_path)
+    shutil.rmtree(corpus / "fx-x" / "after")
+    with pytest.raises(MaterialiseError, match="fx-x"):
+        materialise(d, corpus, tmp_path / "cache")
+    with pytest.raises(MaterialiseError, match="fx-x"):
+        materialise(d, tmp_path / "no-such-corpus", tmp_path / "cache")
+
+
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "corpus"
+
+
+def test_tree_source_ignores_hostile_global_git_config(tmp_path, monkeypatch):
+    (tmp_path / "ignore").write_text("lib/\n")
+    hooks = tmp_path / "hooks"
+    hooks.mkdir()
+    for hook in ("pre-commit", "commit-msg", "post-commit"):
+        (hooks / hook).write_text("#!/bin/sh\necho blocked by hook >&2\nexit 1\n", newline="\n")
+        os.chmod(hooks / hook, 0o755)
+    config = tmp_path / "gitconfig"
+    config.write_text(
+        "[core]\n"
+        f"\texcludesFile = {(tmp_path / 'ignore').as_posix()}\n"
+        f"\thooksPath = {hooks.as_posix()}\n"
+        "[init]\n"
+        "\tdefaultObjectFormat = sha256\n"
+        "[commit]\n"
+        "\tgpgsign = true\n",
+        newline="\n",
+    )
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(config))
+    monkeypatch.setenv("GIT_DEFAULT_HASH", "sha256")
+    monkeypatch.setenv("GIT_TEMPLATE_DIR", str(tmp_path / "templates"))
+    (tmp_path / "templates" / "hooks").mkdir(parents=True)
+    (tmp_path / "templates" / "hooks" / "pre-commit").write_text("#!/bin/sh\nexit 1\n", newline="\n")
+    os.chmod(tmp_path / "templates" / "hooks" / "pre-commit", 0o755)
+    d = next(x for x in load_corpus(FIXTURES) if x.id == "fx-04-marker")
+    co = materialise(d, FIXTURES, tmp_path / "cache")
+    assert co.base_ref == "22d4783be682980439e633d89ffbb82bd691ad6a"
+    tree = subprocess.run(["git", "ls-tree", "-r", "--name-only", "HEAD"], cwd=co.root, capture_output=True, text=True,
+                          check=True).stdout.split()
+    assert tree == ["lib/d.js", "package.json"]
+
+
+def _run(args: list[str], cwd: Path) -> str:
+    env = dict(os.environ)
+    env.update({"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid",
+                "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.invalid"})
+    return subprocess.run(["git", "-c", "core.autocrlf=false", "-c", "commit.gpgsign=false", *args],
+                          cwd=cwd, env=env, capture_output=True, text=True, check=True).stdout
+
+
+def test_git_source_with_relative_cache_clones_into_the_cache(tmp_path, monkeypatch):
+    work = tmp_path / "upstream"
+    work.mkdir()
+    _run(["init", "-q", "-b", "main"], work)
+    (work / "src").mkdir()
+    (work / "src" / "a.ts").write_bytes(b"export const a = 1;\n")
+    _run(["add", "src/a.ts"], work)
+    _run(["commit", "-q", "--no-verify", "-m", "one"], work)
+    parent = _run(["rev-parse", "HEAD"], work).strip()
+    (work / "src" / "a.ts").write_bytes(b"export const a = 2;\n")
+    _run(["commit", "-q", "--no-verify", "-am", "two"], work)
+    sha = _run(["rev-parse", "HEAD"], work).strip()
+    remotes = tmp_path / "remotes"
+    (remotes / "acme").mkdir(parents=True)
+    _run(["clone", "-q", "--bare", str(work), str(remotes / "acme" / "w.git")], tmp_path)
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", f"url.{remotes.as_uri()}/.insteadOf")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "https://github.com/")
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    monkeypatch.chdir(run_dir)
+    d = Diff(id=f"acme__w__{sha[:7]}", source="git", repo="acme/w", sha=sha, parent=parent,
+             licence="MIT", language="typescript", url="u", files=["src/a.ts"])
+    for _ in range(2):
+        co = materialise(d, Path("corpus"), Path("cache"))
+        assert co.root.is_absolute()
+        assert co.root.resolve() == (run_dir / "cache" / "repos" / "acme__w").resolve()
+        assert co.base_ref == parent
+        assert (co.root / "src" / "a.ts").read_bytes() == b"export const a = 2;\n"
+    assert not (run_dir / "cache" / "repos" / "cache").exists()
 
 
 def test_git_failure_names_the_diff(tmp_path, monkeypatch):
