@@ -351,3 +351,143 @@ def test_accept_skips_an_unsafe_path_before_fetching_anything():
     gh = FakeGitHub({f"repos/{REPO}/commits/{SHA}": commit_with(files)})
     assert accept(gh, first_item(), seen_repos={}) is None
     assert not [c for c in gh.calls if "/contents/" in c]
+
+
+def test_accept_rejects_a_private_or_internal_repository_before_fetching_the_commit(capsys):
+    repo = load("repo.json")
+    for meta in (dict(repo, private=True, visibility="private"), dict(repo, private=False, visibility="internal"),
+                 dict(repo, private=True), {k: v for k, v in repo.items() if k not in ("private", "visibility")}):
+        seen = {}
+        gh = FakeGitHub({f"repos/{REPO}": meta})
+        assert accept(gh, first_item(), seen_repos=seen) is None
+        assert seen == {}
+        assert gh.calls == [f"repos/{REPO}"]
+    assert "not public" in capsys.readouterr().err
+
+
+def test_main_refuses_one_named_commit_from_a_private_repository(tmp_path, monkeypatch):
+    out = tmp_path / "corpus"
+    private = dict(load("repo.json"), private=True, visibility="private")
+    monkeypatch.setattr(bc, "GitHub", lambda: FakeGitHub({f"repos/{REPO}": private}))
+    assert bc.main(["--out", str(out), "--repo", REPO, "--sha", SHA]) == 1
+    assert not out.exists() or not any(out.iterdir())
+
+
+NOT_PORTABLE = [
+    "src/a:b.ts",
+    "src/aux.ts",
+    "src/AUX",
+    "lib/com1.js",
+    "Lpt9.d/x.py",
+    "src/nul.tar.ts",
+    "src/con .ts",
+    "src/x /a.ts",
+    "src/x./a.ts",
+    "src/a.ts ",
+    "src/a?.ts",
+    'src/a".ts',
+    "src/a<b>.ts",
+    "src/a|b.ts",
+    "src/a*.ts",
+    "src/a\tb.ts",
+]
+
+
+@pytest.mark.parametrize("name", NOT_PORTABLE)
+def test_portable_path_rejects_names_windows_cannot_hold(name):
+    assert bc._portable_problem([name]) is not None
+
+
+def test_portable_path_accepts_ordinary_names_and_flags_case_collisions():
+    assert bc._portable_problem(["src/auxiliary.ts", "src/console.ts", "src/com10.ts", "a/.eslintrc.js",
+                                 "src/x.y/z.ts", "src/My File.ts"]) is None
+    assert bc._portable_problem(["src/A.ts", "src/a.ts"]) is not None
+    assert bc._portable_problem(["src/Lib.ts", "src/lib.ts/index.ts"]) is not None
+    assert bc._portable_problem(["Src/a.ts", "src/b.ts"]) is None
+
+
+@pytest.mark.parametrize("name", ["src/a:b.ts", "src/aux.ts", "src/x /a.ts"])
+def test_accept_skips_a_path_windows_cannot_hold_before_fetching_anything(name, capsys):
+    files = [{"filename": "src/ok.ts", "status": "modified"}, {"filename": name, "status": "modified"}]
+    gh = FakeGitHub({f"repos/{REPO}/commits/{SHA}": commit_with(files)})
+    seen = {}
+    assert accept(gh, first_item(), seen_repos=seen) is None
+    assert seen == {}
+    assert not [c for c in gh.calls if "/contents/" in c]
+    assert "not portable" in capsys.readouterr().err
+
+
+def test_accept_skips_paths_that_collide_when_case_is_ignored_on_one_side():
+    files = [{"filename": "src/Util.ts", "status": "added"}, {"filename": "src/util.ts", "status": "modified"}]
+    gh = FakeGitHub({f"repos/{REPO}/commits/{SHA}": commit_with(files)})
+    assert accept(gh, first_item(), seen_repos={}) is None
+    assert not [c for c in gh.calls if "/contents/" in c]
+    # A case-only rename puts one name on each side, which is fine.
+    renamed = [{"filename": "src/util.ts", "status": "renamed", "previous_filename": "src/Util.ts"},
+               {"filename": "src/main.ts", "status": "modified"}]
+    gh = FakeGitHub({f"repos/{REPO}/commits/{SHA}": commit_with(renamed)})
+    rec, before, after = accept(gh, first_item(), seen_repos={})
+    assert set(before) == {"src/Util.ts", "src/main.ts"} and set(after) == {"src/util.ts", "src/main.ts"}
+
+
+@pytest.mark.parametrize("name", ["src/a:b.ts", "src/aux.ts", "src/x /a.ts"])
+def test_write_record_rejects_a_path_windows_cannot_hold_before_touching_disk(tmp_path, name):
+    rec, before, after = accept(FakeGitHub(), first_item(), seen_repos={})
+    stale = tmp_path / rec["id"] / "after" / "stale.ts"
+    stale.parent.mkdir(parents=True)
+    stale.write_bytes(b"left by an interrupted build")
+    with pytest.raises(BuildError):
+        write_record(tmp_path, rec, before, dict(after, **{name: b"x\n"}))
+    assert stale.exists()
+    assert not (tmp_path / f"{rec['id']}.json").exists()
+    with pytest.raises(BuildError):
+        write_record(tmp_path, rec, {"src/A.ts": b"1", "src/a.ts": b"2"}, after)
+    assert stale.exists()
+
+
+def test_write_record_removes_its_partial_tree_when_the_disk_refuses(tmp_path, monkeypatch):
+    rec, before, after = accept(FakeGitHub(), first_item(), seen_repos={})
+    real = Path.write_bytes
+
+    def refuse(self, data):
+        if self.parent.name == "commands" and "after" in self.parts:
+            raise OSError("disk says no")
+        return real(self, data)
+
+    monkeypatch.setattr(Path, "write_bytes", refuse)
+    with pytest.raises(OSError):
+        write_record(tmp_path, rec, before, after)
+    assert not (tmp_path / rec["id"]).exists()
+    assert not (tmp_path / f"{rec['id']}.json").exists()
+
+
+def test_main_logs_an_os_error_from_one_record_and_carries_on(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    rec, _, _ = accept(FakeGitHub(), first_item(), seen_repos={})
+    items = [item_for("a/bad", "1" * 40), item_for("a/good", "2" * 40)]
+    tried = []
+    real_write = bc.write_record
+
+    def fake_accept(gh, item, seen_repos):
+        repo, sha = item["repository"]["full_name"], item["sha"]
+        tried.append(repo)
+        return dict(rec, id=f"{repo.replace('/', '__')}__{sha[:7]}", repo=repo, sha=sha), {}, {FILE: b"x"}
+
+    def flaky_write(out_root, r, before, after):
+        if r["repo"] == "a/bad":
+            raise FileNotFoundError(2, "The system cannot find the path specified")
+        return real_write(out_root, r, before, after)
+
+    monkeypatch.setattr(bc, "GitHub", FakeGitHub)
+    monkeypatch.setattr(bc, "candidates", lambda gh, trailer, per_page=100, pages=3: items)
+    monkeypatch.setattr(bc, "accept", fake_accept)
+    monkeypatch.setattr(bc, "write_record", flaky_write)
+    assert bc.main(["--out", str(out), "--target", "5", "--trailer", "A"]) == 0
+    assert tried == ["a/bad", "a/good"]
+    assert [p.name for p in out.glob("*.json")] == ["a__good__2222222.json"]
+    err = capsys.readouterr().err
+    assert "skip a/bad@1111111" in err and "cannot find the path" in err
+    assert "wrote 1 records" in err
+
+    monkeypatch.setattr(bc, "accept", lambda gh, item, seen_repos: fake_accept(gh, items[0], seen_repos))
+    assert bc.main(["--out", str(tmp_path / "one"), "--repo", "a/bad", "--sha", "1" * 40]) == 1

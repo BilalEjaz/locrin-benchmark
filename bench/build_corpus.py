@@ -93,6 +93,52 @@ class _Skip(Exception):
     pass
 
 
+# Names Windows reserves for devices, with or without an extension.
+_RESERVED = {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"} | {
+    f"{dev}{n}" for dev in ("COM", "LPT") for n in (*"0123456789", chr(0xB9), chr(0xB2), chr(0xB3))}
+_FORBIDDEN = set('<>:"|?*')
+
+
+def _segment_problem(segment: str) -> str | None:
+    if any(ch in _FORBIDDEN or ord(ch) < 32 for ch in segment):
+        return "holds a character Windows forbids"
+    if segment.endswith((".", " ")):
+        return "ends in a dot or space"
+    if segment.split(".", 1)[0].rstrip(" ").upper() in _RESERVED:
+        return "is a Windows device name"
+    return None
+
+
+def _portable_problem(names) -> str | None:
+    """Why this set of paths, all stored side by side, cannot be checked out on Windows and Linux alike.
+
+    None when every path is safe and portable. Paths are POSIX, relative, and
+    belong to one side (before or after) of a record.
+    """
+    files: dict[str, str] = {}
+    dirs: dict[str, str] = {}
+    for name in names:
+        if not _valid_file(name):
+            return f"unsafe path {name!r}"
+        segments = name.split("/")
+        for segment in segments:
+            problem = _segment_problem(segment)
+            if problem:
+                return f"not portable: {name!r} {problem}"
+        key = name.casefold()
+        other = files.get(key) or dirs.get(key)
+        if other is not None and other != name:
+            return f"not portable: {name!r} and {other!r} differ only by case"
+        files[key] = name
+        for i in range(1, len(segments)):
+            prefix = "/".join(segments[:i])
+            clash = files.get(prefix.casefold())
+            if clash is not None:
+                return f"not portable: {name!r} and {clash!r} differ only by case"
+            dirs.setdefault(prefix.casefold(), name)
+    return None
+
+
 def _contents(gh, repo: str, path: str, ref: str) -> bytes:
     """The file at ref. Raises _Skip when it cannot be read or is over MAX_BYTES."""
     try:
@@ -130,6 +176,10 @@ def accept(gh, item: dict, seen_repos: dict[str, int]):
         _skip(repo, sha, "repository cap")
         return None
     meta = gh.get(f"repos/{repo}")
+    if meta.get("private") is not False or meta.get("visibility") != "public":
+        # The build search asks for is:public, but a named commit (--repo/--sha) reads with the caller's own access.
+        _skip(repo, sha, f"repository is not public (private={meta.get('private')}, visibility={meta.get('visibility')})")
+        return None
     licence = (meta.get("license") or {}).get("spdx_id")
     if licence not in ALLOWED_LICENCES or meta.get("fork") or meta.get("archived"):
         _skip(repo, sha, f"licence {licence}, fork={meta.get('fork')}, archived={meta.get('archived')}")
@@ -145,27 +195,31 @@ def accept(gh, item: dict, seen_repos: dict[str, int]):
         return None
     parent = commit["parents"][0]["sha"]
     names: list[str] = []
-    before: dict[str, bytes] = {}
-    after: dict[str, bytes] = {}
-    try:
-        for f in files:
-            name, status = f["filename"], f.get("status")
-            old = f.get("previous_filename") if status == "renamed" else None
-            for n in (old, name):
-                if n and language_of(n) and not _valid_file(n):
-                    raise _Skip(f"unsafe path {n!r}")
+    want_before: list[str] = []
+    want_after: list[str] = []
+    for f in files:
+        name, status = f["filename"], f.get("status")
+        old = f.get("previous_filename") if status == "renamed" else None
+        if old and language_of(old):
+            names.append(old)
+        if not language_of(name):
+            continue
+        names.append(name)
+        if status == "renamed":
             if old and language_of(old):
-                names.append(old)
-            if not language_of(name):
-                continue
-            names.append(name)
-            if status == "renamed":
-                if old and language_of(old):
-                    before[old] = _contents(gh, repo, old, parent)
-            elif status not in ("added", "copied"):
-                before[name] = _contents(gh, repo, name, parent)
-            if status != "removed":
-                after[name] = _contents(gh, repo, name, sha)
+                want_before.append(old)
+        elif status not in ("added", "copied"):
+            want_before.append(name)
+        if status != "removed":
+            want_after.append(name)
+    # Check every path before fetching anything: the corpus must check out on Windows and Linux.
+    problem = _portable_problem(want_before) or _portable_problem(want_after)
+    if problem:
+        _skip(repo, sha, problem)
+        return None
+    try:
+        before = {n: _contents(gh, repo, n, parent) for n in want_before}
+        after = {n: _contents(gh, repo, n, sha) for n in want_after}
     except _Skip as e:
         _skip(repo, sha, str(e))
         return None
@@ -194,19 +248,24 @@ def write_record(out_root: Path, rec: dict, before: dict[str, bytes], after: dic
     path = out_root / f"{rec['id']}.json"
     if path.exists():
         return path
-    unsafe = [n for n in (*before, *after) if not _valid_file(n)]
-    if unsafe:
-        raise BuildError(f"{rec['id']}: unsafe file path {unsafe[0]!r}")
+    problem = _portable_problem(before) or _portable_problem(after)
+    if problem:
+        raise BuildError(f"{rec['id']}: {problem}")
     out_root.mkdir(parents=True, exist_ok=True)
     tree = out_root / rec["id"]
     if tree.exists():
         # Left by an interrupted build: the record file is written last, so start clean.
         shutil.rmtree(tree)
-    for sub, files in (("before", before), ("after", after)):
-        for name, data in files.items():
-            target = tree / sub / name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(_lf(data))
+    try:
+        for sub, files in (("before", before), ("after", after)):
+            for name, data in files.items():
+                target = tree / sub / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(_lf(data))
+    except OSError:
+        # Leave nothing half written behind a skipped record.
+        shutil.rmtree(tree, ignore_errors=True)
+        raise
     path.write_bytes((json.dumps(rec, indent=2) + "\n").encode("utf-8"))
     return path
 
@@ -245,7 +304,7 @@ def main(argv: list[str] | None = None) -> int:
             if got is None:
                 return 1
             print(write_record(out, *got))
-        except BuildError as e:
+        except (BuildError, OSError) as e:
             print(f"build_corpus: {e}", file=sys.stderr)
             return 1
         return 0
@@ -272,7 +331,8 @@ def main(argv: list[str] | None = None) -> int:
                     print(write_record(out, *got))
                 except RateLimitError:
                     raise
-                except BuildError as e:
+                except (BuildError, OSError) as e:
+                    # OSError: the disk refused a file; skip this commit rather than stall every re-run on it.
                     _skip(item["repository"]["full_name"], item["sha"], str(e))
                     continue
                 total += 1
