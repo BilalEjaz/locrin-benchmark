@@ -1,0 +1,129 @@
+"""Turn a corpus record into a git checkout with a base ref for locrin check --base."""
+from __future__ import annotations
+
+import os
+import shutil
+import stat
+import subprocess
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from bench.corpus import Diff
+
+ENGINE_FILES = ("locrin.toml", "locrin-baseline.json")
+_ENV = {
+    "GIT_AUTHOR_NAME": "bench",
+    "GIT_AUTHOR_EMAIL": "bench@example.invalid",
+    "GIT_AUTHOR_DATE": "2026-01-01T00:00:00+0000",
+    "GIT_COMMITTER_NAME": "bench",
+    "GIT_COMMITTER_EMAIL": "bench@example.invalid",
+    "GIT_COMMITTER_DATE": "2026-01-01T00:00:00+0000",
+    "GIT_TERMINAL_PROMPT": "0",
+}
+# Applied to every git call so line endings and commits never depend on the
+# machine's global git configuration.
+_CONFIG = ("-c", "core.autocrlf=false", "-c", "commit.gpgsign=false")
+
+
+class MaterialiseError(Exception):
+    pass
+
+
+@dataclass
+class Checkout:
+    root: Path
+    base_ref: str
+    removed: list[str] = field(default_factory=list)
+
+
+def _git(args: list[str], cwd: Path) -> str:
+    env = dict(os.environ)
+    env.update(_ENV)
+    try:
+        return subprocess.run(["git", *_CONFIG, *args], cwd=cwd, env=env, check=True,
+                              capture_output=True, text=True).stdout
+    except subprocess.CalledProcessError as e:
+        raise subprocess.CalledProcessError(e.returncode, ["git", *args], e.output, e.stderr) from None
+
+
+def _copy_tree(src: Path, dst: Path) -> None:
+    for p in src.rglob("*"):
+        if p.is_file():
+            target = dst / p.relative_to(src)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(p, target)
+
+
+def _make_writable_and_retry(func, path, _exc) -> None:
+    # git writes its object files read-only, and Windows refuses to delete a
+    # read-only file, so clear the flag and try once more.
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
+def _rmtree(path: Path) -> None:
+    shutil.rmtree(path, onexc=_make_writable_and_retry)
+
+
+def _clear_worktree(root: Path) -> None:
+    for p in root.iterdir():
+        if p.name == ".git":
+            continue
+        _rmtree(p) if p.is_dir() else p.unlink()
+
+
+def _strip_engine_files(root: Path) -> list[str]:
+    removed = []
+    for name in ENGINE_FILES:
+        p = root / name
+        if p.exists():
+            p.unlink()
+            removed.append(name)
+    return removed
+
+
+def _materialise_tree(diff: Diff, corpus_root: Path, cache: Path) -> Checkout:
+    src = corpus_root / diff.id
+    root = cache / "tree" / diff.id
+    if root.exists():
+        _rmtree(root)
+    root.mkdir(parents=True)
+    _git(["init", "-q", "-b", "main"], root)
+    _git(["config", "core.autocrlf", "false"], root)
+    _copy_tree(src / "before", root)
+    _strip_engine_files(root)
+    _git(["add", "-A"], root)
+    _git(["commit", "-q", "-m", "before", "--allow-empty"], root)
+    base = _git(["rev-parse", "HEAD"], root).strip()
+    _clear_worktree(root)
+    _copy_tree(src / "after", root)
+    removed = _strip_engine_files(root)
+    _git(["add", "-A"], root)
+    _git(["commit", "-q", "-m", "after", "--allow-empty"], root)
+    return Checkout(root=root, base_ref=base, removed=removed)
+
+
+def _materialise_git(diff: Diff, cache: Path) -> Checkout:
+    owner, name = diff.repo.split("/", 1)
+    root = cache / "repos" / f"{owner}__{name}"
+    if not root.exists():
+        root.parent.mkdir(parents=True, exist_ok=True)
+        _git(["clone", "--filter=blob:none", f"https://github.com/{diff.repo}.git", str(root)], root.parent)
+        _git(["config", "core.autocrlf", "false"], root)
+    _git(["checkout", "--detach", "-f", diff.sha], root)
+    _git(["clean", "-fdq"], root)
+    removed = _strip_engine_files(root)
+    return Checkout(root=root, base_ref=diff.parent, removed=removed)
+
+
+def materialise(diff: Diff, corpus_root: Path, cache: Path) -> Checkout:
+    try:
+        if diff.source == "tree":
+            return _materialise_tree(diff, Path(corpus_root), Path(cache))
+        return _materialise_git(diff, Path(cache))
+    except subprocess.CalledProcessError as e:
+        cmd = e.cmd if isinstance(e.cmd, list) else [str(e.cmd)]
+        if cmd and cmd[0] == "git":
+            cmd = cmd[1:]
+        detail = (e.stderr or e.stdout or "").strip()
+        raise MaterialiseError(f"{diff.id}: git {' '.join(map(str, cmd))} failed: {detail}") from e
