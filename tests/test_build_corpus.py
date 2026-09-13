@@ -609,3 +609,91 @@ def test_main_seeds_the_repository_cap_case_insensitively(tmp_path, monkeypatch)
     monkeypatch.setattr(bc, "accept", fake_accept)
     assert bc.main(["--out", str(out), "--target", "5", "--trailer", "A"]) == 0
     assert caps == [{REPO: 1}]
+
+
+def _two_records(tmp_path):
+    out = tmp_path / "corpus"
+    rec, before, after = accept(FakeGitHub(), first_item(), seen_repos={})
+    write_record(out, rec, before, after)
+    other_sha = "1" * 40
+    other = dict(rec, id=f"acme__gone__{other_sha[:7]}", repo="acme/gone", sha=other_sha,
+                 url=f"https://github.com/acme/gone/commit/{other_sha}")
+    write_record(out, other, before, after)
+    return out, f"repos/acme/gone/commits/{other_sha}"
+
+
+def test_check_gone_calls_a_422_no_commit_found_gone(tmp_path, monkeypatch, capsys):
+    out, path = _two_records(tmp_path)
+    missing = BuildError(f"GET {path}: gh: No commit found for SHA: 1111111111111111111111111111111111111111 (HTTP 422)")
+    monkeypatch.setattr(bc, "GitHub", lambda: FakeGitHub({path: missing}))
+    assert bc.main(["--out", str(out), "--check-gone"]) == 1
+    assert capsys.readouterr().out.startswith("gone: acme__gone__1111111: ")
+
+
+@pytest.mark.parametrize("message", [
+    "GET repos/acme/gone/commits/1111: cannot run gh: [WinError 2] The system cannot find the file specified",
+    "GET repos/acme/gone/commits/1111: gh: error connecting to api.github.com",
+    "GET repos/acme/gone/commits/1111: gh: Server Error (HTTP 502)",
+    "GET repos/acme/gone/commits/1111: gh: Bad credentials (HTTP 401)",
+    "GET repos/acme/gone/commits/1111: gh printed no JSON: Expecting value",
+])
+def test_check_gone_stops_without_calling_anything_gone_on_any_other_error(tmp_path, monkeypatch, capsys, message):
+    out, path = _two_records(tmp_path)
+    monkeypatch.setattr(bc, "GitHub", lambda: FakeGitHub({path: BuildError(message)}))
+    assert bc.main(["--out", str(out), "--check-gone"]) == 1
+    captured = capsys.readouterr()
+    assert "gone:" not in captured.out
+    assert f"build_corpus: stopped: {message}" in captured.err
+
+
+def test_lf_turns_every_run_of_carriage_returns_before_a_newline_into_one_newline():
+    assert bc._lf(b"x" + bytes([13, 13, 10]) + b"y" + bytes([13, 10]) + b"z" + bytes([10])) == b"x" + bytes([10]) + b"y" + bytes([10]) + b"z" + bytes([10])
+    assert bc._lf(b"a" + bytes([13]) + b"b") == b"a" + bytes([13]) + b"b"
+
+
+def test_main_logs_a_failed_search_moves_to_the_next_trailer_and_exits_one(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    searched = []
+
+    def fake_candidates(gh, trailer, per_page=100, pages=3):
+        searched.append(trailer)
+        if trailer == "A":
+            raise BuildError("GET search/commits: gh: error connecting to api.github.com")
+        return []
+
+    monkeypatch.setattr(bc, "GitHub", FakeGitHub)
+    monkeypatch.setattr(bc, "candidates", fake_candidates)
+    assert bc.main(["--out", str(out), "--trailer", "A", "--trailer", "B"]) == 1
+    assert searched == ["A", "B"]
+    err = capsys.readouterr().err
+    assert "error connecting to api.github.com" in err
+    assert "wrote 0 records" in err
+
+
+def test_write_record_refuses_an_id_that_is_not_a_valid_diff_id(tmp_path):
+    rec, before, after = accept(FakeGitHub(), first_item(), seen_repos={})
+    out = tmp_path / "a" / "inner"
+    for bad in ("../../escaped__x__abcdef1", "..\\..\\escaped__x__abcdef1", "acme/w__1234567", "not-an-id"):
+        with pytest.raises(BuildError, match="not a valid diff id"):
+            write_record(out, dict(rec, id=bad), before, after)
+    assert not any(tmp_path.rglob("escaped*"))
+    assert not out.exists()
+
+
+@pytest.mark.parametrize("repo, sha", [
+    ("../etc", SHA), ("acme", SHA), ("acme/w/x", SHA), ("acme/w?x=1", SHA),
+    (REPO, "zzz"), (REPO, "12345"), (REPO, SHA + "0"), (REPO, "../" + SHA),
+])
+def test_main_validates_repo_and_sha_before_calling_gh(tmp_path, monkeypatch, capsys, repo, sha):
+    gh = FakeGitHub()
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    assert bc.main(["--out", str(tmp_path / "corpus"), "--repo", repo, "--sha", sha]) == 1
+    assert gh.calls == []
+    assert "build_corpus:" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("response", [{}, {"sha": SHA}, {"sha": SHA, "parents": None}, [], "text"])
+def test_main_named_commit_with_a_malformed_response_exits_one(tmp_path, monkeypatch, capsys, response):
+    monkeypatch.setattr(bc, "GitHub", lambda: FakeGitHub({f"repos/{REPO}/commits/{SHA}": response}))
+    assert bc.main(["--out", str(tmp_path / "corpus"), "--repo", REPO, "--sha", SHA]) == 1
+    assert "build_corpus:" in capsys.readouterr().err

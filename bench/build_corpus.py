@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -16,7 +17,7 @@ import urllib.parse
 from collections import Counter
 from pathlib import Path
 
-from bench.corpus import ALLOWED_LICENCES, CorpusError, _valid_file, language_of, load_corpus
+from bench.corpus import ALLOWED_LICENCES, CorpusError, _valid_file, _valid_id, _valid_repo, language_of, load_corpus
 
 TRAILERS = ["Co-Authored-By: Claude", "Co-authored-by: Codex", "Co-authored-by: Copilot", "Co-authored-by: Cursor"]
 MAX_FILES = 30
@@ -24,6 +25,9 @@ MAX_BYTES = 200_000
 PER_REPO = 3
 LANG_ORDER = ["typescript", "javascript", "php", "python"]
 RATE_LIMIT_SLEEP = 60
+# gh's error for a commit GitHub does not have: 404 for an unknown repository or commit, 422 for a sha it cannot resolve.
+_NOT_FOUND = re.compile(r"\(HTTP 404\)|\(HTTP 422\)|No commit found for SHA")
+_SHA = re.compile(r"[0-9a-fA-F]{7,40}")
 SEARCH_PAGE_SLEEP = 2
 
 
@@ -254,11 +258,15 @@ def accept(gh, item: dict, seen_repos: dict[str, int]):
 
 def _lf(data: bytes) -> bytes:
     # The repository stores text with LF endings (.gitattributes), so the stored copy does too.
-    return data.replace(b"\r\n", b"\n")
+    # Every run of carriage returns before a newline goes, or CR CR LF would leave a CRLF behind.
+    return re.sub(rb"\r+\n", b"\n", data)
 
 
 def write_record(out_root: Path, rec: dict, before: dict[str, bytes], after: dict[str, bytes]) -> Path:
     out_root = Path(out_root)
+    if not isinstance(rec.get("id"), str) or not _valid_id(rec["id"]):
+        # The id names a file and a directory under out_root, so it must never carry a path.
+        raise BuildError(f"{rec.get('id')!r} is not a valid diff id")
     path = out_root / f"{rec['id']}.json"
     if path.exists():
         return path
@@ -299,7 +307,12 @@ def _existing(out_root: Path) -> dict[str, tuple[str, str]]:
 
 
 def _check_gone(gh, out_root: Path) -> int:
-    """Print `gone: <id>: <reason>` for every git record whose commit cannot be read, so it can be pruned."""
+    """Print `gone: <id>: <reason>` for every git record whose commit GitHub says it does not have.
+
+    Only a 404 or 422 from GitHub marks a record gone. Any other error (gh missing, auth,
+    network, a server error, output that is not JSON) stops the check without calling any
+    record gone, so a failed check never leads anyone to prune a valid record.
+    """
     try:
         diffs = load_corpus(out_root)
     except CorpusError as e:
@@ -315,9 +328,11 @@ def _check_gone(gh, out_root: Path) -> int:
             except RateLimitError:
                 raise
             except BuildError as e:
+                if not _NOT_FOUND.search(str(e)):
+                    raise
                 print(f"gone: {d.id}: {e}")
                 gone += 1
-    except RateLimitError as e:
+    except BuildError as e:
         print(f"build_corpus: stopped: {e}", file=sys.stderr)
         return 1
     return 1 if gone else 0
@@ -340,8 +355,14 @@ def main(argv: list[str] | None = None) -> int:
     out = Path(a.out)
     gh = GitHub()
     if a.repo:
+        if not _valid_repo(a.repo) or not _SHA.fullmatch(a.sha):
+            print(f"build_corpus: --repo must be owner/name and --sha 7 to 40 hex characters, got {a.repo!r} {a.sha!r}",
+                  file=sys.stderr)
+            return 1
         try:
             commit = gh.get(f"repos/{a.repo}/commits/{a.sha}")
+            if not isinstance(commit, dict) or not isinstance(commit.get("sha"), str) or not isinstance(commit.get("parents"), list):
+                raise BuildError(f"GET repos/{a.repo}/commits/{a.sha}: not a commit object")
             recorded = [ident for ident, (_, sha) in _existing(out).items() if sha == commit["sha"]]
             if recorded:
                 # Deduped on the full sha: the same commit under another spelling of its repository name.
@@ -355,6 +376,9 @@ def main(argv: list[str] | None = None) -> int:
         except (BuildError, OSError) as e:
             print(f"build_corpus: {e}", file=sys.stderr)
             return 1
+        except (KeyError, TypeError, IndexError) as e:
+            print(f"build_corpus: unexpected GitHub response for {a.repo}@{a.sha}: {e!r}", file=sys.stderr)
+            return 1
         return 0
     existing = _existing(out)
     # Deduped on the full commit sha, never on the id: a renamed repository gives one commit a second name.
@@ -362,11 +386,21 @@ def main(argv: list[str] | None = None) -> int:
     seen: dict[str, int] = dict(Counter(repo.lower() for repo, _ in existing.values() if repo))
     total = len(existing)
     written = 0
+    failed_searches = 0
     try:
         for trailer in a.trailer or TRAILERS:
             if total >= a.target:
                 break
-            for item in candidates(gh, trailer):
+            try:
+                items = candidates(gh, trailer)
+            except RateLimitError:
+                raise
+            except BuildError as e:
+                # One failed search (a network error, a 422) must not end a long build: log it, try the next trailer.
+                print(f"build_corpus: search for {trailer!r} failed: {e}", file=sys.stderr)
+                failed_searches += 1
+                continue
+            for item in items:
                 if total >= a.target:
                     break
                 if item["sha"] in done:
@@ -390,7 +424,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"wrote {written} records", file=sys.stderr)
         return 1
     print(f"wrote {written} records", file=sys.stderr)
-    return 0
+    return 1 if failed_searches else 0
 
 
 if __name__ == "__main__":
