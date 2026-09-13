@@ -26,11 +26,14 @@ _ENV = {
 # cleaned files, and signing independent of the machine. They go on every git
 # call and into each repository's own config. Git reads a default ignore file
 # and attributes file ($XDG_CONFIG_HOME/git/ or ~/.config/git/) even when no
-# config file names them, so point both at the null device explicitly.
+# config file names them, so set both to an empty path, which git treats as a
+# missing file on every platform. The null device is not an option: on Windows
+# os.devnull is "nul", and with core.fscache (on by default in Git for Windows)
+# plain `git status` and `git add` die with "cannot use nul as an exclude file".
 _SETTINGS = (
     ("core.autocrlf", "false"),
-    ("core.excludesFile", os.devnull),
-    ("core.attributesFile", os.devnull),
+    ("core.excludesFile", ""),
+    ("core.attributesFile", ""),
     ("commit.gpgsign", "false"),
 )
 _CONFIG = tuple(arg for key, value in _SETTINGS for arg in ("-c", f"{key}={value}"))

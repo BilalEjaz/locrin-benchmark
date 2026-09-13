@@ -282,3 +282,30 @@ def test_git_failure_names_the_diff(tmp_path, monkeypatch):
              licence="MIT", language="typescript", url="u", files=[])
     with pytest.raises(MaterialiseError, match="acme__w__abc1234"):
         materialise(d, tmp_path / "corpus", tmp_path / "cache")
+
+
+def _plain_status(root: Path) -> subprocess.CompletedProcess:
+    # The user's normal environment and config, plus fscache, which Git for
+    # Windows enables system-wide and which cannot open the Windows null device.
+    return subprocess.run(["git", "-c", "core.fscache=true", "status", "--porcelain"], cwd=root,
+                          capture_output=True, text=True)
+
+
+@pytest.mark.parametrize("source", ["tree", "git"])
+def test_checkout_supports_plain_git_status_and_add(tmp_path, monkeypatch, source):
+    if source == "tree":
+        d, corpus = tree_diff(tmp_path)
+    else:
+        d, corpus = _local_upstream(tmp_path, monkeypatch), tmp_path / "corpus"
+    _hostile_user_git_dir(tmp_path, monkeypatch, "xdg", "untracked.ts\n", "*.ts working-tree-encoding=UTF-16LE\n")
+    co = materialise(d, corpus, tmp_path / "cache")
+    (co.root / "untracked.ts").write_bytes(b"export const u = 1;\n")
+    status = _plain_status(co.root)
+    assert status.returncode == 0, status.stderr
+    assert "?? untracked.ts" in status.stdout.splitlines()
+    add = subprocess.run(["git", "-c", "core.fscache=true", "add", "-A", "--dry-run"], cwd=co.root,
+                         capture_output=True, text=True)
+    assert add.returncode == 0, add.stderr
+    attrs = subprocess.run(["git", "check-attr", "-a", "src/a.ts"], cwd=co.root, capture_output=True, text=True)
+    assert attrs.returncode == 0, attrs.stderr
+    assert attrs.stdout == ""
