@@ -305,15 +305,24 @@ def test_one_entry_decides_one_finding_only():
 
 
 def test_an_id_match_on_another_line_must_be_unambiguous():
-    # Two entries carry the id on other lines: neither decides the finding.
+    # Two entries carry the id on other lines: neither decides the finding. An entry for
+    # another id on the finding's own line must not decide it either, because the finding's
+    # id still has open entries elsewhere.
     fs = [F("a", "unreachable", "x.ts", 7, ident=A)]
-    ls = labels(a=[E("unreachable", "x.ts", 3, "true", A), E("unreachable", "x.ts", 4, "false-positive", A)])
+    ls = labels(a=[E("unreachable", "x.ts", 3, "true", A), E("unreachable", "x.ts", 4, "false-positive", A),
+                   E("unreachable", "x.ts", 7, "true", B)])
     per_rule, _, unlabelled = score(fs, ls, RULES)
-    assert counts(per_rule, "unreachable")[:2] == (0, 0) and [f.line for f in unlabelled] == [7]
-    # Two findings on different lines carry the id of one entry elsewhere: ambiguous.
-    fs = [F("a", "unreachable", "x.ts", 7, ident=A), F("a", "unreachable", "x.ts", 8, ident=A)]
-    per_rule, _, unlabelled = score(fs, labels(a=[E("unreachable", "x.ts", 3, "false-positive", A)]), RULES)
-    assert counts(per_rule, "unreachable")[:2] == (0, 0) and [f.line for f in unlabelled] == [7, 8]
+    assert counts(per_rule, "unreachable") == (0, 0, 2) and [f.line for f in unlabelled] == [7]
+    assert [e.line for _, e in stale(fs, ls)] == [3, 7]
+    # Two findings on different lines carry the id of one entry elsewhere: ambiguous. A third
+    # finding with another id on that entry's line must not take it by line, because the
+    # entry's id is claimed by findings in the run.
+    fs = [F("a", "unreachable", "x.ts", 7, ident=A), F("a", "unreachable", "x.ts", 8, ident=A),
+          F("a", "unreachable", "x.ts", 3, ident=C)]
+    ls = labels(a=[E("unreachable", "x.ts", 3, "true", A)])
+    per_rule, _, unlabelled = score(fs, ls, RULES)
+    assert counts(per_rule, "unreachable") == (0, 0, 1) and [f.line for f in unlabelled] == [7, 8, 3]
+    assert [e.line for _, e in stale(fs, ls)] == [3]
 
 
 def test_a_confirmed_true_entry_the_run_no_longer_reports_counts_as_missed_and_is_stale():
