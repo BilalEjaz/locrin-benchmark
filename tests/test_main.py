@@ -120,7 +120,6 @@ def test_all_diffs_ran_exits_zero_and_missing_readme_is_left_alone(tmp_path, mon
     monkeypatch.setattr(main_mod, "load_corpus", lambda root: [diff("fx-01-ok")])
     monkeypatch.setattr(main_mod, "materialise", lambda d, c, k: Checkout(root=tmp_path, base_ref="0" * 40, removed=[]))
     monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif([]))
-    monkeypatch.setattr(main_mod, "added_lines", lambda d, co, cache, files: {})
     readme = tmp_path / "README.md"
     code = main_mod.main(["--version", "v0.5.0", "--labels", str(tmp_path / "labels"), "--out", str(tmp_path / "r"),
                           "--readme", str(readme)])
@@ -270,7 +269,6 @@ def _setup(tmp_path: Path, monkeypatch, ids: list[str], failures: dict[str, Exce
     monkeypatch.setattr(main_mod, "load_corpus", lambda root: [diff(i) for i in ids])
     monkeypatch.setattr(main_mod, "materialise", _materialise_failing(tmp_path, failures))
     monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif([]))
-    monkeypatch.setattr(main_mod, "added_lines", lambda d, co, cache, files: {})
     readme = tmp_path / "README.md"
     readme.write_bytes(b"x\n<!-- results:start -->\nold\n<!-- results:end -->\n")
     return ["--version", "v0.5.0", "--labels", str(tmp_path / "labels"), "--out", str(tmp_path / "r"),
@@ -510,7 +508,7 @@ def git_diff(ident: str) -> Diff:
                 language="typescript", url="u", files=["src/x.ts"])
 
 
-def test_findings_the_parent_reports_are_pre_existing_and_repeats_in_later_diffs_are_duplicates(tmp_path, monkeypatch):
+def test_findings_the_parent_reports_are_pre_existing_and_repeats_in_later_diffs_are_duplicates(tmp_path, monkeypatch, capsys):
     # Two diffs from one repository both report X, which was in src/x.ts before either, and Y, which both
     # introduced (one reverted it, the other reapplied it). X counts nowhere, Y once, in the first diff by id.
     X, Y = "e" * 16, "f" * 16
@@ -540,6 +538,15 @@ def test_findings_the_parent_reports_are_pre_existing_and_repeats_in_later_diffs
                             "confirmed label, 0 not applicable, 2 pre-existing and 1 duplicate.\n")
     assert "| `leftover-debug` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | n<5, not scored |" in table
     assert "| `leftover-debug@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | n<5, not scored |" in table
+    # Findings left out as pre-existing or duplicate are listed, not only counted.
+    assert run["preexisting_findings"] == [
+        {"diff": "acme__w__1111111", "rule": "leftover-debug", "file": "src/x.ts", "line": 3, "id": X},
+        {"diff": "acme__w__2222222", "rule": "leftover-debug", "file": "src/x.ts", "line": 3, "id": X}]
+    assert run["duplicate_findings"] == [{"diff": "acme__w__2222222", "rule": "leftover-debug", "file": "src/x.ts", "line": 8, "id": Y}]
+    err = capsys.readouterr().err
+    assert f"pre-existing: acme__w__1111111 leftover-debug src/x.ts:3 {X}\n" in err
+    assert f"pre-existing: acme__w__2222222 leftover-debug src/x.ts:3 {X}\n" in err
+    assert f"duplicate: acme__w__2222222 leftover-debug src/x.ts:8 {Y}\n" in err
 
 
 def test_a_label_entry_for_a_pre_existing_finding_is_not_reproduced(tmp_path, monkeypatch):
@@ -703,30 +710,62 @@ def test_the_occurrence_of_a_repeated_id_on_a_line_the_change_added_is_the_intro
     assert run["findings"] == 2 and run["preexisting"] == 1 and run["publishable"] is True
 
 
-def test_a_reland_pair_counts_its_reported_and_its_missed_construct_once_each(tmp_path, monkeypatch):
+def test_a_reland_pair_counts_its_reported_construct_once_and_its_missed_construct_as_labelled(tmp_path, monkeypatch):
     # acme__w__1111111 adds src/c.ts with an unreachable statement the engine reports (line 5) and one it misses
-    # (line 9); acme__w__2222222 relands it onto a parent without the file. Each construct counts once.
+    # (line 9); acme__w__2222222 relands it onto a parent without the file. The reported repeat is a duplicate. The
+    # labeller writes no missed entry for the repeat, since an earlier diff from the repository introduced it, and
+    # the run counts missed entries as the labels state them.
     Y = "f" * 16
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "c.ts").write_bytes(b"1\n2\n3\n4\nreturn 1;\n6\n7\n8\n  if (false) return 2;\n")
     labels = tmp_path / "labels"
     labels.mkdir()
     write_label(labels, "acme__w__1111111", [entry("src/c.ts", 5, Y, "true"), entry("src/c.ts", 9, None, "missed")])
-    write_label(labels, "acme__w__2222222", [entry("src/c.ts", 9, None, "missed")])
+    write_label(labels, "acme__w__2222222", [])
     args = _setup(tmp_path, monkeypatch, [], {})
     monkeypatch.setattr(main_mod, "load_corpus", lambda root: [git_diff("acme__w__1111111"), git_diff("acme__w__2222222")])
     monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif([result("src/c.ts", 5, Y)]))
-    asked = []
-
-    def fake_added_lines(d, co, cache, files):
-        asked.append((d.id, files))
-        return {"src/c.ts": set(range(1, 10))}
-
-    monkeypatch.setattr(main_mod, "added_lines", fake_added_lines)
     assert main_mod.main(args) == 0
-    assert asked == [("acme__w__1111111", ["src/c.ts"]), ("acme__w__2222222", ["src/c.ts"])]
     run = _run_json(tmp_path)
-    assert (run["findings"], run["duplicates"], run["publishable"], run["labels"]["invalid_missed"]) == (1, 2, True, [])
+    assert (run["findings"], run["duplicates"], run["publishable"], run["labels"]["invalid_missed"]) == (1, 1, True, [])
     table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
-    assert "0 not applicable, 0 pre-existing and 2 duplicate.\n" in table
-    assert "| `leftover-debug` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 2 | n<5, not scored |" in table
+    assert "0 not applicable, 0 pre-existing and 1 duplicate.\n" in table
+    assert "| `leftover-debug` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | n<5, not scored |" in table
+
+
+def test_the_same_line_text_in_two_functions_from_one_repository_counts_each_missed_entry(tmp_path, monkeypatch):
+    # acme__w__3c353f1 appends describe() to src/c.ts with a construct the engine reports (line 8) and one it misses
+    # (line 6). A commit outside the corpus removes both; acme__w__62b3578 then appends label() with the same line
+    # texts (reported at 12, missed at 10). The engine ids differ by symbol, and each missed entry names a construct
+    # its own diff introduced, so both count: recall 50 percent, and no missed entry is moved to Duplicate.
+    text = b'  if (false) return "never";'
+    a_root, b_root = tmp_path / "co" / "a", tmp_path / "co" / "b"
+    base = b"function base() {\n  return 1;\n}\n"
+    a_body = base + b"function describe(n) {\n  return n;\n" + text + b"\n  n += 1;\n  n = Math.round(n);\n}\n"
+    b_body = (base + b"function describe(n) {\n  return n;\n}\nfunction label(n) {\n  n = n * 2;\n  return n;\n" + text
+              + b"\n  n += 1;\n  n = Math.round(n);\n}\n")
+    for root, body in ((a_root, a_body), (b_root, b_body)):
+        (root / "src").mkdir(parents=True)
+        (root / "src" / "c.ts").write_bytes(body)
+    assert a_body.split(b"\n")[5] == text and b_body.split(b"\n")[9] == text
+    A, B = "acme__w__3c353f1", "acme__w__62b3578"
+    id_a, id_b = "f90e2798a06869ae", "feecd97f475b41e5"
+    labels = tmp_path / "labels"
+    labels.mkdir()
+    write_label(labels, A, [entry("src/c.ts", 8, id_a, "true"), entry("src/c.ts", 6, None, "missed")])
+    write_label(labels, B, [entry("src/c.ts", 12, id_b, "true"), entry("src/c.ts", 10, None, "missed")])
+    args = _setup(tmp_path, monkeypatch, [], {})
+    monkeypatch.setattr(main_mod, "load_corpus", lambda root: [git_diff(A), git_diff(B)])
+    monkeypatch.setattr(main_mod, "materialise",
+                        lambda d, c, k: Checkout(root=a_root if d.id == A else b_root, base_ref="0" * 40, removed=[]))
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif(
+        [result("src/c.ts", 8, id_a)] if diff_id == A else [result("src/c.ts", 12, id_b)]))
+    # describe() is lines 4 to 9 at A; label() is lines 7 to 13 at B.
+    monkeypatch.setattr(main_mod, "added_lines",
+                        lambda d, co, cache, files: {"src/c.ts": set(range(4, 10)) if d.id == A else set(range(7, 14))})
+    assert main_mod.main(args) == 0
+    run = _run_json(tmp_path)
+    assert (run["findings"], run["duplicates"], run["publishable"], run["labels"]["invalid_missed"]) == (2, 0, True, [])
+    table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
+    assert "0 not applicable, 0 pre-existing and 0 duplicate.\n" in table
+    assert "| `leftover-debug` | on | 100% | 50% | 2 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |" in table

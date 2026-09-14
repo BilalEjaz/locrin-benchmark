@@ -10,12 +10,12 @@ from pathlib import Path
 
 from bench import inputs
 from bench.corpus import CorpusError, load_corpus
-from bench.labels import LabelError, dropped_missed, invalid_missed, load_labels, missed_ranks
+from bench.labels import LabelError, dropped_missed, invalid_missed, load_labels
 from bench.materialise import MaterialiseError, SourceGone, added_lines, materialise
 from bench.readme_table import replace_table
 from bench.run import Finding, RuleMeta, RunError, check_parent, ignore_files_above, install_locrin, normalise, run_check
-from bench.score import (drop_missed, excluded, excluded_count, excluded_missed, not_applicable, render_markdown, repeated_files,
-                         repository_of, score, split_duplicates, split_missed_duplicates, split_preexisting, unreproduced)
+from bench.score import (excluded, excluded_count, excluded_missed, not_applicable, render_markdown, repeated_files, repository_of,
+                         score, split_duplicates, split_preexisting, unreproduced)
 
 
 # Exit codes. Only 0 and 3 are publishable, and only then is the README table rewritten. Publishable also
@@ -25,9 +25,8 @@ from bench.score import (drop_missed, excluded, excluded_count, excluded_missed,
 # The unit of measurement is a finding the change introduced: after the run at the commit, locrin runs at the
 # parent over the files that carry findings, and for each rule, file and id as many findings as it reports there
 # are pre-existing. Introduced occurrences an earlier diff (by id) from the same repository already introduced,
-# counted on top of what each diff's parent held, are duplicates, and so are missed entries on a construct an earlier
-# diff from the same repository already introduced (the same rule, file and line text, counted the same way).
-# None of them is scored; the table and run.json count them.
+# counted on top of what each diff's parent held, are duplicates.
+# Neither is labelled or scored; the table counts both, and stderr and run.json list them.
 # 0 every diff ran.
 # 1 not publishable: locrin or the harness failed on a diff, a source could not be materialised for any
 #   reason other than being confirmed gone (a network, DNS, server or disk error may pass), or no diff ran.
@@ -52,6 +51,15 @@ def _now() -> str:
 def _write(path: Path, text: str) -> None:
     # Bytes, so Windows never turns the newlines into CRLF in a tracked results file.
     path.write_bytes(text.encode("utf-8"))
+
+
+def _order(f: Finding) -> tuple:
+    return (f.diff, f.rule, f.file, f.line, f.id)
+
+
+def _listed(findings: list[Finding]) -> list[dict]:
+    """Findings left out of the numbers, as run.json lists them: diff, rule, file, line and id."""
+    return [{"diff": f.diff, "rule": f.rule, "file": f.file, "line": f.line, "id": f.id} for f in sorted(findings, key=_order)]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -85,7 +93,6 @@ def main(argv: list[str] | None = None) -> int:
     findings: list[Finding] = []
     preexisting: list[Finding] = []
     invalid: list[dict] = []
-    ranked: list[tuple] = []
     rules: dict[str, RuleMeta] = {}
     ran: set[str] = set()
     mat_fail: list[str] = []
@@ -112,11 +119,8 @@ def main(argv: list[str] | None = None) -> int:
             doc = run_check(locrin, co, Path(a.work), d.id)
             fs, rs = normalise(d.id, doc)
             # Read while the checkout is at the commit, before check_parent moves it to the parent.
-            lf = labels.get(d.id)
-            problems = invalid_missed(lf, co.root, set(rs)) if lf else []
-            missed_files = {e.file for e in lf.entries if "missed" in (e.pass1, e.pass2)} if lf else set()
-            added = added_lines(d, co, Path(a.cache), sorted(set(repeated_files(fs)) | missed_files))
-            ranks = [(d.id, *r) for r in missed_ranks(lf, co.root, added)] if lf else []
+            problems = invalid_missed(labels[d.id], co.root, set(rs)) if d.id in labels else []
+            added = added_lines(d, co, Path(a.cache), repeated_files(fs))
             fs, old = split_preexisting(fs, check_parent(locrin, d, co, Path(a.cache), Path(a.work), fs), added)
         except MaterialiseError as e:
             mat_fail.append(str(e))
@@ -140,24 +144,19 @@ def main(argv: list[str] | None = None) -> int:
         findings.extend(fs)
         preexisting.extend(old)
         invalid.extend(problems)
-        ranked.extend(ranks)
         rules = rs or rules
         print(f"{d.id}: {len(fs)} findings introduced, {len(old)} pre-existing")
-    repository = {d.id: repository_of(d) for d in diffs}
-    findings, duplicates = split_duplicates(findings, repository, preexisting)
-    missed_duplicates = split_missed_duplicates(ranked, repository)
+    findings, duplicates = split_duplicates(findings, {d.id: repository_of(d) for d in diffs}, preexisting)
     flagged = {(p["diff"], p["rule"], p["file"], p["line"]) for p in invalid}
     invalid += [p for d in sorted(ran) if d in labels for p in dropped_missed(labels[d], preexisting + duplicates)
                 if (p["diff"], p["rule"], p["file"], p["line"]) not in flagged]
     findings.sort(key=lambda f: (f.diff, f.rule, f.file, f.line, f.id))
     # Only diffs that ran are scored, so a failed diff neither adds its misses nor loses its true entries.
-    per_rule, per_pair, unlabelled = score(findings, labels, rules, ran=ran, preexisting=preexisting, duplicates=duplicates,
-                                           missed_duplicates=missed_duplicates)
-    scored = drop_missed(labels, missed_duplicates)
-    left_out = excluded(findings, scored, ran=ran)
-    left_out_missed = excluded_missed(scored, ran=ran)
-    left_out_total = excluded_count(findings, scored, ran=ran)
-    inapplicable = not_applicable(findings, scored, ran=ran)
+    per_rule, per_pair, unlabelled = score(findings, labels, rules, ran=ran, preexisting=preexisting, duplicates=duplicates)
+    left_out = excluded(findings, labels, ran=ran)
+    left_out_missed = excluded_missed(labels, ran=ran)
+    left_out_total = excluded_count(findings, labels, ran=ran)
+    inapplicable = not_applicable(findings, labels, ran=ran)
     missing = sorted(d for d in ran if d not in labels)
     other_version = sorted(d for d in ran if d in labels and labels[d].locrin != a.version)
     # label.py new writes every entry as `?` with pass two unrecorded; such a file only looks like labels.
@@ -196,12 +195,13 @@ def main(argv: list[str] | None = None) -> int:
     _write(out / "findings.jsonl", "".join(json.dumps(dataclasses.asdict(f), sort_keys=True) + "\n" for f in findings))
     table = render_markdown(per_rule, per_pair, a.version, corpus_size=len(diffs), unlabelled=len(unlabelled), rules=rules,
                            ran=len(ran), excluded=left_out_total, not_applicable=len(inapplicable),
-                           preexisting=len(preexisting), duplicates=len(duplicates) + len(missed_duplicates))
+                           preexisting=len(preexisting), duplicates=len(duplicates))
     _write(out / "table.md", table)
     _write(out / "run.json", json.dumps({
         "locrin": a.version, "diffs": len(diffs), "ran": len(ran), "findings": len(findings), "unlabelled": len(unlabelled),
         "excluded": left_out_total, "not_applicable": len(inapplicable), "preexisting": len(preexisting),
-        "duplicates": len(duplicates) + len(missed_duplicates), "publishable": publishable, "not_publishable": reasons, "gone": gone,
+        "duplicates": len(duplicates), "preexisting_findings": _listed(preexisting), "duplicate_findings": _listed(duplicates),
+        "publishable": publishable, "not_publishable": reasons, "gone": gone,
         "materialise_failures": mat_fail, "run_failures": run_fail,
         "labels": {"versions": label_versions, "other_version": other_version, "missing": missing,
                    "unconfirmed": unconfirmed,
@@ -226,6 +226,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"excluded: {diff_id} {e.rule} {e.file}:{e.line} {e.pass1}/{e.pass2}", file=sys.stderr)
     for f in inapplicable:
         print(f"not applicable: {f.diff} {f.rule} {f.file}:{f.line} {f.id}", file=sys.stderr)
+    for name, dropped in (("pre-existing", preexisting), ("duplicate", duplicates)):
+        for f in sorted(dropped, key=_order):
+            print(f"{name}: {f.diff} {f.rule} {f.file}:{f.line} {f.id}", file=sys.stderr)
     print(table)
     if not publishable:
         why = f"{len(ran)} of {len(diffs)} diffs ran; " + "; ".join(reasons)
