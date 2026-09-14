@@ -1,7 +1,8 @@
 """What a run measured: digests of the corpus and labels, and the harness commit.
 
 run.json records them, so a published table can be tied to its inputs, and the scheduled job
-measures a version again whenever the corpus or the labels changed since its last publishable run.
+measures a version again whenever the corpus, the labels or the harness code changed since its last
+publishable run.
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 # The run.json label fields that must all be empty lists for a run to count as complete.
-COVERAGE = ("missing", "other_version", "unconfirmed", "unreproduced")
+COVERAGE = ("missing", "other_version", "unconfirmed", "unreproduced", "invalid_missed")
 
 
 def digest(root: Path) -> str:
@@ -26,6 +27,21 @@ def digest(root: Path) -> str:
     h = hashlib.sha256()
     files = sorted((p.relative_to(root).as_posix(), p) for p in root.rglob("*") if p.is_file()) if root.is_dir() else []
     for rel, p in files:
+        data = p.read_bytes()
+        name = rel.encode("utf-8")
+        h.update(len(name).to_bytes(8, "big") + name + len(data).to_bytes(8, "big") + data)
+    return f"sha256:{h.hexdigest()}"
+
+
+def harness_digest() -> str:
+    """sha256 over the harness's Python sources (bench/**/*.py), in the form digest() gives.
+
+    Scoring, matching, materialising and the engine config all live there, so a change to any of
+    them changes the numbers a run computes. Bytecode caches are left out.
+    """
+    root = ROOT / "bench"
+    h = hashlib.sha256()
+    for rel, p in sorted((p.relative_to(root).as_posix(), p) for p in root.rglob("*.py") if p.is_file()):
         data = p.read_bytes()
         name = rel.encode("utf-8")
         h.update(len(name).to_bytes(8, "big") + name + len(data).to_bytes(8, "big") + data)
@@ -51,7 +67,11 @@ def harness_commit() -> str | None:
 
 
 def complete(run_json: Path, version: str, corpus: Path, labels: Path) -> tuple[bool, str]:
-    """Whether run_json records a publishable run of version over exactly these corpus and labels, and why."""
+    """Whether run_json records a publishable run of version over exactly these corpus, labels and harness, and why.
+
+    A run that published with gone sources is never complete: the schedule measures it again, so the job keeps
+    flagging the gone diffs until their records are pruned.
+    """
     try:
         run = json.loads(Path(run_json).read_bytes().decode("utf-8"))
     except (OSError, ValueError) as e:
@@ -66,10 +86,12 @@ def complete(run_json: Path, version: str, corpus: Path, labels: Path) -> tuple[
     if run.get("not_publishable") != [] or any(coverage.get(k) != [] for k in COVERAGE):
         return False, f"{run_json} does not record labels that cover the run"
     recorded = run.get("inputs") if isinstance(run.get("inputs"), dict) else {}
-    for name, root in (("corpus", corpus), ("labels", labels)):
-        if recorded.get(name) != digest(root):
+    for name, now in (("corpus", digest(corpus)), ("labels", digest(labels)), ("bench", harness_digest())):
+        if recorded.get(name) != now:
             return False, f"the {name} changed since {run_json} was written"
-    return True, f"{run_json} records a publishable run over the current corpus and labels"
+    if run.get("gone") != []:
+        return False, f"{run_json} records diffs whose source is gone; prune them with python -m bench.build_corpus --check-gone"
+    return True, f"{run_json} records a publishable run over the current corpus, labels and harness"
 
 
 def main(argv: list[str] | None = None) -> int:

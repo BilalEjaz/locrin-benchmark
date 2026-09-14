@@ -188,22 +188,49 @@ def test_cli_new_runs_the_harness_for_that_diff_and_keys_the_cache_on_it(tmp_pat
     assert rec["entries"][0]["id"] == "2" * 16 and rec["pass1"]["by"] == "opus"
 
 
-def test_findings_for_passes_the_diff_id_to_run_check(tmp_path, monkeypatch):
+def test_findings_for_templates_only_what_the_diff_introduced_first_in_its_repository(tmp_path, monkeypatch):
+    import bench.corpus
     import bench.materialise
     import bench.run
+    from bench.corpus import Diff
 
-    seen = {}
+    def git(ident):
+        return Diff(ident, "git", "acme/w", ident[-1] * 40, "0" * 40, "MIT", "typescript", "u", ["x.ts"])
+
+    diffs = [git("acme__w__1111111"), git("acme__w__2222222"), git("acme__w__3333333"),
+             Diff("fx-01-tree", "tree", None, None, None, "MIT", "typescript", "fixture", ["x.ts"])]
+    X, Y, Z = "e" * 16, "f" * 16, "9" * 16
+
+    def result(line, ident):
+        return {"ruleId": "leftover-debug", "partialFingerprints": {"locrin/id": ident},
+                "locations": [{"physicalLocation": {"artifactLocation": {"uri": "x.ts"}, "region": {"startLine": line}}}]}
+
+    # X was in x.ts before any diff; Y is introduced by 1111111 and again by 2222222; Z only by 2222222.
+    at_commit = {"acme__w__1111111": [result(3, X), result(8, Y)],
+                 "acme__w__2222222": [result(3, X), result(8, Y), result(9, Z)],
+                 "acme__w__3333333": [result(3, X)], "fx-01-tree": [result(8, Y)]}
+    calls = []
+    monkeypatch.setattr(bench.corpus, "load_corpus", lambda root: diffs)
     monkeypatch.setattr(bench.run, "install_locrin", lambda version, cache: Path("locrin"))
-    monkeypatch.setattr(bench.materialise, "materialise", lambda diff, root, cache: "checkout")
+    monkeypatch.setattr(bench.materialise, "materialise", lambda diff, root, cache: diff.id)
 
     def fake_run_check(locrin, checkout, work, diff_id):
-        seen["run_check"] = (checkout, work, diff_id)
-        return {"runs": [{"results": [], "tool": {"driver": {"rules": []}}}]}
+        calls.append(("commit", diff_id, work))
+        return {"runs": [{"results": at_commit[diff_id], "tool": {"driver": {"rules": []}}}]}
+
+    def fake_check_parent(locrin, diff, checkout, cache, work, findings):
+        calls.append(("parent", diff.id, cache, sorted({f.file for f in findings})))
+        return [f for f in findings if f.id == X]
 
     monkeypatch.setattr(bench.run, "run_check", fake_run_check)
-    corpus_root = Path(__file__).resolve().parent.parent / "fixtures" / "corpus"
-    assert label_tool._findings_for("fx-10-clean", "v0.5.0", corpus_root, tmp_path) == []
-    assert seen["run_check"] == ("checkout", tmp_path / ".work", "fx-10-clean")
+    monkeypatch.setattr(bench.run, "check_parent", fake_check_parent)
+    got = label_tool._findings_for("acme__w__2222222", "v0.5.0", Path("corpus"), tmp_path)
+    assert [(f.diff, f.line, f.id) for f in got] == [("acme__w__2222222", 9, Z)]
+    # The earlier diff from the same repository ran too, the later one and the tree diff did not.
+    assert calls == [("commit", "acme__w__1111111", tmp_path / ".work"), ("parent", "acme__w__1111111", tmp_path / ".cache", ["x.ts"]),
+                     ("commit", "acme__w__2222222", tmp_path / ".work"), ("parent", "acme__w__2222222", tmp_path / ".cache", ["x.ts"])]
+    assert label_tool._findings_for("acme__w__3333333", "v0.5.0", Path("corpus"), tmp_path) == []
+    assert [(f.diff, f.id) for f in label_tool._findings_for("fx-01-tree", "v0.5.0", Path("corpus"), tmp_path)] == [("fx-01-tree", Y)]
 
 
 def test_cli_confirm_refusal_exits_1(tmp_path, capsys):
@@ -231,3 +258,74 @@ def test_cli_new_reports_a_harness_failure_naming_the_diff_and_exits_1(tmp_path,
     err = capsys.readouterr().err
     assert err.startswith("label.py: fx-01-debug: ") and "Traceback" not in err
     assert not (tmp_path / "labels" / "fx-01-debug.json").exists()
+
+
+@pytest.mark.parametrize("value", [False, {}, "", {"by": "b"}, {"by": "", "date": "d"}, {"by": "b", "date": 3}, []])
+@pytest.mark.parametrize("which", ["pass1", "pass2"])
+def test_pass_metadata_is_null_or_names_who_and_when(tmp_path, which, value):
+    label(tmp_path, [entry()])
+    p = tmp_path / "fx-01-debug.json"
+    raw = json.loads(p.read_text(encoding="utf-8"))
+    raw[which] = value
+    p.write_text(json.dumps(raw), encoding="utf-8")
+    with pytest.raises(LabelError, match=which):
+        load_labels(tmp_path)
+    raw[which] = None
+    p.write_text(json.dumps(raw), encoding="utf-8")
+    assert getattr(load_labels(tmp_path)["fx-01-debug"], which) is None
+
+
+@pytest.mark.parametrize("other", ["true", "not-applicable"])
+def test_a_missed_entry_only_one_pass_found_takes_missed_false_positive_or_unfilled_from_the_other(tmp_path, other):
+    for ok in ("missed", "false-positive", "?"):
+        label(tmp_path, [entry(id=None, pass1="missed", pass2=ok), entry(id=None, line=7, pass1=ok, pass2="missed")])
+        load_labels(tmp_path)
+    label(tmp_path, [entry(id=None, pass1="missed", pass2=other)])
+    with pytest.raises(LabelError, match="missed"):
+        load_labels(tmp_path)
+
+
+@pytest.mark.parametrize("file", ["../x.ts", "/etc/x.ts", "src\\a.ts", "C:/x.ts", "src/./a.ts", "src/"])
+def test_an_entry_file_is_a_relative_forward_slash_path(tmp_path, file):
+    label(tmp_path, [entry(file=file)])
+    with pytest.raises(LabelError, match="file"):
+        load_labels(tmp_path)
+
+
+def test_new_writes_the_version_as_the_release_tag(tmp_path, monkeypatch):
+    monkeypatch.setattr(label_tool, "_findings_for", lambda diff_id, locrin_version, corpus_root, work: [])
+    for given in ("0.5.0", "v0.5.0"):
+        assert main(["new", "fx-01-debug", "--locrin", given, "--by", "opus", "--labels", str(tmp_path), "--force"]) == 0
+        assert json.loads((tmp_path / "fx-01-debug.json").read_text())["locrin"] == "v0.5.0"
+
+
+def test_invalid_missed_names_repeats_unknown_rules_and_files_or_lines_the_commit_lacks(tmp_path):
+    from bench.labels import LabelFile, invalid_missed, load_label_file
+
+    root = tmp_path / "checkout"
+    (root / "src").mkdir(parents=True)
+    (root / "src" / "c.ts").write_bytes(b"one\ntwo\nthree")
+    (root / "src" / "d.ts").write_bytes(b"one\ntwo\n")
+    (root / "src" / "dir.ts").mkdir()
+    label(tmp_path, [
+        entry(rule="unreachable", file="src/c.ts", line=3, id=None, pass1="missed", pass2="missed"),
+        entry(rule="unreachable", file="src/c.ts", line=3, id=None, pass1="missed", pass2="false-positive"),
+        entry(rule="unreachable", file="src/d.ts", line=2, id=None, pass1="missed", pass2="missed"),
+        entry(rule="unreachable", file="src/d.ts", line=3, id=None, pass1="missed", pass2="missed"),
+        entry(rule="unreachable", file="src/gone.ts", line=1, id=None, pass1="missed", pass2="missed"),
+        entry(rule="unreachable", file="src/dir.ts", line=1, id=None, pass1="missed", pass2="missed"),
+        entry(rule="leftover-debugg", file="src/d.ts", line=1, id=None, pass1="missed", pass2="missed"),
+        # A reported finding's entry on a missed entry's line is not a repeat.
+        entry(rule="unreachable", file="src/c.ts", line=3, id="1" * 16),
+    ])
+    lf = load_label_file(tmp_path / "fx-01-debug.json")
+    got = invalid_missed(lf, root, {"unreachable", "leftover-debug"})
+    assert [(p["rule"], p["file"], p["line"], p["problem"]) for p in got] == [
+        ("unreachable", "src/c.ts", 3, "repeats another missed entry on the same rule, file and line"),
+        ("unreachable", "src/d.ts", 3, "line 3 is past the end of src/d.ts (2 lines) at the commit"),
+        ("unreachable", "src/gone.ts", 1, "src/gone.ts is not a file at the commit"),
+        ("unreachable", "src/dir.ts", 1, "src/dir.ts is not a file at the commit"),
+        ("leftover-debugg", "src/d.ts", 1, "leftover-debugg is not a rule this locrin version has"),
+    ]
+    assert all(p["diff"] == "fx-01-debug" for p in got)
+    assert invalid_missed(LabelFile("fx-01-debug", "v0.5.0", None, None, []), root, set()) == []

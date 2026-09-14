@@ -345,3 +345,78 @@ def test_run_check_starts_every_run_with_an_empty_cache_for_the_diff(tmp_path, m
     run_check(Path("/bin/locrin"), Checkout(root=root, base_ref="abc"), work, "fx-01-debug")
     assert seen["entries"] == []
     assert other.read_bytes() == b"another diff"
+
+
+def test_run_check_with_paths_checks_those_files_without_a_diff_scope_and_an_empty_cache(tmp_path, monkeypatch):
+    root = tmp_path / "co"
+    root.mkdir()
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        seen["cmd"] = cmd
+        seen["cache"] = sorted(p.name for p in Path(kw["env"]["LOCRIN_CACHE_DIR"]).iterdir())
+        return subprocess.CompletedProcess(cmd, 1, stdout='{"runs": []}', stderr="")
+
+    monkeypatch.setattr("bench.run.subprocess.run", fake_run)
+    work = tmp_path / "work"
+    (work / "cache" / "fx-01-debug").mkdir(parents=True)
+    (work / "cache" / "fx-01-debug" / "index.db").write_bytes(b"from the run at the commit")
+    run_check(Path("/bin/locrin"), Checkout(root=root, base_ref="abc"), work, "fx-01-debug", paths=["src/a.ts", "-b.ts"])
+    # `--` ends the options, so a path that starts with a dash is still a path.
+    assert seen["cmd"][1:] == ["check", "--root", str(root), "--sarif", "--offline", "--", "src/a.ts", "-b.ts"]
+    assert seen["cache"] == []
+
+
+def test_check_parent_runs_at_the_base_over_the_files_with_findings_that_the_parent_holds(tmp_path, monkeypatch):
+    import bench.run
+    from bench.corpus import Diff
+
+    root = tmp_path / "co"
+    (root / "src").mkdir(parents=True)
+    co = Checkout(root=root, base_ref="b" * 40)
+    d = Diff("fx-01-debug", "tree", None, None, None, "MIT", "typescript", "fixture", ["src/a.ts"])
+    order = []
+
+    def fake_checkout_base(diff, checkout, cache):
+        order.append(("base", diff.id, checkout, cache))
+        (root / "src" / "a.ts").write_bytes(b"console.log(1);\n")
+        (root / "src" / "dir.ts").mkdir(exist_ok=True)
+
+    def fake_run_check(locrin, checkout, work, diff_id, paths=None):
+        order.append(("check", diff_id, work, paths))
+        return {"runs": [{"results": [{"ruleId": "leftover-debug", "partialFingerprints": {"locrin/id": "a" * 16},
+                                       "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/a.ts"},
+                                                                           "region": {"startLine": 1}}}]}]}]}
+
+    monkeypatch.setattr(bench.run, "checkout_base", fake_checkout_base)
+    monkeypatch.setattr(bench.run, "run_check", fake_run_check)
+    at_commit = [Finding("fx-01-debug", "leftover-debug", "src/a.ts", 2, "a" * 16, "high", "typescript"),
+                 Finding("fx-01-debug", "unused-import", "src/a.ts", 1, "c" * 16, "high", "typescript"),
+                 Finding("fx-01-debug", "dead-file", "src/new.ts", 1, "d" * 16, "high", "typescript"),
+                 Finding("fx-01-debug", "dead-file", "src/dir.ts", 1, "e" * 16, "high", "typescript")]
+    got = bench.run.check_parent(Path("locrin"), d, co, tmp_path / "cache", tmp_path / "work", at_commit)
+    assert got == [Finding("fx-01-debug", "leftover-debug", "src/a.ts", 1, "a" * 16, "", "typescript")]
+    assert order == [("base", "fx-01-debug", co, tmp_path / "cache"), ("check", "fx-01-debug", tmp_path / "work", ["src/a.ts"])]
+    # Nothing the parent holds: every finding is new, and locrin does not run at all.
+    order.clear()
+    assert bench.run.check_parent(Path("locrin"), d, co, tmp_path / "cache", tmp_path / "work", at_commit[2:]) == []
+    assert [o[0] for o in order] == ["base"]
+    order.clear()
+    assert bench.run.check_parent(Path("locrin"), d, co, tmp_path / "cache", tmp_path / "work", []) == []
+    assert order == []
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symbolic links need extra rights on Windows")
+def test_check_parent_leaves_out_a_symbolic_link(tmp_path, monkeypatch):
+    import bench.run
+    from bench.corpus import Diff
+
+    root = tmp_path / "co"
+    (root / "src").mkdir(parents=True)
+    (tmp_path / "outside.ts").write_bytes(b"console.log(1);\n")
+    (root / "src" / "link.ts").symlink_to(tmp_path / "outside.ts")
+    monkeypatch.setattr(bench.run, "checkout_base", lambda diff, checkout, cache: None)
+    monkeypatch.setattr(bench.run, "run_check", lambda *a, **k: pytest.fail("locrin must not run"))
+    d = Diff("fx-01-debug", "tree", None, None, None, "MIT", "typescript", "fixture", ["src/link.ts"])
+    at_commit = [Finding("fx-01-debug", "leftover-debug", "src/link.ts", 1, "a" * 16, "high", "typescript")]
+    assert bench.run.check_parent(Path("locrin"), d, Checkout(root=root, base_ref="b" * 40), tmp_path, tmp_path, at_commit) == []

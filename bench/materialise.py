@@ -348,7 +348,9 @@ def _materialise_git(diff: Diff, cache: Path, hermetic: Path) -> Checkout:
         git(["diff", "--stat", "-M", diff.parent, diff.sha])
         git(["diff", "--stat", "-M", diff.parent])
         # locrin scores the files `git diff --name-only --diff-filter=ACMR <base>` lists against the working
-        # tree. They must be exactly the files the commit changed, or findings on other files would count.
+        # tree. They must be exactly the files the commit changed, or locrin would scope the run to other files.
+        # Graph rules still report on files the commit did not change (dead-file on an importer of a changed
+        # file); bench.main drops those the parent run also reports, as pre-existing.
         changed = _names(git(["diff", "--name-only", "-z", "--diff-filter=ACMR", diff.parent, diff.sha]))
         worktree = _names(git(["diff", "--name-only", "-z", "--diff-filter=ACMR", diff.parent]))
     except subprocess.CalledProcessError as e:
@@ -361,21 +363,10 @@ def _materialise_git(diff: Diff, cache: Path, hermetic: Path) -> Checkout:
     return Checkout(root=root, base_ref=diff.parent, removed=removed)
 
 
-def materialise(diff: Diff, corpus_root: Path, cache: Path) -> Checkout:
-    """A checkout of the diff's after side with its before side as base_ref.
-
-    Raises SourceGone when a git source is confirmed gone, and MaterialiseError for every
-    other failure, a clone or fetch that failed for a reason that may pass included.
-    """
-    # Resolve once: git runs with cwd set inside the cache, so a relative path
-    # handed to it would be resolved against the wrong directory.
-    corpus_root = Path(corpus_root).resolve()
-    cache = Path(cache).resolve()
+def _named(diff: Diff, step):
+    """Run step(); every failure becomes a MaterialiseError (SourceGone kept) whose message starts with the diff id."""
     try:
-        hermetic = _hermetic(cache)
-        if diff.source == "tree":
-            return _materialise_tree(diff, corpus_root, cache, hermetic)
-        return _materialise_git(diff, cache, hermetic)
+        return step()
     except MaterialiseError as e:
         if str(e).startswith(f"{diff.id}: "):
             raise
@@ -389,3 +380,45 @@ def materialise(diff: Diff, corpus_root: Path, cache: Path) -> Checkout:
             cmd = cmd[1:]
         detail = (e.stderr or e.stdout or "").strip()
         raise MaterialiseError(f"{diff.id}: git {' '.join(map(str, cmd))} failed: {detail}") from e
+
+
+def materialise(diff: Diff, corpus_root: Path, cache: Path) -> Checkout:
+    """A checkout of the diff's after side with its before side as base_ref.
+
+    Raises SourceGone when a git source is confirmed gone, and MaterialiseError for every
+    other failure, a clone or fetch that failed for a reason that may pass included.
+    """
+    # Resolve once: git runs with cwd set inside the cache, so a relative path
+    # handed to it would be resolved against the wrong directory.
+    corpus_root = Path(corpus_root).resolve()
+    cache = Path(cache).resolve()
+
+    def step() -> Checkout:
+        hermetic = _hermetic(cache)
+        if diff.source == "tree":
+            return _materialise_tree(diff, corpus_root, cache, hermetic)
+        return _materialise_git(diff, cache, hermetic)
+
+    return _named(diff, step)
+
+
+def checkout_base(diff: Diff, checkout: Checkout, cache: Path) -> None:
+    """Move a checkout materialise made to its base commit, for the run that finds pre-existing findings.
+
+    The same hygiene as the checkout of the commit: forced, cleaned, attributes pinned, no
+    info/exclude, and the engine files stripped, so a baseline the parent holds cannot hide a
+    finding that was already there. The next materialise of any diff checks out its own commit.
+    Raises MaterialiseError naming the diff.
+    """
+    cache = Path(cache).resolve()
+
+    def step() -> None:
+        hermetic = _hermetic(cache)
+        root = checkout.root
+        for args in (["checkout", "--detach", "-f", checkout.base_ref], ["clean", "-fdq"]):
+            _git(args, root, hermetic=hermetic, isolated=diff.source == "tree")
+        _clear_info_exclude(root)
+        _pin_attributes(root)
+        _strip_engine_files(root)
+
+    _named(diff, step)

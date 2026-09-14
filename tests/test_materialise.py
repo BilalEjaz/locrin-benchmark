@@ -836,3 +836,45 @@ def test_findings_on_a_file_the_commit_did_not_change_never_depend_on_checkout_t
     _rehash(co.root / "aaa" / "old.ts")
     fs, _ = normalise(d.id, run_check(Path(shutil.which("locrin")), co, tmp_path / "work", d.id))
     assert [f.file for f in fs if f.file == "aaa/old.ts"] == []
+
+
+def test_checkout_base_moves_a_tree_checkout_to_its_base_commit_and_cleans_it(tmp_path):
+    from bench.materialise import checkout_base
+
+    d, corpus = tree_diff(tmp_path)
+    (corpus / "fx-x" / "after" / "src" / "new.ts").write_text("export const n = 1;\n")
+    co = materialise(d, corpus, tmp_path / "cache")
+    (co.root / "locrin.toml").write_bytes(b"[languages]\n")
+    (co.root / "src" / "stray.ts").write_bytes(b"x\n")
+    checkout_base(d, co, tmp_path / "cache")
+    assert (co.root / "src" / "a.ts").read_text() == "export const a = 1;\n"
+    assert not (co.root / "src" / "new.ts").exists() and not (co.root / "src" / "stray.ts").exists()
+    assert not (co.root / "locrin.toml").exists()
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=co.root, capture_output=True, text=True, check=True).stdout.strip()
+    assert head == co.base_ref
+    # The next materialise starts from the commit again.
+    co = materialise(d, corpus, tmp_path / "cache")
+    assert (co.root / "src" / "a.ts").read_text() == "export const a = 2;\n"
+
+
+def test_checkout_base_strips_the_engine_files_a_git_parent_holds(tmp_path, monkeypatch):
+    from bench.materialise import checkout_base
+
+    d = _local_upstream(tmp_path, monkeypatch,
+                        before={"src/a.ts": b"export const a = 1;\n", "locrin-baseline.json": b"{}\n", "locrin.toml": b"[rules]\n"},
+                        after={"src/a.ts": b"export const a = 2;\n"})
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    checkout_base(d, co, tmp_path / "cache")
+    assert (co.root / "src" / "a.ts").read_bytes() == b"export const a = 1;\n"
+    assert not (co.root / "locrin-baseline.json").exists() and not (co.root / "locrin.toml").exists()
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    assert (co.root / "src" / "a.ts").read_bytes() == b"export const a = 2;\n"
+
+
+def test_a_failed_checkout_of_the_base_is_a_materialise_error_naming_the_diff(tmp_path):
+    from bench.materialise import checkout_base
+
+    d, corpus = tree_diff(tmp_path)
+    co = materialise(d, corpus, tmp_path / "cache")
+    with pytest.raises(MaterialiseError, match="^fx-x: git checkout"):
+        checkout_base(d, Checkout(root=co.root, base_ref="0" * 40), tmp_path / "cache")

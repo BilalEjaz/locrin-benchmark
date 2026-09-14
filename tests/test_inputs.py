@@ -35,8 +35,9 @@ def _published(tmp_path: Path, **overrides) -> tuple[Path, Path, Path]:
     corpus = tree(tmp_path / "corpus", {"acme__w__1234567.json": b"{}\n"})
     labels = tree(tmp_path / "labels", {"acme__w__1234567.json": b"{}\n"})
     run = {"locrin": "v0.5.0", "publishable": True, "not_publishable": [],
-           "labels": {"versions": ["v0.5.0"], "other_version": [], "missing": [], "unconfirmed": [], "unreproduced": []},
-           "inputs": {"corpus": inputs.digest(corpus), "labels": inputs.digest(labels)}}
+           "labels": {"versions": ["v0.5.0"], "other_version": [], "missing": [], "unconfirmed": [], "unreproduced": [],
+                      "invalid_missed": []},
+           "gone": [], "inputs": {"corpus": inputs.digest(corpus), "labels": inputs.digest(labels), "bench": inputs.harness_digest()}}
     run.update(overrides)
     path = tmp_path / "run.json"
     path.write_bytes(json.dumps(run).encode("utf-8"))
@@ -50,7 +51,8 @@ def test_a_publishable_run_over_the_same_inputs_is_complete(tmp_path):
 
 
 @pytest.mark.parametrize("change", ["labels", "corpus", "unpublishable", "version", "no-inputs", "malformed", "missing",
-                                    "reasons", "unconfirmed", "unreproduced", "no-label-coverage"])
+                                    "reasons", "unconfirmed", "unreproduced", "no-label-coverage", "invalid_missed",
+                                    "harness", "no-harness-digest", "gone"])
 def test_anything_else_is_measured_again(tmp_path, change):
     path, corpus, labels = _published(tmp_path)
     if change == "labels":
@@ -65,7 +67,7 @@ def test_anything_else_is_measured_again(tmp_path, change):
         raw = json.loads(path.read_bytes())
         del raw["inputs"]
         path.write_bytes(json.dumps(raw).encode("utf-8"))
-    elif change in ("reasons", "unconfirmed", "unreproduced", "no-label-coverage"):
+    elif change in ("reasons", "unconfirmed", "unreproduced", "no-label-coverage", "invalid_missed"):
         # A run.json that says publishable yet records labels that do not cover the run, or that predates
         # the coverage record, is never trusted as complete.
         raw = json.loads(path.read_bytes())
@@ -75,6 +77,19 @@ def test_anything_else_is_measured_again(tmp_path, change):
             del raw["labels"]["unreproduced"]
         else:
             raw["labels"][change] = ["acme__w__1234567"]
+        path.write_bytes(json.dumps(raw).encode("utf-8"))
+    elif change in ("harness", "no-harness-digest"):
+        # Scoring, matching or config code changed since: the published table is not what this harness computes.
+        raw = json.loads(path.read_bytes())
+        if change == "harness":
+            raw["inputs"]["bench"] = "sha256:" + "0" * 64
+        else:
+            del raw["inputs"]["bench"]
+        path.write_bytes(json.dumps(raw).encode("utf-8"))
+    elif change == "gone":
+        # A partial table from an exit 3 run is measured again, so the job flags the gone source every day.
+        raw = json.loads(path.read_bytes())
+        raw["gone"] = [{"id": "acme__w__1234567", "evidence": "404"}]
         path.write_bytes(json.dumps(raw).encode("utf-8"))
     elif change == "malformed":
         path.write_bytes(b"not json")
@@ -98,3 +113,13 @@ def test_harness_commit_is_the_checkout_head_or_none(tmp_path, monkeypatch):
     assert head is None or (len(head) == 40 and all(c in "0123456789abcdef" for c in head))
     monkeypatch.setattr(inputs, "ROOT", tmp_path)
     assert inputs.harness_commit() is None
+
+
+def test_the_harness_digest_covers_the_python_sources_of_bench_and_nothing_else(tmp_path, monkeypatch):
+    tree(tmp_path / "bench", {"score.py": b"x = 1\n","__pycache__/score.cpython-312.pyc": b"cache"})
+    monkeypatch.setattr(inputs, "ROOT", tmp_path)
+    one = inputs.harness_digest()
+    (tmp_path / "bench" / "__pycache__" / "score.cpython-312.pyc").write_bytes(b"other cache")
+    assert inputs.harness_digest() == one
+    (tmp_path / "bench" / "score.py").write_bytes(b"x = 2\n")
+    assert inputs.harness_digest() != one

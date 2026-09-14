@@ -47,16 +47,31 @@ def status(root: Path) -> None:
 
 
 def _findings_for(diff_id: str, locrin_version: str, corpus_root: Path, work: Path) -> list[Finding]:
+    """The findings a label file for diff_id lists: those the diff introduced and no earlier diff counts.
+
+    As bench.main scores them: a finding the parent run also reports is pre-existing, and one an
+    earlier diff (by id) from the same repository introduced is a duplicate. Neither gets an entry,
+    so the earlier diffs from that repository run first.
+    """
     from bench import materialise as materialise_mod
     from bench import run as run_mod
+    from bench import score as score_mod
     from bench.corpus import load_corpus
-    diff = next((d for d in load_corpus(corpus_root) if d.id == diff_id), None)
-    if diff is None:
+    diffs = load_corpus(corpus_root)
+    if not any(d.id == diff_id for d in diffs):
         raise LabelError(f"{diff_id}: not in {corpus_root}")
+    repository = {d.id: score_mod.repository_of(d) for d in diffs}
     locrin = run_mod.install_locrin(locrin_version, work / ".cache")
-    co = materialise_mod.materialise(diff, corpus_root, work / ".cache")
-    findings, _ = run_mod.normalise(diff_id, run_mod.run_check(locrin, co, work / ".work", diff_id))
-    return findings
+    introduced: list[Finding] = []
+    for d in diffs:
+        if repository[d.id] != repository[diff_id] or d.id > diff_id:
+            continue
+        co = materialise_mod.materialise(d, corpus_root, work / ".cache")
+        at_commit, _ = run_mod.normalise(d.id, run_mod.run_check(locrin, co, work / ".work", d.id))
+        at_parent = run_mod.check_parent(locrin, d, co, work / ".cache", work / ".work", at_commit)
+        introduced += score_mod.split_preexisting(at_commit, at_parent)[0]
+    first, _ = score_mod.split_duplicates(introduced, repository)
+    return [f for f in first if f.diff == diff_id]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -80,8 +95,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if a.cmd == "new":
             _refuse_overwrite(a.diff, Path(a.labels), a.force)
-            findings = _findings_for(a.diff, a.locrin, Path(a.corpus), Path("."))
-            print(new(a.diff, findings, a.locrin, Path(a.labels), a.by, today, force=a.force))
+            # The release tag, as bench.main compares it: 0.5.0 and v0.5.0 name one version.
+            tag = a.locrin if a.locrin.startswith("v") else f"v{a.locrin}"
+            findings = _findings_for(a.diff, tag, Path(a.corpus), Path("."))
+            print(new(a.diff, findings, tag, Path(a.labels), a.by, today, force=a.force))
         elif a.cmd == "confirm":
             confirm(a.diff, Path(a.labels), a.by, today)
             print(f"{a.diff}: pass two recorded")

@@ -3,3 +3,8 @@ def total(xs):
     for x in xs:
         s += x
     return s
+
+
+def mean(xs):
+    breakpoint()
+    return total(xs) / len(xs)

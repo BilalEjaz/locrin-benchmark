@@ -4,3 +4,8 @@ def total(xs):
         s += x
     breakpoint()
     return s
+
+
+def mean(xs):
+    breakpoint()
+    return total(xs) / len(xs)

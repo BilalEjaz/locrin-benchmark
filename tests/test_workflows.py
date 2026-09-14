@@ -150,10 +150,13 @@ def _scheduled_tree(tmp_path: Path, run_json: dict | None) -> None:
     if run_json is not None:
         run_json = dict(run_json)
         if run_json.get("labels") == "covered":
-            run_json["labels"] = {"versions": ["v0.5.0"], "other_version": [], "missing": [], "unconfirmed": [], "unreproduced": []}
+            run_json["labels"] = {"versions": ["v0.5.0"], "other_version": [], "missing": [], "unconfirmed": [], "unreproduced": [],
+                                  "invalid_missed": []}
             run_json.setdefault("not_publishable", [])
+            run_json.setdefault("gone", [])
         if run_json.get("inputs") == "current":
-            run_json["inputs"] = {"corpus": inputs.digest(tmp_path / "corpus"), "labels": inputs.digest(tmp_path / "labels")}
+            run_json["inputs"] = {"corpus": inputs.digest(tmp_path / "corpus"), "labels": inputs.digest(tmp_path / "labels"),
+                                  "bench": inputs.harness_digest()}
         (tmp_path / "results" / "v0.5.0").mkdir(parents=True)
         (tmp_path / "results" / "v0.5.0" / "run.json").write_bytes(json.dumps(run_json).encode("utf-8"))
 
@@ -161,8 +164,9 @@ def _scheduled_tree(tmp_path: Path, run_json: dict | None) -> None:
 @needs_bash
 @pytest.mark.parametrize("run_json, skip", [
     ({"locrin": "v0.5.0", "ran": 3, "publishable": True, "gone": [], "inputs": "current", "labels": "covered"}, True),
+    # A partial table from a run with gone sources is measured again, so the job keeps flagging them.
     ({"locrin": "v0.5.0", "ran": 2, "publishable": True, "gone": [{"id": "x", "evidence": "404"}], "inputs": "current",
-      "labels": "covered"}, True),
+      "labels": "covered"}, False),
     # Written before run.json recorded whether every label file was confirmed and every labelled finding
     # reproduced, or recording labels that do not cover the run: measured again.
     ({"locrin": "v0.5.0", "ran": 3, "publishable": True, "gone": [], "inputs": "current"}, False),

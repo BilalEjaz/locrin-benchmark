@@ -37,33 +37,34 @@ pytestmark = [
 
 # The truthful fixture labels (Task 5) on locrin 0.5.0: leftover-debug has one genuine false
 # positive (src/logger.ts is that module's real logging) and unreachable one genuine miss
-# (a literal-condition branch in src/c.ts).
+# (a literal-condition branch in src/c.ts). fx-09-py-debug's pkg/i.py already held a breakpoint()
+# in mean() before the change, so the run at the parent reports it too: pre-existing, never labelled.
 RULE_ROWS = [
-    "| `leftover-debug` | on | 75% | 100% | 3 | 1 | 0 | 0 | 0 | n<5, not scored |",
-    "| `leftover-commented-code` | on |  |  | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `leftover-agent-marker` | on | 100% | 100% | 2 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `unused-import` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `unreachable` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | n<5, not scored |",
-    "| `dead-file` | off |  |  | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `boundary-violation` | on |  |  | 0 | 0 | 0 | 0 | 0 | not benchmarked: needs per-repository config |",
-    "| `swallowed-error` | off |  |  | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `test-no-assert` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `secret-exposed` | locked | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `weak-crypto` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `injection-sink` | off |  |  | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `vulnerable-dependency` | on |  |  | 0 | 0 | 0 | 0 | 0 | not benchmarked: advisory feed changes daily |",
-    "| `express-route-without-auth` | on |  |  | 0 | 0 | 0 | 0 | 0 | not benchmarked: needs per-repository config |",
+    "| `leftover-debug` | on | 75% | 100% | 3 | 1 | 0 | 0 | 0 | 0 | 1 | 0 | n<5, not scored |",
+    "| `leftover-commented-code` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `leftover-agent-marker` | on | 100% | 100% | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `unused-import` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `unreachable` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `dead-file` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `boundary-violation` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | not benchmarked: needs per-repository config |",
+    "| `swallowed-error` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `test-no-assert` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `secret-exposed` | locked | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `weak-crypto` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `injection-sink` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `vulnerable-dependency` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | not benchmarked: advisory feed changes daily |",
+    "| `express-route-without-auth` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | not benchmarked: needs per-repository config |",
 ]
 PAIR_ROWS = [
-    "| `leftover-agent-marker@javascript` | on | 100% | 100% | 2 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `leftover-debug@php` | opt-in | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `leftover-debug@python` | opt-in | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `leftover-debug@typescript` | on | 50% | 100% | 1 | 1 | 0 | 0 | 0 | n<5, not scored |",
-    "| `secret-exposed@typescript` | locked | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `test-no-assert@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `unreachable@typescript` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | n<5, not scored |",
-    "| `unused-import@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `weak-crypto@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `leftover-agent-marker@javascript` | on | 100% | 100% | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `leftover-debug@php` | opt-in | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `leftover-debug@python` | opt-in | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | n<5, not scored |",
+    "| `leftover-debug@typescript` | on | 50% | 100% | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `secret-exposed@typescript` | locked | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `test-no-assert@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `unreachable@typescript` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `unused-import@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `weak-crypto@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
 ]
 
 
@@ -98,20 +99,20 @@ def test_fixture_corpus_scores_exactly(tmp_path, home):
     run = json.loads((results / "run.json").read_text(encoding="utf-8"))
     assert run["diffs"] == 10 and run["ran"] == 10 and run["run_failures"] == [] and run["materialise_failures"] == []
     assert run["unlabelled"] == 0 and run["excluded"] == 0 and run["gone"] == [] and run["publishable"] is True
-    assert run["findings"] == 11
+    assert run["findings"] == 11 and run["preexisting"] == 1 and run["duplicates"] == 0 and run["not_applicable"] == 0
     assert run["locrin"] == f"v{version}"
     assert run["not_publishable"] == [] and run["labels"] == {"versions": [f"v{version}"], "other_version": [], "missing": [],
-                                                            "unconfirmed": [], "unreproduced": []}
+                                                            "unconfirmed": [], "unreproduced": [], "invalid_missed": []}
     from bench import inputs
     assert run["inputs"] == {"corpus": inputs.digest(ROOT / "fixtures" / "corpus"),
-                             "labels": inputs.digest(ROOT / "fixtures" / "labels")}
+                             "labels": inputs.digest(ROOT / "fixtures" / "labels"), "bench": inputs.harness_digest()}
 
     table = (results / "table.md").read_text(encoding="utf-8")
     lines = table.splitlines()
-    assert lines[0] == f"Locrin v{version}, 10 of 10 diffs ran, 0 unlabelled findings, 0 excluded until their label passes agree."
+    assert lines[0] == f"Locrin v{version}, 10 of 10 diffs ran. Left out of the numbers: 0 unlabelled, 0 without an agreed and confirmed label, 0 not applicable, 1 pre-existing and 0 duplicate."
     for row in RULE_ROWS:
         assert row in lines, row
-    pair_head = lines.index("| Pair | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Excluded | Note |")
+    pair_head = lines.index("| Pair | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Excluded | Not applicable | Pre-existing | Duplicate | Note |")
     assert lines[pair_head + 2:pair_head + 2 + len(PAIR_ROWS)] == PAIR_ROWS
     assert lines[pair_head + 2 + len(PAIR_ROWS):] == [
         "", "Locrin reads PHP and Python only when `[languages]` turns them on, so their pairs ship opt-in; "
@@ -126,6 +127,8 @@ def test_fixture_corpus_scores_exactly(tmp_path, home):
     assert keys == sorted(keys)
     assert ("fx-01-debug", "leftover-debug", "src/logger.ts", 3, "01b73e4aa766c158") in keys
     assert not any(f["diff"] == "fx-10-clean" for f in findings)
+    # The breakpoint() pkg/i.py held before the change is not among the scored findings.
+    assert [(f["file"], f["line"]) for f in findings if f["diff"] == "fx-09-py-debug"] == [("pkg/i.py", 5)]
 
     for name in ("table.md", "run.json", "findings.jsonl"):
         assert b"\r" not in (results / name).read_bytes(), name
@@ -140,7 +143,8 @@ def _as_template(raw: dict) -> dict:
 
 
 @pytest.mark.parametrize("change", ["unlabelled", "other-version", "pass-two-null", "templates",
-                                    "unreproduced-false-positive", "unreproduced-true"])
+                                    "unreproduced-false-positive", "unreproduced-true", "missed-repeat", "missed-no-file",
+                                    "missed-unknown-rule", "missed-past-the-end"])
 def test_labels_that_do_not_cover_the_run_publish_nothing(tmp_path, change):
     # A finding a new locrin version adds has no label entry; label files written for another version would
     # score it with stale verdicts; a file pass two never confirmed would drop its findings from the numbers;
@@ -156,6 +160,12 @@ def test_labels_that_do_not_cover_the_run_publish_nothing(tmp_path, change):
         raw["locrin"] = "v0.4.0"
     elif change == "pass-two-null":
         raw["pass2"] = None
+    elif change.startswith("missed-"):
+        miss = {"rule": "leftover-debug", "file": "src/a.ts", "line": 5, "id": None, "pass1": "missed", "pass2": "missed",
+                "note": "not a construct the engine missed"}
+        miss = {"missed-repeat": miss, "missed-no-file": dict(miss, file="src/unchanged_or_missing.ts"),
+                "missed-unknown-rule": dict(miss, rule="leftover-debugg"), "missed-past-the-end": dict(miss, line=400)}[change]
+        raw["entries"] += [miss, miss] if change == "missed-repeat" else [miss]
     elif change == "templates":
         for other in labels.glob("*.json"):
             tpl = _as_template(json.loads(other.read_text(encoding="utf-8")))
@@ -183,14 +193,97 @@ def test_labels_that_do_not_cover_the_run_publish_nothing(tmp_path, change):
     table = (out / LOCRIN_VERSION / "table.md").read_text(encoding="utf-8")
     if change == "unlabelled":
         assert run["unlabelled"] == 1
-        assert "| `leftover-debug` | on | 100% | 100% | 3 | 0 | 0 | 1 | 0 | n<5, not scored |" in table
+        assert "| `leftover-debug` | on | 100% | 100% | 3 | 0 | 0 | 1 | 0 | 0 | 1 | 0 | n<5, not scored |" in table
     elif change == "other-version":
         assert run["labels"]["other_version"] == ["fx-01-debug"]
     elif change == "pass-two-null":
         assert run["unlabelled"] == 0 and run["labels"]["unconfirmed"] == ["fx-01-debug"]
     elif change == "templates":
         assert run["unlabelled"] == 0 and len(run["labels"]["unconfirmed"]) == 10
+    elif change.startswith("missed-"):
+        assert run["unlabelled"] == 0 and run["labels"]["unconfirmed"] == [] and run["labels"]["unreproduced"] == []
+        assert len(run["labels"]["invalid_missed"]) == 1 and run["labels"]["invalid_missed"][0]["diff"] == "fx-01-debug"
     else:
         assert run["unlabelled"] == 0 and run["labels"]["unconfirmed"] == []
         assert [(u["diff"], u["file"], u["line"], u["id"]) for u in run["labels"]["unreproduced"]] == [
             ("fx-01-debug", "src/logger.ts", 7, "f" * 16)]
+
+
+def _run(tmp_path: Path, corpus: Path, labels: Path) -> subprocess.CompletedProcess:
+    readme = tmp_path / "README.md"
+    readme.write_bytes(b"# r\n\n<!-- results:start -->\nNo results yet.\n<!-- results:end -->\n")
+    return subprocess.run(
+        [sys.executable, "-m", "bench.main", "--version", LOCRIN_VERSION, "--corpus", str(corpus), "--labels", str(labels),
+         "--out", str(tmp_path / "results"), "--work", str(tmp_path / "work"), "--cache", str(tmp_path / "cache"),
+         "--readme", str(readme)],
+        cwd=ROOT, env=dict(os.environ, LOCRIN_BIN=LOCRIN), capture_output=True, text=True,
+    )
+
+
+def test_a_not_applicable_finding_is_counted_in_the_table_run_json_and_on_stderr(tmp_path):
+    labels = tmp_path / "labels"
+    shutil.copytree(ROOT / "fixtures" / "labels", labels)
+    target = labels / "fx-01-debug.json"
+    raw = json.loads(target.read_text(encoding="utf-8"))
+    for e in raw["entries"]:
+        if e["file"] == "src/logger.ts":
+            e["pass1"] = e["pass2"] = "not-applicable"
+    target.write_bytes((json.dumps(raw, indent=2) + "\n").encode("utf-8"))
+    proc = _run(tmp_path, ROOT / "fixtures" / "corpus", labels)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    run = json.loads((tmp_path / "results" / LOCRIN_VERSION / "run.json").read_text(encoding="utf-8"))
+    assert run["not_applicable"] == 1 and run["publishable"] is True
+    table = (tmp_path / "results" / LOCRIN_VERSION / "table.md").read_text(encoding="utf-8")
+    assert "0 without an agreed and confirmed label, 1 not applicable, 1 pre-existing and 0 duplicate." in table
+    assert "| `leftover-debug` | on | 100% | 100% | 3 | 0 | 0 | 0 | 0 | 1 | 1 | 0 | n<5, not scored |" in table
+    assert "not applicable: fx-01-debug leftover-debug src/logger.ts:3 01b73e4aa766c158" in proc.stderr
+
+
+def test_a_tree_diff_whose_before_already_holds_findings_scores_only_what_it_introduced(tmp_path):
+    # Before the change src/a.ts already held a debug print, a TODO, unreachable code and an unused
+    # import; the change touches one other line and adds one debug print. dead-file is on for the
+    # benchmark, and src/user.ts, which imports src/a.ts and which nothing imports, is dead before and
+    # after although the change never touched it.
+    corpus = tmp_path / "corpus"
+    before = """import { join } from "path";
+
+export function total(xs: number[]): number {
+  let sum = 0;
+  for (const x of xs) {
+    console.log(sum);
+    sum += x;
+  }
+  // TODO: tidy
+  return sum;
+  sum = 0;
+}
+"""
+    after = before.replace("  let sum = 0;\n", "  let sum = 0;\n  console.log(\"start\", xs.length);\n")
+    user = 'import { total } from "./a";\nexport const answer = total([1, 2]);\n'
+    for side, text in (("before", before), ("after", after)):
+        (corpus / "fx-01-old" / side / "src").mkdir(parents=True)
+        (corpus / "fx-01-old" / side / "src" / "a.ts").write_bytes(text.encode("utf-8"))
+        (corpus / "fx-01-old" / side / "src" / "user.ts").write_bytes(user.encode("utf-8"))
+        (corpus / "fx-01-old" / side / "package.json").write_bytes(b'{"name": "fx-01-old", "exports": {".": "./src/a.ts"}}\n')
+    record = {"id": "fx-01-old", "source": "tree", "repo": None, "sha": None, "parent": None, "licence": "MIT",
+              "language": "typescript", "url": "fixture", "files": ["src/a.ts"]}
+    (corpus / "fx-01-old.json").write_bytes(json.dumps(record).encode("utf-8"))
+    labels = tmp_path / "labels"
+    labels.mkdir()
+    (labels / "fx-01-old.json").write_bytes(json.dumps({
+        "diff": "fx-01-old", "locrin": LOCRIN_VERSION, "pass1": {"by": "a", "date": "d"}, "pass2": {"by": "b", "date": "d"},
+        "entries": []}).encode("utf-8"))
+    proc = _run(tmp_path, corpus, labels)
+    # The one introduced debug print has no label entry, so the run stops at exit 4, and says what it saw.
+    assert proc.returncode == 4, proc.stdout + proc.stderr
+    results = tmp_path / "results" / LOCRIN_VERSION
+    findings = [json.loads(line) for line in (results / "findings.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert [(f["rule"], f["file"], f["line"]) for f in findings] == [("leftover-debug", "src/a.ts", 5)]
+    run = json.loads((results / "run.json").read_text(encoding="utf-8"))
+    assert run["findings"] == 1 and run["unlabelled"] == 1 and run["preexisting"] == 5 and run["duplicates"] == 0
+    table = (results / "table.md").read_text(encoding="utf-8")
+    for rule in ("leftover-agent-marker", "unreachable", "unused-import", "dead-file"):
+        assert f"| `{rule}` | " in table and any(
+            line.startswith(f"| `{rule}` |") and line.endswith("| 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | n<5, not scored |")
+            for line in table.splitlines()), rule
+    assert "| `leftover-debug` | on |  |  | 0 | 0 | 0 | 1 | 0 | 0 | 1 | 0 | n<5, not scored |" in table

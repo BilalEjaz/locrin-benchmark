@@ -6,8 +6,20 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from bench.corpus import _valid_file
+
 VERDICTS = {"true", "false-positive", "missed", "not-applicable", "?"}
+MISSED_VERDICTS = {"missed", "false-positive", "?"}
 _ID = re.compile(r"[0-9a-f]{16}")
+
+
+def _pass(name: str, key: str, raw: object) -> dict | None:
+    """A file's pass record: null until that pass is recorded, then who recorded it and when."""
+    if raw is None:
+        return None
+    if not (isinstance(raw, dict) and all(isinstance(raw.get(k), str) and raw[k] for k in ("by", "date"))):
+        raise LabelError(f"{name}: {key} must be null or an object with a non-empty by and date")
+    return raw
 
 
 class LabelError(Exception):
@@ -51,6 +63,8 @@ def _entry(name: str, i: int, raw: object) -> Entry:
     for k in ("rule", "file"):
         if not isinstance(raw[k], str) or not raw[k]:
             raise LabelError(f"{name}: entry {i} {k} must be a non-empty string")
+    if not _valid_file(raw["file"]):
+        raise LabelError(f"{name}: entry {i} file must be a relative forward-slash path with no . or .. segments")
     if isinstance(raw["line"], bool) or not isinstance(raw["line"], int) or raw["line"] < 1:
         raise LabelError(f"{name}: entry {i} line must be a positive integer")
     for k in ("pass1", "pass2"):
@@ -62,6 +76,10 @@ def _entry(name: str, i: int, raw: object) -> Entry:
         raise LabelError(f"{name}: entry {i} needs an id unless it is missed")
     if ident is not None and is_missed:
         raise LabelError(f"{name}: entry {i} is missed, so its id must be null")
+    if is_missed and not {raw["pass1"], raw["pass2"]} <= MISSED_VERDICTS:
+        # A pass that did not find the miss itself says whether the construct is there: missed if it
+        # agrees, false-positive if the definition is not met there. Anything else describes a finding.
+        raise LabelError(f"{name}: entry {i} is missed in one pass, so the other pass is missed, false-positive or ?")
     if ident is not None and (not isinstance(ident, str) or not _ID.fullmatch(ident)):
         raise LabelError(f"{name}: entry {i} id must be 16 hex characters")
     return Entry(rule=raw["rule"], file=raw["file"], line=raw["line"], id=ident,
@@ -82,7 +100,8 @@ def load_label_file(path: Path) -> LabelFile:
     if not isinstance(entries_raw, list):
         raise LabelError(f"{path.name}: entries must be a list")
     entries = [_entry(path.name, i, e) for i, e in enumerate(entries_raw)]
-    return LabelFile(diff=raw["diff"], locrin=raw.get("locrin", ""), pass1=raw.get("pass1"), pass2=raw.get("pass2"), entries=entries)
+    return LabelFile(diff=raw["diff"], locrin=raw.get("locrin", ""), pass1=_pass(path.name, "pass1", raw.get("pass1")),
+                     pass2=_pass(path.name, "pass2", raw.get("pass2")), entries=entries)
 
 
 def load_labels(root: Path) -> dict[str, LabelFile]:
@@ -106,3 +125,36 @@ def save_label_file(root: Path, lf: LabelFile) -> None:
     }
     # Bytes, so Windows never writes CRLF into a tracked label file.
     (Path(root) / f"{lf.diff}.json").write_bytes((json.dumps(raw, indent=2) + "\n").encode("utf-8"))
+
+
+def invalid_missed(lf: LabelFile, root: Path, rules: set[str]) -> list[dict]:
+    """Missed entries that cannot name a construct at the diff's commit, each with the reason.
+
+    root is the checkout at the commit and rules the ids of the rules the engine run there has. A
+    missed entry is invalid when it repeats an earlier missed entry on the same rule, file and line,
+    when its rule is not one of those, or when its file is not a regular file at the commit or has
+    fewer lines than its line. A missed entry may name any file, not only the ones the diff changed:
+    a change can make a construct in another file meet a rule's definition.
+    """
+    out = []
+    seen: set[tuple[str, str, int]] = set()
+    root = Path(root)
+    for e in lf.entries:
+        if "missed" not in (e.pass1, e.pass2):
+            continue
+        key = (e.rule, e.file, e.line)
+        path = root / e.file
+        if key in seen:
+            problem = "repeats another missed entry on the same rule, file and line"
+        elif e.rule not in rules:
+            problem = f"{e.rule} is not a rule this locrin version has"
+        elif path.is_symlink() or not path.is_file():
+            problem = f"{e.file} is not a file at the commit"
+        else:
+            data = path.read_bytes()
+            lines = data.count(b"\n") + (1 if data and not data.endswith(b"\n") else 0)
+            problem = f"line {e.line} is past the end of {e.file} ({lines} lines) at the commit" if e.line > lines else ""
+        seen.add(key)
+        if problem:
+            out.append({"diff": lf.diff, "rule": e.rule, "file": e.file, "line": e.line, "problem": problem})
+    return out

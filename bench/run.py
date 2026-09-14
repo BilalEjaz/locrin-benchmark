@@ -10,8 +10,8 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-from bench.corpus import language_of
-from bench.materialise import Checkout
+from bench.corpus import Diff, language_of
+from bench.materialise import Checkout, checkout_base
 
 
 def installer_url(tag: str) -> str:
@@ -204,7 +204,8 @@ def _write_config(path: Path) -> None:
         f.write(BENCH_TOML.encode("utf-8"))
 
 
-def run_check(locrin: Path, checkout: Checkout, work: Path, diff_id: str) -> dict:
+def run_check(locrin: Path, checkout: Checkout, work: Path, diff_id: str, paths: list[str] | None = None) -> dict:
+    """locrin check --sarif --offline in the checkout: over the diff from its base ref, or over the named paths."""
     root = checkout.root
     work = Path(work).resolve()
     # Keyed on the diff, not the checkout: several git diffs share one checkout root.
@@ -219,7 +220,11 @@ def run_check(locrin: Path, checkout: Checkout, work: Path, diff_id: str) -> dic
         env = _locrin_env(work, cache_dir)
     except OSError as e:
         raise RunError(f"{diff_id}: could not prepare the run: {e}") from e
-    cmd = [str(_program(locrin)), "check", "--root", str(root), "--base", checkout.base_ref, "--sarif", "--offline"]
+    if paths is None:
+        cmd = [str(_program(locrin)), "check", "--root", str(root), "--base", checkout.base_ref, "--sarif", "--offline"]
+    else:
+        # `--` ends the options, so a path that starts with a dash is still a path.
+        cmd = [str(_program(locrin)), "check", "--root", str(root), "--sarif", "--offline", "--", *paths]
     try:
         proc = subprocess.run(cmd, cwd=root, env=env, capture_output=True, text=True,
                               encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL)
@@ -231,3 +236,24 @@ def run_check(locrin: Path, checkout: Checkout, work: Path, diff_id: str) -> dic
         return json.loads(proc.stdout)
     except json.JSONDecodeError as e:
         raise RunError(f"{diff_id}: locrin printed no SARIF: {e}") from e
+
+
+def check_parent(locrin: Path, diff: Diff, checkout: Checkout, cache: Path, work: Path, at_commit: list[Finding]) -> list[Finding]:
+    """What locrin reports at the diff's base commit on the files that carry findings at the commit.
+
+    Moves the checkout to its base commit, then runs locrin with the same config and an emptied cache
+    over each such file the parent still holds as a regular file. A finding id hashes the rule, the
+    file path and the construct, not the line, so a finding at the commit whose rule, file and id this
+    run reports was already there. A file the parent lacks (added, or renamed, which changes the path)
+    holds only new findings, so it is left out, and with no file left locrin does not run. A diff with
+    no finding at the commit has nothing to compare, so its checkout stays where it is.
+    """
+    if not at_commit:
+        return []
+    checkout_base(diff, checkout, cache)
+    root = checkout.root
+    paths = sorted({f.file for f in at_commit if (root / f.file).is_file() and not (root / f.file).is_symlink()})
+    if not paths:
+        return []
+    findings, _ = normalise(diff.id, run_check(locrin, checkout, work, diff.id, paths=paths))
+    return findings
