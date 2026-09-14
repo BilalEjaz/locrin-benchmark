@@ -25,7 +25,7 @@ It prints one line per repository (commits listed, commits with an agent trailer
 
 ## Limits per repository and per owner
 
-The corpus holds at most 3 records from any one repository and at most 6 from any one owner, so no single project or author can fill a language. The owner is the part of `owner/name` before the slash, and upper and lower case count as the same owner. Every way of adding a diff (the trailer search, `--via-repos` and `--repo`/`--sha`) counts the records already in `--out`, and skips a commit over either limit with the reason `repository cap` or `owner cap` before downloading any of its files. `--via-repos` does not list the commits of a repository whose owner already has 6 records.
+The corpus holds at most 3 records from any one repository and at most 6 from any one owner, so no single project or author can fill a language. The owner is the part of `owner/name` before the slash, and upper and lower case count as the same owner. The trailer search and `--via-repos` count the records already in `--out` toward both limits, and `--repo`/`--sha` counts them toward the owner limit only, so check a named commit's repository by hand. A commit over a limit is skipped with the reason `repository cap` or `owner cap` before any of its files is downloaded. `--via-repos` does not list the commits of a repository whose owner already has 6 records.
 
 A corpus built before the owner limit may hold more than 6 records from one owner. To bring it under the limit, run
 
