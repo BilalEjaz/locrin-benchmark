@@ -42,9 +42,10 @@ jobs:
           if [[ "$EVENT" == "schedule" ]]; then
             # A scheduled run publishes only when the labels cover it (bench/main.py exits 4 otherwise, and
             # nothing is committed): every label file confirmed by pass two, every finding labelled, every
-            # labelled finding reproduced. It skips a version only when its run.json records such a complete,
-            # publishable run of that version over the current corpus and labels, so a failed or uncovered
-            # run, or a version whose corpus or labels changed since, is measured again.
+            # labelled finding reproduced, every missed entry naming a construct at its commit. It skips a
+            # version only when its run.json records such a complete, publishable run of that version over the
+            # current corpus, labels and harness code with no gone source, so a failed or uncovered run, a run
+            # with gone sources, or a version whose corpus, labels or harness changed since, is measured again.
             reason=""
             if complete=$(python -m bench.inputs --complete "results/$v/run.json" --version "$v" --corpus corpus --labels labels); then
               reason="$complete"
@@ -70,8 +71,9 @@ jobs:
           # results still publish and the last step flags them. Any other failure, a network error included,
           # stops here and nothing is committed; the next scheduled run measures the version again. 4 means
           # the labels do not cover the run (unlabelled findings, a diff with no label file, labels written for
-          # another locrin version, a label file pass two never confirmed, or a labelled finding this run did
-          # not report): fix the labels for this version, and the next scheduled run measures it.
+          # another locrin version, a label file pass two never confirmed, a labelled finding this run did
+          # not report, or a missed entry that names no construct at its commit): fix the labels for this
+          # version, and the next scheduled run measures it.
           if [[ "$code" != 0 && "$code" != 3 ]]; then exit "$code"; fi
       - name: Commit results
         if: steps.v.outputs.skip != 'true' && (github.event_name == 'schedule' || inputs.commit)
