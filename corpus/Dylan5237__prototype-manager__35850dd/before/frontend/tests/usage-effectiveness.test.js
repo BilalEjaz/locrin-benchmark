@@ -1,0 +1,44 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const page = fs.readFileSync(path.join(root, 'src/views/AdminUsageEffectiveness.vue'), 'utf8')
+const layout = fs.readFileSync(path.join(root, 'src/components/AdminLayout.vue'), 'utf8')
+const router = fs.readFileSync(path.join(root, 'src/router/index.js'), 'utf8')
+const api = fs.readFileSync(path.join(root, 'src/api/admin-usage.js'), 'utf8')
+
+test('usage effectiveness page is a separate admin destination backed by its dedicated API', () => {
+  assert.match(layout, /使用总览/)
+  assert.match(layout, /使用与成效分析/)
+  assert.match(router, /\/admin\/usage-effectiveness/)
+  assert.match(api, /\/admin\/usage-effectiveness/)
+})
+
+test('page preserves frozen IA, trusted metrics and explicit unsupported-metric empty states', () => {
+  for (const text of ['结论摘要', '核心指标', '有效业务任务趋势', '用户覆盖', '业务使用', '质量与效率', '最近业务任务', '数据口径说明']) {
+    assert.match(page, new RegExp(text))
+  }
+  for (const text of ['待配置用户范围', '暂无复核样本', '暂无效率对比样本', '当前日志无法可靠推出']) {
+    assert.match(page, new RegExp(text))
+  }
+  assert.match(page, /is_test=1/)
+  assert.match(page, /exclusion_reason/)
+  assert.doesNotMatch(page, /92分|4分|mock/i)
+})
+
+test('repeat-rate UI keeps denominator-zero as an empty value instead of a fake zero', () => {
+  assert.match(page, /repeatUserRate == null \? '—'/)
+  assert.match(page, /暂无有效用户分母/)
+})
+
+test('reporting dates, evidence fields and trend fallback preserve the frozen review contract', () => {
+  assert.match(page, /Asia\/Shanghai/)
+  assert.match(page, /timeZone: 'Asia\/Shanghai'/)
+  assert.match(page, /reportingBoundaryIso/)
+  for (const field of ['startedAt', 'completedAt', 'prototypeId', 'projectId']) assert.match(page, new RegExp(field))
+  for (const series of ['total', 'create', 'direct', 'project']) assert.match(page, new RegExp(`point\\.${series}`))
+  assert.doesNotMatch(page, /color:#94a3b8|fill:#94a3b8/)
+})

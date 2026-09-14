@@ -1,0 +1,33 @@
+{
+  "id": "CTJ425__stock-pnl-web__7c90742",
+  "source": "git",
+  "repo": "CTJ425/stock-pnl-web",
+  "sha": "7c9074253177916a9223606245c4d2002cab7948",
+  "parent": "0b10bcad856e4cb809f8331a9119290946061ea8",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/CTJ425/stock-pnl-web/commit/7c9074253177916a9223606245c4d2002cab7948",
+  "files": [
+    "sources/src/components/Charts/BarSeriesChart.tsx",
+    "sources/src/components/Charts/CandleChart.tsx",
+    "sources/src/components/Charts/LineSeriesChart.tsx",
+    "sources/src/components/Charts/MultiLineChart.tsx",
+    "sources/src/components/Charts/chartFrame.tsx",
+    "sources/src/components/Charts/chartPath.ts",
+    "sources/src/components/StockDetail/StockDetailPage.test.tsx",
+    "sources/src/components/StockDetail/StockDetailPage.tsx",
+    "sources/src/components/StockDetail/TechnicalTab.tsx",
+    "sources/src/components/StockDetail/technicalView.test.ts",
+    "sources/src/components/StockDetail/technicalView.ts",
+    "sources/src/services/dailyProxy.test.ts",
+    "sources/src/services/dailyProxy.ts",
+    "sources/src/services/reportProxy.ts",
+    "sources/src/services/reportsBucket.ts",
+    "sources/src/utils/indicators.test.ts",
+    "sources/src/utils/indicators.ts",
+    "sources/src/version.ts",
+    "sources/supabase/functions/stock-report/index.ts",
+    "sources/supabase/functions/stock-report/twDaily.test.ts",
+    "sources/supabase/functions/stock-report/twDaily.ts"
+  ]
+}

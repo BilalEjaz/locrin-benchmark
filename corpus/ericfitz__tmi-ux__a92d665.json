@@ -1,0 +1,14 @@
+{
+  "id": "ericfitz__tmi-ux__a92d665",
+  "source": "git",
+  "repo": "ericfitz/tmi-ux",
+  "sha": "a92d665443b44e2820007134884cd8afdf04eff4",
+  "parent": "9e57c31f42fab4e118bb111c0fe0b6f5c08d1783",
+  "licence": "Apache-2.0",
+  "language": "typescript",
+  "url": "https://github.com/ericfitz/tmi-ux/commit/a92d665443b44e2820007134884cd8afdf04eff4",
+  "files": [
+    "src/environments/environment.aws.spec.ts",
+    "src/environments/environment.aws.ts"
+  ]
+}

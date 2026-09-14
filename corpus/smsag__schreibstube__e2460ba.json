@@ -1,0 +1,21 @@
+{
+  "id": "smsag__schreibstube__e2460ba",
+  "source": "git",
+  "repo": "smsag/schreibstube",
+  "sha": "e2460baa15a1d2fc21c9bfd107f37ce0750974f8",
+  "parent": "f695a2c4067ceaa14418acff1f6a469f54582b47",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/smsag/schreibstube/commit/e2460baa15a1d2fc21c9bfd107f37ce0750974f8",
+  "files": [
+    "src/i18n/de.ts",
+    "src/i18n/en-extra.ts",
+    "src/services/plugin-settings.test.ts",
+    "src/services/plugin-settings.ts",
+    "src/services/task-count.test.ts",
+    "src/services/task-count.ts",
+    "src/settings/explorer.ts",
+    "src/types.ts",
+    "src/ui/explorer-view.ts"
+  ]
+}

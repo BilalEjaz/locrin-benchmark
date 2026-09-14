@@ -1,0 +1,14 @@
+{
+  "id": "jeffersongoncalves__filament-short-url__8d2dfc6",
+  "source": "git",
+  "repo": "jeffersongoncalves/filament-short-url",
+  "sha": "8d2dfc69418334ec246fac4d6814ffac309796ef",
+  "parent": "426780129567f4d3e34f2978828dc09fddc07d29",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/jeffersongoncalves/filament-short-url/commit/8d2dfc69418334ec246fac4d6814ffac309796ef",
+  "files": [
+    "src/Resources/ShortUrlResource/Widgets/Concerns/HasStatsPayload.php",
+    "tests/TestCase.php"
+  ]
+}

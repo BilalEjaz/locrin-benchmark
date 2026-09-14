@@ -1,0 +1,14 @@
+{
+  "id": "hoplight-ai__pandoras-router__b756402",
+  "source": "git",
+  "repo": "hoplight-ai/pandoras-router",
+  "sha": "b756402ba1c8b6ff4d9bf36cecde646c5f815a30",
+  "parent": "af91c1d3e29c090d66194bb03501b9d811ea0005",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/hoplight-ai/pandoras-router/commit/b756402ba1c8b6ff4d9bf36cecde646c5f815a30",
+  "files": [
+    "src/lib/scope.mjs",
+    "test/scope-prop-test.mjs"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "pwoodman__the-code-sheriff__0bc4809",
+  "source": "git",
+  "repo": "pwoodman/the-code-sheriff",
+  "sha": "0bc4809327a24749a6a5a0acf3d66c1dfd0f5902",
+  "parent": "718d49d524b0e62cad74aed37f0e340b6acd3f9e",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/pwoodman/the-code-sheriff/commit/0bc4809327a24749a6a5a0acf3d66c1dfd0f5902",
+  "files": [
+    "src/quality_gates/__init__.py",
+    "src/quality_gates/planner.py",
+    "tests/test_planner.py",
+    "tests/test_reviewer_coverage.py"
+  ]
+}

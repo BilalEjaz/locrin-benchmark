@@ -1,0 +1,13 @@
+{
+  "id": "k-kinzal__ztd-query-php__d2bf147",
+  "source": "git",
+  "repo": "k-kinzal/ztd-query-php",
+  "sha": "d2bf147321227ac99b7ff8cc557c1cfd2cf1404f",
+  "parent": "36bd5a76c9e803b4ab769ad95f12a2deabc910cb",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/k-kinzal/ztd-query-php/commit/d2bf147321227ac99b7ff8cc557c1cfd2cf1404f",
+  "files": [
+    "packages/ztd-query-core/src/Compatibility/ClassAliases.php"
+  ]
+}

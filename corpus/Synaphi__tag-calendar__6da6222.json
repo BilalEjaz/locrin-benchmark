@@ -1,0 +1,14 @@
+{
+  "id": "Synaphi__tag-calendar__6da6222",
+  "source": "git",
+  "repo": "Synaphi/tag-calendar",
+  "sha": "6da62222741b6eea0ba73ef6ccec91e729d5e146",
+  "parent": "4b5e3c11ad09522f399fbcdef3f7a0f114e8b844",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Synaphi/tag-calendar/commit/6da62222741b6eea0ba73ef6ccec91e729d5e146",
+  "files": [
+    "src/guide.ts",
+    "src/main.ts"
+  ]
+}

@@ -1,0 +1,42 @@
+<?php
+
+namespace JeffersonGoncalves\Filament\ShortUrl\Resources\ShortUrlResource\Widgets\Concerns;
+
+use Illuminate\Support\Carbon;
+use JeffersonGoncalves\Filament\ShortUrl\Support\StatsPayloadMemo;
+use JeffersonGoncalves\LaravelShortUrl\Contracts\StatsAggregator;
+use JeffersonGoncalves\LaravelShortUrl\Data\StatsPayload;
+use JeffersonGoncalves\LaravelShortUrl\Models\ShortUrl;
+
+trait HasStatsPayload
+{
+    public ?ShortUrl $record = null;
+
+    public ?string $from = null;
+
+    public ?string $to = null;
+
+    // Overriding the method (not the $pollingInterval property) avoids a
+    // fatal trait-property conflict: Filament\Widgets\Concerns\CanPoll
+    // (used by ChartWidget/StatsOverviewWidget, both extended by consumers
+    // of this trait) declares the same property with a different default
+    // ('5s'), and PHP forbids composing two same-named properties with
+    // different defaults into one class.
+    protected function getPollingInterval(): ?string
+    {
+        return null;
+    }
+
+    protected function getPayload(): StatsPayload
+    {
+        $key = 'short-url:'.($this->record?->getKey() ?? 'null').':'.$this->from.':'.$this->to;
+
+        return StatsPayloadMemo::remember($key, fn () => app(StatsAggregator::class)
+            ->for($this->record)
+            ->between(
+                $this->from ? Carbon::parse($this->from)->startOfDay() : now()->subDays(30)->startOfDay(),
+                $this->to ? Carbon::parse($this->to)->endOfDay() : now()->endOfDay(),
+            )
+            ->get());
+    }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "hoplight-ai__pandoras-router__b052851",
+  "source": "git",
+  "repo": "hoplight-ai/pandoras-router",
+  "sha": "b052851a656fc577f17a51c7404f664adf57018c",
+  "parent": "af91c1d3e29c090d66194bb03501b9d811ea0005",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/hoplight-ai/pandoras-router/commit/b052851a656fc577f17a51c7404f664adf57018c",
+  "files": [
+    "src/bin/claim.mjs",
+    "src/bin/close.mjs",
+    "src/bin/lane-alloc.mjs",
+    "src/bin/lane-open.mjs",
+    "src/lib/claims.mjs",
+    "src/lib/lanes.mjs",
+    "src/lib/lock.mjs",
+    "src/lib/open.mjs",
+    "test/concurrency-test.mjs"
+  ]
+}

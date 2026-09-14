@@ -1,0 +1,18 @@
+{
+  "id": "product-on-purpose__agent-skills-toolkit__cd12e10",
+  "source": "git",
+  "repo": "product-on-purpose/agent-skills-toolkit",
+  "sha": "cd12e107e437cdfbc127ac1cd7a1465691aeff2c",
+  "parent": "7d787a215774a744efb959cae0413a1bfb022f8e",
+  "licence": "Apache-2.0",
+  "language": "javascript",
+  "url": "https://github.com/product-on-purpose/agent-skills-toolkit/commit/cd12e107e437cdfbc127ac1cd7a1465691aeff2c",
+  "files": [
+    "scripts/check.mjs",
+    "scripts/checks/mermaid-valid.mjs",
+    "scripts/checks/reference-links.mjs",
+    "tests/unit/gate-display.test.mjs",
+    "tests/unit/mermaid-valid.test.mjs",
+    "tests/unit/reference-links.test.mjs"
+  ]
+}

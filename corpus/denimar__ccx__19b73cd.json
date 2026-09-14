@@ -1,0 +1,19 @@
+{
+  "id": "denimar__ccx__19b73cd",
+  "source": "git",
+  "repo": "denimar/ccx",
+  "sha": "19b73cd98d792b9f12dfa29db77eb03a78cc4205",
+  "parent": "1782f6ed349e45a52074c75ecd8f520b2ed20e67",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/denimar/ccx/commit/19b73cd98d792b9f12dfa29db77eb03a78cc4205",
+  "files": [
+    "src/ui/App.tsx",
+    "src/ui/Picker.tsx",
+    "src/ui/layout.ts",
+    "src/ui/report.ts",
+    "src/ui/rows.ts",
+    "src/ui/theme.ts",
+    "test/ui.test.ts"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "MartinCa__frontend-kit__218ea99",
+  "source": "git",
+  "repo": "MartinCa/frontend-kit",
+  "sha": "218ea9919cd6fb067b8e771738c5d59c93014394",
+  "parent": "e0ca6442cc2dbd60e4a9c6b3c4c3fade95d09bba",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/MartinCa/frontend-kit/commit/218ea9919cd6fb067b8e771738c5d59c93014394",
+  "files": [
+    "scripts/validate-manifests.mjs",
+    "test/eslint-config.test.mjs",
+    "test/fixtures/eslint.config.js",
+    "test/fixtures/node.config.js",
+    "test/fixtures/store.ts",
+    "test/fixtures/violations.tsx"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "ChurchCRM__CRM__eb0d415",
+  "source": "git",
+  "repo": "ChurchCRM/CRM",
+  "sha": "eb0d415973f1926163713f4b8471524a8b474f27",
+  "parent": "c4abf73cc3357f6e143f80baf0328b0e864f9e75",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/ChurchCRM/CRM/commit/eb0d415973f1926163713f4b8471524a8b474f27",
+  "files": [
+    "docs/openapi/generate.php"
+  ]
+}

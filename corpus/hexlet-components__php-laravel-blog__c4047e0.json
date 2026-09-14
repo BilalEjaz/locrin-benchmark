@@ -1,0 +1,13 @@
+{
+  "id": "hexlet-components__php-laravel-blog__c4047e0",
+  "source": "git",
+  "repo": "hexlet-components/php-laravel-blog",
+  "sha": "c4047e0d42ca7fbb6a55c9ef2a1be3646e24e6a1",
+  "parent": "576c506b23acf6d09ef626e07919d1969d7a9891",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/hexlet-components/php-laravel-blog/commit/c4047e0d42ca7fbb6a55c9ef2a1be3646e24e6a1",
+  "files": [
+    "config/database.php"
+  ]
+}

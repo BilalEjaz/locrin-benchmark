@@ -1,0 +1,19 @@
+{
+  "id": "guplem__google-photos-auto-date__cb1a2ff",
+  "source": "git",
+  "repo": "guplem/google-photos-auto-date",
+  "sha": "cb1a2ff7048da404c3131c806223e886794803ba",
+  "parent": "db9086f9ad355577451c91a9827029869df08370",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/guplem/google-photos-auto-date/commit/cb1a2ff7048da404c3131c806223e886794803ba",
+  "files": [
+    "src/contentEntry.js",
+    "src/dateEdits/albumDateEditingRun.js",
+    "src/dateEdits/dateEditDialog.js",
+    "src/dateEdits/dateEditPlan.js",
+    "src/runReport.js",
+    "test/albumDateEditingRun.test.js",
+    "test/dateEditPlan.test.js"
+  ]
+}

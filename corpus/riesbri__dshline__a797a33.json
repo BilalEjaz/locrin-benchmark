@@ -1,0 +1,18 @@
+{
+  "id": "riesbri__dshline__a797a33",
+  "source": "git",
+  "repo": "riesbri/dshline",
+  "sha": "a797a337b57e2a8f616bdde0e4c4677372e69056",
+  "parent": "85bd4db1c40d6b99dca0f26fd7542b6ea99820df",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/riesbri/dshline/commit/a797a337b57e2a8f616bdde0e4c4677372e69056",
+  "files": [
+    "packages/dshline/src/stderr.ts",
+    "packages/dshline/src/window.ts",
+    "packages/dshline/tests/foreign-writes.spec.ts",
+    "packages/dshline/tests/stderr-descriptor.spec.ts",
+    "tools/harness-target.mjs",
+    "tools/harness-target.spec.mjs"
+  ]
+}

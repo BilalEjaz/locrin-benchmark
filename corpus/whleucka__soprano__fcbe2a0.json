@@ -1,0 +1,15 @@
+{
+  "id": "whleucka__soprano__fcbe2a0",
+  "source": "git",
+  "repo": "whleucka/soprano",
+  "sha": "fcbe2a0b42b3668bee4bf0277b591f6c2ae77efe",
+  "parent": "31967e5d92db0313e373f21b061a86167c0daf61",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/whleucka/soprano/commit/fcbe2a0b42b3668bee4bf0277b591f6c2ae77efe",
+  "files": [
+    "app/Http/Controllers/Soprano/ProfileController.php",
+    "app/Services/AppVersionService.php",
+    "tests/Soprano/AppVersionServiceTest.php"
+  ]
+}

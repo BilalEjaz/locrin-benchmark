@@ -1,0 +1,26 @@
+{
+  "id": "vllm-project__vllm__82a85dc",
+  "source": "git",
+  "repo": "vllm-project/vllm",
+  "sha": "82a85dc1d2d5b3ad4453eaa1bd7596de888a66b3",
+  "parent": "8cf9de9080ea5cded1c93e3d9a5ac531da0c93b6",
+  "licence": "Apache-2.0",
+  "language": "python",
+  "url": "https://github.com/vllm-project/vllm/commit/82a85dc1d2d5b3ad4453eaa1bd7596de888a66b3",
+  "files": [
+    "tests/kernels/attention/test_attention_selector.py",
+    "tests/v1/attention/test_mm_prefix.py",
+    "tests/v1/spec_decode/test_dflash2.py",
+    "vllm/platforms/cuda.py",
+    "vllm/v1/attention/backend.py",
+    "vllm/v1/attention/backends/composite.py",
+    "vllm/v1/attention/backends/flash_attn.py",
+    "vllm/v1/attention/backends/flex_attention.py",
+    "vllm/v1/attention/backends/registry.py",
+    "vllm/v1/attention/backends/triton_attn.py",
+    "vllm/v1/attention/backends/triton_flash_attn.py",
+    "vllm/v1/attention/backends/triton_flashinfer.py",
+    "vllm/v1/attention/backends/utils.py",
+    "vllm/v1/attention/selector.py"
+  ]
+}

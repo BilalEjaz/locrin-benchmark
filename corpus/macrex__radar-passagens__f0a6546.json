@@ -1,0 +1,20 @@
+{
+  "id": "macrex__radar-passagens__f0a6546",
+  "source": "git",
+  "repo": "macrex/radar-passagens",
+  "sha": "f0a6546504b67aeaf3b5f6574eb58f9d9fcdc5bc",
+  "parent": "e9548560473642c7f2a5c4baa0fec55a9fd44567",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/macrex/radar-passagens/commit/f0a6546504b67aeaf3b5f6574eb58f9d9fcdc5bc",
+  "files": [
+    "scripts/aeroportos.py",
+    "scripts/buscar_voos.py",
+    "scripts/checar_ambiente.py",
+    "scripts/fonte_aviasales.py",
+    "scripts/fonte_navegador.py",
+    "scripts/melhor_periodo.py",
+    "scripts/spike_aviasales.py",
+    "scripts/validar_voos.py"
+  ]
+}

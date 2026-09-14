@@ -1,0 +1,23 @@
+{
+  "id": "vllm-project__vllm__d2d649e",
+  "source": "git",
+  "repo": "vllm-project/vllm",
+  "sha": "d2d649e674c75425d2d6975c87eb89fd4d55fff8",
+  "parent": "e7a3963339654aa18b713f9ff233f129af9c7c8b",
+  "licence": "Apache-2.0",
+  "language": "python",
+  "url": "https://github.com/vllm-project/vllm/commit/d2d649e674c75425d2d6975c87eb89fd4d55fff8",
+  "files": [
+    "tests/distributed/test_engram_dp_shard.py",
+    "tests/engine/test_arg_utils.py",
+    "tests/kernels/test_engram.py",
+    "tests/test_config.py",
+    "vllm/config/engram.py",
+    "vllm/config/vllm.py",
+    "vllm/distributed/parallel_state.py",
+    "vllm/envs.py",
+    "vllm/models/deepseek_v4_1/common/engram.py",
+    "vllm/models/deepseek_v4_1/nvidia/engram.py",
+    "vllm/models/deepseek_v4_1/nvidia/model.py"
+  ]
+}

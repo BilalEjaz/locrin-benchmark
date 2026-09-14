@@ -1,0 +1,13 @@
+{
+  "id": "CEOUBB__CEOUBB__ffcfc2c",
+  "source": "git",
+  "repo": "CEOUBB/CEOUBB",
+  "sha": "ffcfc2c320b4e02bbd5b0d6d7708f5afbddde53c",
+  "parent": "458ecb1a5c236f2df2c2aec5f1d487659c53db21",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/CEOUBB/CEOUBB/commit/ffcfc2c320b4e02bbd5b0d6d7708f5afbddde53c",
+  "files": [
+    "app/Portal.tsx"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "Stahl-G__briefloop__76c6b19",
+  "source": "git",
+  "repo": "Stahl-G/briefloop",
+  "sha": "76c6b197086e479bdee4caca311d0200720c90b4",
+  "parent": "22c414ac4799969772895f4ebef051536616c3f5",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/Stahl-G/briefloop/commit/76c6b197086e479bdee4caca311d0200720c90b4",
+  "files": [
+    "src/briefloop/__init__.py"
+  ]
+}

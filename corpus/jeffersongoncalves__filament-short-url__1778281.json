@@ -1,0 +1,16 @@
+{
+  "id": "jeffersongoncalves__filament-short-url__1778281",
+  "source": "git",
+  "repo": "jeffersongoncalves/filament-short-url",
+  "sha": "177828131fc87be35cbe20c5ceedb13d97f8c531",
+  "parent": "0381aa0707239747f792abe9450e83cfb15383e3",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/jeffersongoncalves/filament-short-url/commit/177828131fc87be35cbe20c5ceedb13d97f8c531",
+  "files": [
+    "resources/lang/en/resources/custom-domain.php",
+    "resources/lang/es/resources/custom-domain.php",
+    "resources/lang/pt_BR/resources/custom-domain.php",
+    "resources/views/components/dns-instructions.blade.php"
+  ]
+}

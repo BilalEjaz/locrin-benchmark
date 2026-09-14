@@ -1,0 +1,14 @@
+{
+  "id": "Teibto__teibto-browser-qa__ce8e2be",
+  "source": "git",
+  "repo": "Teibto/teibto-browser-qa",
+  "sha": "ce8e2beac2c4311235d42e4eab04703876ab38c5",
+  "parent": "5030ddcf60fa4875a2cde648ff35957bd9494ae5",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/Teibto/teibto-browser-qa/commit/ce8e2beac2c4311235d42e4eab04703876ab38c5",
+  "files": [
+    "scripts/validate-skill.py",
+    "tests/test_standard_gate.py"
+  ]
+}

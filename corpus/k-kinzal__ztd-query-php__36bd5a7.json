@@ -1,0 +1,28 @@
+{
+  "id": "k-kinzal__ztd-query-php__36bd5a7",
+  "source": "git",
+  "repo": "k-kinzal/ztd-query-php",
+  "sha": "36bd5a76c9e803b4ab769ad95f12a2deabc910cb",
+  "parent": "a1db10e9f852a476cb27324abd3414a55e8b1bae",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/k-kinzal/ztd-query-php/commit/36bd5a76c9e803b4ab769ad95f12a2deabc910cb",
+  "files": [
+    "packages/ztd-query-core/src/Connection/ResultSet.php",
+    "packages/ztd-query-core/src/Connection/StatementInterface.php",
+    "packages/ztd-query-core/src/ExecuteResult.php",
+    "packages/ztd-query-core/src/GenericExecuteResult.php",
+    "packages/ztd-query-core/src/ResultSelectRunner.php",
+    "packages/ztd-query-core/src/Rewrite/ReturningProjection.php",
+    "packages/ztd-query-core/src/Session.php",
+    "packages/ztd-query-core/src/Shadow/Mutation/MutationImpact.php",
+    "packages/ztd-query-core/src/Shadow/Mutation/MutationRowIdentity.php",
+    "packages/ztd-query-core/src/Shadow/Mutation/ShadowMutation.php",
+    "packages/ztd-query-core/src/Shadow/ReferentialIntegrityEnforcer.php",
+    "packages/ztd-query-core/src/Shadow/Row/TableTransition.php",
+    "packages/ztd-query-core/tests/Fake/FakeConnection.php",
+    "packages/ztd-query-core/tests/Fake/FakeStatement.php",
+    "packages/ztd-query-core/tests/Unit/ResultSelectRunnerTest.php",
+    "packages/ztd-query-core/tests/Unit/Shadow/Mutation/MutationImpactTest.php"
+  ]
+}

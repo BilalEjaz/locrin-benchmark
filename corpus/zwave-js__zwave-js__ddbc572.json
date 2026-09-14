@@ -1,0 +1,13 @@
+{
+  "id": "zwave-js__zwave-js__ddbc572",
+  "source": "git",
+  "repo": "zwave-js/zwave-js",
+  "sha": "ddbc5720c491ac069c163ef79fe7c57b14711070",
+  "parent": "93f2e77570fae3680a4754a6e623fab67733cfe3",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/zwave-js/zwave-js/commit/ddbc5720c491ac069c163ef79fe7c57b14711070",
+  "files": [
+    "packages/cc/src/cc/SceneControllerConfigurationCC.ts"
+  ]
+}

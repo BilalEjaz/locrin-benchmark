@@ -1,0 +1,14 @@
+{
+  "id": "diellzarabushaj-source__barnat-__d107e78",
+  "source": "git",
+  "repo": "diellzarabushaj-source/barnat-",
+  "sha": "d107e78843764b8d51d20553a18fe93469d20a48",
+  "parent": "0bffc6c835768531e389dfe92ed4381768ac1756",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/diellzarabushaj-source/barnat-/commit/d107e78843764b8d51d20553a18fe93469d20a48",
+  "files": [
+    "registry-v2.js",
+    "tests/registry-list-view-v2-test.js"
+  ]
+}

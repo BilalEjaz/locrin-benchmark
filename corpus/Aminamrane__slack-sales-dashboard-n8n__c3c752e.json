@@ -1,0 +1,15 @@
+{
+  "id": "Aminamrane__slack-sales-dashboard-n8n__c3c752e",
+  "source": "git",
+  "repo": "Aminamrane/slack-sales-dashboard-n8n",
+  "sha": "c3c752edf5e48ce2429315cda1c2d28b1d8f49d3",
+  "parent": "42410d59f8aac1b566fd6650e696d0c4dc0eacbd",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/Aminamrane/slack-sales-dashboard-n8n/commit/c3c752edf5e48ce2429315cda1c2d28b1d8f49d3",
+  "files": [
+    "src/pages/TrackingSheetFinance/DetailPanel.jsx",
+    "src/pages/TrackingSheetFinance/components/ExpectedManager.jsx",
+    "src/pages/TrackingSheetFinance/constants.js"
+  ]
+}

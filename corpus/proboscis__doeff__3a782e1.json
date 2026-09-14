@@ -1,0 +1,17 @@
+{
+  "id": "proboscis__doeff__3a782e1",
+  "source": "git",
+  "repo": "proboscis/doeff",
+  "sha": "3a782e14ecf42082d9b5697f97bb1d1639d16007",
+  "parent": "664c3354ce4d4ad5b38e92700012984b0c4c9484",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/proboscis/doeff/commit/3a782e14ecf42082d9b5697f97bb1d1639d16007",
+  "files": [
+    "packages/doeff-agents/src/doeff_agents/__init__.py",
+    "packages/doeff-agents/src/doeff_agents/agentd_client.py",
+    "packages/doeff-agents/src/doeff_agents/cli.py",
+    "packages/doeff-agents/tests/test_agentd_client.py",
+    "packages/doeff-agents/tests/test_cli_agentd.py"
+  ]
+}

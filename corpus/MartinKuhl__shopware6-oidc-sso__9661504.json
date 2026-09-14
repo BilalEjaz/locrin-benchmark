@@ -1,0 +1,17 @@
+{
+  "id": "MartinKuhl__shopware6-oidc-sso__9661504",
+  "source": "git",
+  "repo": "MartinKuhl/shopware6-oidc-sso",
+  "sha": "9661504c25b622b40070e0c62b7fc6b26584f197",
+  "parent": "3f6b7d5817e8f1d58da43ab146ab4a258b8c9754",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/MartinKuhl/shopware6-oidc-sso/commit/9661504c25b622b40070e0c62b7fc6b26584f197",
+  "files": [
+    "src/Controller/Api/OidcProviderAdminController.php",
+    "src/Core/Content/Provider/Sw6OidcProviderDefinition.php",
+    "src/Core/Content/Provider/Sw6OidcProviderEntity.php",
+    "src/Migration/Migration1789390512AddLastTestClaims.php",
+    "src/Resources/app/administration/src/module/sw6oidc-provider/page/sw6oidc-provider-detail/index.js"
+  ]
+}

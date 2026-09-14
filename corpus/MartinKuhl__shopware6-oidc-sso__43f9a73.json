@@ -1,0 +1,20 @@
+{
+  "id": "MartinKuhl__shopware6-oidc-sso__43f9a73",
+  "source": "git",
+  "repo": "MartinKuhl/shopware6-oidc-sso",
+  "sha": "43f9a73a30f94b75e6f2e350835f2fcaaa18c242",
+  "parent": "8871db3b043095b3cca087413a0181fd24a93e58",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/MartinKuhl/shopware6-oidc-sso/commit/43f9a73a30f94b75e6f2e350835f2fcaaa18c242",
+  "files": [
+    "src/Core/Content/Provider/Sw6OidcProviderDefinition.php",
+    "src/Core/Content/Provider/Sw6OidcProviderEntity.php",
+    "src/Core/Content/RoleMapping/Sw6OidcRoleMappingDefinition.php",
+    "src/Core/Content/RoleMapping/Sw6OidcRoleMappingEntity.php",
+    "src/Migration/Migration1789383427AddSuperadminGroupMapping.php",
+    "src/Resources/app/administration/src/module/sw6oidc-provider/page/sw6oidc-provider-detail/index.js",
+    "src/Service/Provisioning/AdminProvisioningService.php",
+    "src/Service/Provisioning/GroupMappingResolver.php"
+  ]
+}

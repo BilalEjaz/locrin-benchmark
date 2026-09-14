@@ -1,0 +1,15 @@
+{
+  "id": "craftingmod__ComfyUI-ControlPanel__57aefa0",
+  "source": "git",
+  "repo": "craftingmod/ComfyUI-ControlPanel",
+  "sha": "57aefa0295bdcbac4696391c854d8e87a42ab1a1",
+  "parent": "19696e1ad1d6ac93152a458c50c081aa4d093d2f",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/craftingmod/ComfyUI-ControlPanel/commit/57aefa0295bdcbac4696391c854d8e87a42ab1a1",
+  "files": [
+    "backend/manager_api.py",
+    "backend/manager_routes.py",
+    "tests/backend/test_manager_api.py"
+  ]
+}

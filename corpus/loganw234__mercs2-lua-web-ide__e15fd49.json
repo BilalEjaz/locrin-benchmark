@@ -1,0 +1,15 @@
+{
+  "id": "loganw234__mercs2-lua-web-ide__e15fd49",
+  "source": "git",
+  "repo": "loganw234/mercs2-lua-web-ide",
+  "sha": "e15fd490d6c920825fe47c43a70774ded157141a",
+  "parent": "040b2bef8faa3a2a0bcf3c0bf354a96392e57a6b",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/loganw234/mercs2-lua-web-ide/commit/e15fd490d6c920825fe47c43a70774ded157141a",
+  "files": [
+    "src/app/82_assist.js",
+    "src/app/86_agent.js",
+    "tools/vendor/smoke.js"
+  ]
+}

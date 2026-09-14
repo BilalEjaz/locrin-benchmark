@@ -1,0 +1,14 @@
+{
+  "id": "utopia-php__database__a782c70",
+  "source": "git",
+  "repo": "utopia-php/database",
+  "sha": "a782c70dbabf77dfb4197052a4208a8004facb8d",
+  "parent": "bdc0ae1b60cce267f57938c9101ee38c254f10d7",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/utopia-php/database/commit/a782c70dbabf77dfb4197052a4208a8004facb8d",
+  "files": [
+    "src/Database/Adapter/Pool.php",
+    "tests/unit/PoolTimeoutTest.php"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "laravel__mcp__dbd0758",
+  "source": "git",
+  "repo": "laravel/mcp",
+  "sha": "dbd0758a6dd113e995e0e48e417b43a9faa8e6d3",
+  "parent": "b3b1d6cd1363c619d0d308486830594d1016d256",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/laravel/mcp/commit/dbd0758a6dd113e995e0e48e417b43a9faa8e6d3",
+  "files": [
+    "config/mcp.php",
+    "src/Console/Commands/InspectorCommand.php",
+    "src/Server.php",
+    "src/Server/Methods/CallTool.php",
+    "src/Server/ServerContext.php",
+    "src/Server/ToolInvoker.php",
+    "src/Server/Tools/ExecuteTools.php",
+    "src/Server/Tools/SearchTools.php",
+    "src/Server/Tools/ToolSearch.php",
+    "tests/Unit/Console/Commands/McpInspectorCommandTest.php",
+    "tests/Unit/Tools/ToolSearchTest.php"
+  ]
+}

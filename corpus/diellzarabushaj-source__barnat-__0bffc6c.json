@@ -1,0 +1,19 @@
+{
+  "id": "diellzarabushaj-source__barnat-__0bffc6c",
+  "source": "git",
+  "repo": "diellzarabushaj-source/barnat-",
+  "sha": "0bffc6c835768531e389dfe92ed4381768ac1756",
+  "parent": "3f911108b832992f8153eb51adfc020273dcd5ae",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/diellzarabushaj-source/barnat-/commit/0bffc6c835768531e389dfe92ed4381768ac1756",
+  "files": [
+    "antibiotiket-formulations-data.js",
+    "antibiotiket-formulations.js",
+    "antibiotiket-prescription.js",
+    "antibiotiket-shell.js",
+    "tests/antibiotics-page-ui-contract-test.js",
+    "tests/antibiotics-phase4-prescription-test.js",
+    "tests/antibiotics-phase7-calculator-cases-test.js"
+  ]
+}

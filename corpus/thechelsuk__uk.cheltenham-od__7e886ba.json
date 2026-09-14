@@ -1,0 +1,13 @@
+{
+  "id": "thechelsuk__uk.cheltenham-od__7e886ba",
+  "source": "git",
+  "repo": "thechelsuk/uk.cheltenham-od",
+  "sha": "7e886ba9e520a2021ff2ff91c579171d537a9d67",
+  "parent": "9f4fba1fbcf04cc018e7c842465c3ca857aa599f",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/thechelsuk/uk.cheltenham-od/commit/7e886ba9e520a2021ff2ff91c579171d537a9d67",
+  "files": [
+    "_python/council-tax.py"
+  ]
+}

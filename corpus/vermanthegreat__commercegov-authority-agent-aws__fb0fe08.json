@@ -1,0 +1,14 @@
+{
+  "id": "vermanthegreat__commercegov-authority-agent-aws__fb0fe08",
+  "source": "git",
+  "repo": "vermanthegreat/commercegov-authority-agent-aws",
+  "sha": "fb0fe08d9beb39e906b798a558a9ccbac08f93c9",
+  "parent": "d6248f8606233325f1a71b7de5fa4760d490dd0d",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/vermanthegreat/commercegov-authority-agent-aws/commit/fb0fe08d9beb39e906b798a558a9ccbac08f93c9",
+  "files": [
+    "src/authority_agent/oauth_credentials.py",
+    "tests/unit/test_oauth_credentials.py"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "id": "abcwyc__pi-agent-desktop__2345efe",
+  "source": "git",
+  "repo": "abcwyc/pi-agent-desktop",
+  "sha": "2345efebf21e359d7eea78659cf718bc8e1d0417",
+  "parent": "6dbd4e82e08dc2585129a91f60f3a0b42f9d87b3",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/abcwyc/pi-agent-desktop/commit/2345efebf21e359d7eea78659cf718bc8e1d0417",
+  "files": [
+    "components/MessageView.tsx",
+    "components/ModelsConfig.tsx",
+    "components/ProjectPicker.tsx",
+    "components/SessionSidebar.tsx",
+    "components/path-ui.tsx"
+  ]
+}

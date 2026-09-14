@@ -1,0 +1,13 @@
+{
+  "id": "iwangbowen__zenith-admin__bd2690e",
+  "source": "git",
+  "repo": "iwangbowen/zenith-admin",
+  "sha": "bd2690ef9752eae24adcebc7369afd18dcb93960",
+  "parent": "c24aed467c400c8a0692f8866026fa47320561ba",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/iwangbowen/zenith-admin/commit/bd2690ef9752eae24adcebc7369afd18dcb93960",
+  "files": [
+    "packages/server/src/services/_tenant-isolation-baseline.ts"
+  ]
+}

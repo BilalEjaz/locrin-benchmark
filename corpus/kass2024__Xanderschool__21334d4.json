@@ -1,0 +1,16 @@
+{
+  "id": "kass2024__Xanderschool__21334d4",
+  "source": "git",
+  "repo": "kass2024/Xanderschool",
+  "sha": "21334d4a448542359b8136c72cd6ac8b6cd9f6e1",
+  "parent": "b5ae810a07034460a1f878897b2bad47e73f9f5c",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/kass2024/Xanderschool/commit/21334d4a448542359b8136c72cd6ac8b6cd9f6e1",
+  "files": [
+    "app/Controllers/TimetableManagement.php",
+    "app/Services/Timetable/SecondaryTimetableCriteria.php",
+    "app/Services/Timetable/TimetableCriteriaStore.php",
+    "app/Views/pages/timetable/dashboard.php"
+  ]
+}

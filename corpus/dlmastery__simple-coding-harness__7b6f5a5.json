@@ -1,0 +1,28 @@
+{
+  "id": "dlmastery__simple-coding-harness__7b6f5a5",
+  "source": "git",
+  "repo": "dlmastery/simple-coding-harness",
+  "sha": "7b6f5a532e03c0288fb4e3b53b56d46fc9a04fe8",
+  "parent": "b6c175a93ccda5e1f2562a01c42f1a718950da59",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/dlmastery/simple-coding-harness/commit/7b6f5a532e03c0288fb4e3b53b56d46fc9a04fe8",
+  "files": [
+    "step_50_trueforge_subagents_eval/client/__init__.py",
+    "step_50_trueforge_subagents_eval/client/common.py",
+    "step_50_trueforge_subagents_eval/client/evaluate.py",
+    "step_50_trueforge_subagents_eval/client/sessions.py",
+    "step_50_trueforge_subagents_eval/client/threads.py",
+    "step_50_trueforge_subagents_eval/demo.py",
+    "step_50_trueforge_subagents_eval/evals/find_function/workspace/app/__init__.py",
+    "step_50_trueforge_subagents_eval/evals/find_function/workspace/app/main.py",
+    "step_50_trueforge_subagents_eval/evals/find_function/workspace/app/models.py",
+    "step_50_trueforge_subagents_eval/evals/find_function/workspace/app/settings.py",
+    "step_50_trueforge_subagents_eval/evals/fix_test/check.py",
+    "step_50_trueforge_subagents_eval/evals/fix_test/workspace/calc.py",
+    "step_50_trueforge_subagents_eval/evals/fix_test/workspace/test_calc.py",
+    "step_50_trueforge_subagents_eval/evals/write_hello/check.py",
+    "step_50_trueforge_subagents_eval/test_step.py",
+    "step_50_trueforge_subagents_eval/tools_server.py"
+  ]
+}

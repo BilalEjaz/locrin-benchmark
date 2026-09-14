@@ -1,0 +1,15 @@
+{
+  "id": "denimar__ccx__ec0ccf9",
+  "source": "git",
+  "repo": "denimar/ccx",
+  "sha": "ec0ccf93bb3fdf418d9ab43859790cfffafc078d",
+  "parent": "19b73cd98d792b9f12dfa29db77eb03a78cc4205",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/denimar/ccx/commit/ec0ccf93bb3fdf418d9ab43859790cfffafc078d",
+  "files": [
+    "src/scan/context.ts",
+    "src/scan/git.ts",
+    "src/scan/mcp.ts"
+  ]
+}

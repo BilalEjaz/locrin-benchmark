@@ -1,0 +1,313 @@
+/// <reference types="cypress" />
+
+describe("API Private Photo and Avatar - Person", () => {
+    // Person 28 deliberately has no file under cypress/data/images/people,
+    // which the dev and test compose profiles bind-mount as Images/Person.
+    // Pointing these upload/delete tests at a person that does (1, 2, 5, 10,
+    // 44, 213, 214) would delete a tracked fixture from the working tree —
+    // see issue #9777.
+    const testPersonId = 28; // Test person from demo database
+    const invalidPersonId = 99999;
+
+    beforeEach(() => {
+        cy.setupStandardSession();
+    });
+
+    describe("GET /api/person/{id}/photo", () => {
+        it("should return 404 when person has no uploaded photo", () => {
+            cy.makePrivateAdminAPICall(
+                "GET",
+                `/api/person/${testPersonId}/photo`,
+                null,
+                404
+            );
+        });
+
+        it("should return proper response status for invalid person ID", () => {
+            cy.makePrivateAdminAPICall(
+                "GET",
+                `/api/person/${invalidPersonId}/photo`,
+                null,
+                404
+            );
+        });
+
+        it("should serve photo with correct Content-Type after upload", () => {
+            // First upload a photo (base64 PNG)
+            const base64Photo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+            
+            cy.makePrivateAdminAPICall(
+                "POST",
+                `/api/person/${testPersonId}/photo`,
+                JSON.stringify({ imgBase64: base64Photo }),
+                200
+            ).then(() => {
+                // Now try to fetch it using authenticated call
+                cy.makePrivateAdminAPICall(
+                    "GET",
+                    `/api/person/${testPersonId}/photo`,
+                    null,
+                    200
+                );
+            });
+        });
+    });
+
+    describe("GET /api/person/{id}/avatar", () => {
+        it("should return avatar info with initials when no photo", () => {
+            cy.makePrivateAdminAPICall(
+                "GET",
+                `/api/person/${testPersonId}/avatar`,
+                null,
+                200
+            ).then((response) => {
+                expect(response.body).to.have.property("hasPhoto");
+                expect(response.body).to.have.property("initials");
+                expect(response.body).to.have.property("email");
+                expect(response.body).to.have.property("photoUrl");
+                
+                // Initials should be present
+                expect(response.body.initials).to.be.a("string");
+                expect(response.body.initials.length).to.be.greaterThan(0);
+                
+                // hasPhoto should be false initially
+                expect(response.body.hasPhoto).to.eq(false);
+            });
+        });
+
+        it("should return hasPhoto=true after uploading photo", () => {
+            const base64Photo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+            
+            // Upload photo
+            cy.makePrivateAdminAPICall(
+                "POST",
+                `/api/person/${testPersonId}/photo`,
+                JSON.stringify({ imgBase64: base64Photo }),
+                200
+            ).then(() => {
+                // Check avatar info
+                cy.makePrivateAdminAPICall(
+                    "GET",
+                    `/api/person/${testPersonId}/avatar`,
+                    null,
+                    200
+                ).then((response) => {
+                    expect(response.body.hasPhoto).to.eq(true);
+                    // Initials should still be present
+                    expect(response.body.initials).to.be.a("string");
+                });
+            });
+        });
+
+        it("should return consistent initials for same person", () => {
+            cy.makePrivateAdminAPICall(
+                "GET",
+                `/api/person/${testPersonId}/avatar`,
+                null,
+                200
+            ).then((response1) => {
+                cy.makePrivateAdminAPICall(
+                    "GET",
+                    `/api/person/${testPersonId}/avatar`,
+                    null,
+                    200
+                ).then((response2) => {
+                    expect(response1.body.initials).to.eq(response2.body.initials);
+                });
+            });
+        });
+
+        it("should return different initials for different persons", () => {
+            const person1 = 28;
+            const person2 = 30;
+            
+            cy.makePrivateAdminAPICall(
+                "GET",
+                `/api/person/${person1}/avatar`,
+                null,
+                200
+            ).then((response1) => {
+                cy.makePrivateAdminAPICall(
+                    "GET",
+                    `/api/person/${person2}/avatar`,
+                    null,
+                    200
+                ).then((response2) => {
+                    // Different people should have different initials (usually)
+                    // This is a basic sanity check
+                    expect(response1.body).to.have.property("initials");
+                    expect(response2.body).to.have.property("initials");
+                });
+            });
+        });
+
+        it("should return email when person has email", () => {
+            cy.makePrivateAdminAPICall(
+                "GET",
+                `/api/person/${testPersonId}/avatar`,
+                null,
+                200
+            ).then((response) => {
+                // Email may be null or string, but should exist as property
+                expect(response.body).to.have.property("email");
+            });
+        });
+
+        it("should handle invalid person ID gracefully", () => {
+            cy.makePrivateAdminAPICall(
+                "GET",
+                `/api/person/${invalidPersonId}/avatar`,
+                null,
+                200
+            ).then((response) => {
+                // Should return 200 with fallback data
+                expect(response.body).to.have.property("hasPhoto");
+                expect(response.body).to.have.property("initials");
+            });
+        });
+    });
+
+    describe("POST /api/person/{id}/photo", () => {
+        it("should accept valid base64 PNG image", () => {
+            const base64Photo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+            
+            cy.makePrivateAdminAPICall(
+                "POST",
+                `/api/person/${testPersonId}/photo`,
+                JSON.stringify({ imgBase64: base64Photo }),
+                200
+            ).then((response) => {
+                expect(response.body).to.have.property("success");
+                expect(response.body.success).to.eq(true);
+            });
+        });
+
+        it("should reject invalid base64 data", () => {
+            cy.makePrivateAdminAPICall(
+                "POST",
+                `/api/person/${testPersonId}/photo`,
+                JSON.stringify({ imgBase64: "not-valid-base64!!!" }),
+                400
+            ).then((response) => {
+                expect(response.body).to.have.property("success");
+                expect(response.body.success).to.eq(false);
+            });
+        });
+
+        it("should reject non-image file types with generic upload error (not a fileinfo prerequisite error)", () => {
+            // Regression: when fileinfo extension is missing, a non-image data URI must still
+            // return a proper "invalid type" rejection — not a misleading "fileinfo required" message.
+            const base64Text = "data:text/plain;base64,SGVsbG8gV29ybGQ=";
+
+            cy.makePrivateAdminAPICall(
+                "POST",
+                `/api/person/${testPersonId}/photo`,
+                JSON.stringify({ imgBase64: base64Text }),
+                400
+            ).then((response) => {
+                expect(response.body.success).to.eq(false);
+                // The outer message is always the generic wrapper; inner cause goes to logs.
+                // What must NOT appear is a PHP fatal/crash-level error.
+                expect(response.body).to.have.property("message");
+                expect(response.body.message).to.not.include("fileinfo");
+            });
+        });
+
+        it("should reject a malformed data URI with no base64 prefix", () => {
+            cy.makePrivateAdminAPICall(
+                "POST",
+                `/api/person/${testPersonId}/photo`,
+                JSON.stringify({ imgBase64: "not-a-data-uri" }),
+                400
+            ).then((response) => {
+                expect(response.body.success).to.eq(false);
+            });
+        });
+
+        it("should accept a valid base64 JPEG image", () => {
+            // Smallest valid 1×1 JPEG
+            const base64Jpeg = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AJQAB/9k=";
+
+            cy.makePrivateAdminAPICall(
+                "POST",
+                `/api/person/${testPersonId}/photo`,
+                JSON.stringify({ imgBase64: base64Jpeg }),
+                200
+            ).then((response) => {
+                expect(response.body.success).to.eq(true);
+                expect(response.body.hasPhoto).to.eq(true);
+            });
+        });
+
+        it("should reject uploads that exceed the server size limit", () => {
+            // Repeat a valid 1×1 PNG base64 payload to produce a body larger than most
+            // configured limits. The server rejects it with 413 (size) or 400 (invalid image).
+            const smallPngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+            const largeBase64 = "data:image/png;base64," + smallPngBase64.repeat(200000);
+
+            cy.makePrivateAdminAPICall(
+                "POST",
+                `/api/person/${testPersonId}/photo`,
+                JSON.stringify({ imgBase64: largeBase64 }),
+                [400, 413]
+            ).then((response) => {
+                expect(response.body.success).to.eq(false);
+                expect(response.body).to.have.property("message");
+            });
+        });
+    });
+
+    describe("DELETE /api/person/{id}/photo", () => {
+        beforeEach(() => {
+            // Upload a photo before deletion tests
+            const base64Photo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+            
+            cy.makePrivateAdminAPICall(
+                "POST",
+                `/api/person/${testPersonId}/photo`,
+                JSON.stringify({ imgBase64: base64Photo }),
+                200
+            );
+        });
+
+        it("should delete uploaded photo successfully", () => {
+            cy.makePrivateAdminAPICall(
+                "DELETE",
+                `/api/person/${testPersonId}/photo`,
+                null,
+                200
+            ).then((response) => {
+                expect(response.body).to.have.property("success");
+                expect(response.body.success).to.eq(true);
+            });
+        });
+
+        it("should remove hasPhoto flag after deletion", () => {
+            cy.makePrivateAdminAPICall(
+                "DELETE",
+                `/api/person/${testPersonId}/photo`,
+                null,
+                200
+            ).then(() => {
+                cy.makePrivateAdminAPICall(
+                    "GET",
+                    `/api/person/${testPersonId}/avatar`,
+                    null,
+                    200
+                ).then((response) => {
+                    expect(response.body.hasPhoto).to.eq(false);
+                });
+            });
+        });
+    });
+
+    afterEach(() => {
+        // Cleanup: Delete photo after each test
+        cy.makePrivateAdminAPICall(
+            "DELETE",
+            `/api/person/${testPersonId}/photo`,
+            null,
+            [200, 404] // 404 is ok if photo doesn't exist
+        );
+    });
+});

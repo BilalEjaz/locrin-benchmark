@@ -1,0 +1,25 @@
+{
+  "id": "masumi-network__sokosumi__d26827d",
+  "source": "git",
+  "repo": "masumi-network/sokosumi",
+  "sha": "d26827d37548e372cb10150821e3667e0bb97297",
+  "parent": "ae1143d39bc20d9d01d8874198a072a5baa873ab",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/masumi-network/sokosumi/commit/d26827d37548e372cb10150821e3667e0bb97297",
+  "files": [
+    "apps/web/src/app/(app)/chat/chat-message-list-scroller.ts",
+    "apps/web/src/app/(app)/chat/components/__tests__/rooms-client-notification-jump.test.tsx",
+    "apps/web/src/app/(app)/chat/components/__tests__/rooms-client-scroll-on-send.test.tsx",
+    "apps/web/src/app/(app)/chat/components/__tests__/thread-panel-stick-to-bottom.test.tsx",
+    "apps/web/src/app/(app)/chat/components/__tests__/transcript-viewport-stub.tsx",
+    "apps/web/src/app/(app)/chat/components/room-composer.tsx",
+    "apps/web/src/app/(app)/chat/components/room-message-list-skeleton.tsx",
+    "apps/web/src/app/(app)/chat/components/room-open-loading-view.tsx",
+    "apps/web/src/app/(app)/chat/components/room-session-composer.tsx",
+    "apps/web/src/app/(app)/chat/components/rooms-client.tsx",
+    "apps/web/src/app/(app)/chat/components/thread-panel.tsx",
+    "apps/web/src/app/(app)/chat/components/transcript-viewport.test.tsx",
+    "apps/web/src/app/(app)/chat/components/transcript-viewport.tsx"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "SLENDER66__SINGULAR__07cba4a",
+  "source": "git",
+  "repo": "SLENDER66/SINGULAR",
+  "sha": "07cba4a1e9f0593c4b96dbf47322e9834dc8ce12",
+  "parent": "d870414da478f83318e024cf2912b06ba632fa5f",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/SLENDER66/SINGULAR/commit/07cba4a1e9f0593c4b96dbf47322e9834dc8ce12",
+  "files": [
+    "tests/test_execution_result.py"
+  ]
+}

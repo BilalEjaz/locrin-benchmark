@@ -1,0 +1,14 @@
+{
+  "id": "Zereker__investment-os__4e6b6aa",
+  "source": "git",
+  "repo": "Zereker/investment-os",
+  "sha": "4e6b6aacf19e43c3c80444c1047649a69f14419b",
+  "parent": "2c83df043947a943ad8aa7fa3f9205be8c5c0095",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/Zereker/investment-os/commit/4e6b6aacf19e43c3c80444c1047649a69f14419b",
+  "files": [
+    "tests/test_monthly_contribution_cli.py",
+    "tests/test_monthly_dd_cli.py"
+  ]
+}

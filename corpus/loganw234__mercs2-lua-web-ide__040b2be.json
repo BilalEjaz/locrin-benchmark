@@ -1,0 +1,15 @@
+{
+  "id": "loganw234__mercs2-lua-web-ide__040b2be",
+  "source": "git",
+  "repo": "loganw234/mercs2-lua-web-ide",
+  "sha": "040b2bef8faa3a2a0bcf3c0bf354a96392e57a6b",
+  "parent": "ab39ab41d1ae32cb2ea4e325ebfbb35dbd5f5895",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/loganw234/mercs2-lua-web-ide/commit/040b2bef8faa3a2a0bcf3c0bf354a96392e57a6b",
+  "files": [
+    "src/app/50_api.js",
+    "tools/gen_natives.py",
+    "tools/vendor/smoke.js"
+  ]
+}

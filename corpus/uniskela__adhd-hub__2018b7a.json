@@ -1,0 +1,17 @@
+{
+  "id": "uniskela__adhd-hub__2018b7a",
+  "source": "git",
+  "repo": "uniskela/adhd-hub",
+  "sha": "2018b7a3c0ad20ed5c739ce1958fb04ef2739120",
+  "parent": "3e6e1a6b01a18eeedb74b9b204ee05fff0c20d9a",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/uniskela/adhd-hub/commit/2018b7a3c0ad20ed5c739ce1958fb04ef2739120",
+  "files": [
+    "src/adhd_hub/api.py",
+    "src/adhd_hub/forge/facade.py",
+    "src/adhd_hub/service.py",
+    "src/adhd_hub/ui/js/boot.js",
+    "src/adhd_hub/ui/js/work.js"
+  ]
+}

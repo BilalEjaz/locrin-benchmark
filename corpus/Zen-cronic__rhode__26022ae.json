@@ -1,0 +1,13 @@
+{
+  "id": "Zen-cronic__rhode__26022ae",
+  "source": "git",
+  "repo": "Zen-cronic/rhode",
+  "sha": "26022ae86f886157e300c70a9ed13d2b224a1a55",
+  "parent": "004ce0e07e5b80eb7c08624c12bbe9db856e9c1d",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/Zen-cronic/rhode/commit/26022ae86f886157e300c70a9ed13d2b224a1a55",
+  "files": [
+    "scripts/demo-day-preflight.mjs"
+  ]
+}

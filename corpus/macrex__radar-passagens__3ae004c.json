@@ -1,0 +1,14 @@
+{
+  "id": "macrex__radar-passagens__3ae004c",
+  "source": "git",
+  "repo": "macrex/radar-passagens",
+  "sha": "3ae004c1341894863f99a744a39fceaa8c577a5c",
+  "parent": "f0a6546504b67aeaf3b5f6574eb58f9d9fcdc5bc",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/macrex/radar-passagens/commit/3ae004c1341894863f99a744a39fceaa8c577a5c",
+  "files": [
+    "scripts/melhor_periodo.py",
+    "scripts/spike_aviasales.py"
+  ]
+}

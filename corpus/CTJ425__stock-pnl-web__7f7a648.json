@@ -1,0 +1,13 @@
+{
+  "id": "CTJ425__stock-pnl-web__7f7a648",
+  "source": "git",
+  "repo": "CTJ425/stock-pnl-web",
+  "sha": "7f7a64820a2845bd596d1b9ede2057413417addf",
+  "parent": "c9aaa191f020a116c1cbf0a21cc76325b943d236",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/CTJ425/stock-pnl-web/commit/7f7a64820a2845bd596d1b9ede2057413417addf",
+  "files": [
+    "sources/src/version.ts"
+  ]
+}

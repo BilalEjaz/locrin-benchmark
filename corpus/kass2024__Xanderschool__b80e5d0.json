@@ -1,0 +1,20 @@
+{
+  "id": "kass2024__Xanderschool__b80e5d0",
+  "source": "git",
+  "repo": "kass2024/Xanderschool",
+  "sha": "b80e5d0b9647e1f8799839d9206897d58f964ff7",
+  "parent": "21334d4a448542359b8136c72cd6ac8b6cd9f6e1",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/kass2024/Xanderschool/commit/b80e5d0b9647e1f8799839d9206897d58f964ff7",
+  "files": [
+    "app/Controllers/TimetableManagement.php",
+    "app/Services/Timetable/NurseryTimetableCriteria.php",
+    "app/Services/Timetable/TimetableGeneratorService.php",
+    "app/Services/Timetable/TimetableStagingService.php",
+    "app/Views/pages/timetable/_grid.php",
+    "app/Views/pages/timetable/_grid_body.php",
+    "app/Views/pages/timetable/dashboard.php",
+    "app/Views/pages/timetable/print_grid.php"
+  ]
+}

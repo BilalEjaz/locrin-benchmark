@@ -1,0 +1,15 @@
+{
+  "id": "PTO-ISA__pto-spec__752219d",
+  "source": "git",
+  "repo": "PTO-ISA/pto-spec",
+  "sha": "752219da08f18b20667d58a1927d6f8306036b10",
+  "parent": "124f02e335b186f3cd77e5be194ad7ea64aa74c7",
+  "licence": "BSD-3-Clause",
+  "language": "python",
+  "url": "https://github.com/PTO-ISA/pto-spec/commit/752219da08f18b20667d58a1927d6f8306036b10",
+  "files": [
+    "scripts/release_workflow.py",
+    "tests/scripts/test_release_closure.py",
+    "tests/scripts/test_release_workflow.py"
+  ]
+}

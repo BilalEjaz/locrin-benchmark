@@ -1,0 +1,13 @@
+{
+  "id": "vulolabs__vulolabs__bb5d5dd",
+  "source": "git",
+  "repo": "vulolabs/vulolabs",
+  "sha": "bb5d5ddc6f80ca9f7802275c96f07ce2cfba5a71",
+  "parent": "1d0b86bef3fba0d0be66e028d4ab355341c72c43",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/vulolabs/vulolabs/commit/bb5d5ddc6f80ca9f7802275c96f07ce2cfba5a71",
+  "files": [
+    "plugins/vulopilot/config.php"
+  ]
+}

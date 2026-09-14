@@ -1,0 +1,14 @@
+{
+  "id": "yashwantbalaji3__gametimepicks__cc77514",
+  "source": "git",
+  "repo": "yashwantbalaji3/gametimepicks",
+  "sha": "cc77514dcb5f169e93ab8081446148379f5648f8",
+  "parent": "2c37651f0465e94111352505222d40e99c9211a5",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/yashwantbalaji3/gametimepicks/commit/cc77514dcb5f169e93ab8081446148379f5648f8",
+  "files": [
+    "scripts/research/nfl/build-player-games-v2.mjs",
+    "scripts/research/nfl/replay-anytime-td.mjs"
+  ]
+}

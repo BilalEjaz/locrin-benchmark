@@ -1,0 +1,15 @@
+{
+  "id": "Kshitijmishradev__Cassette__62d6da4",
+  "source": "git",
+  "repo": "Kshitijmishradev/Cassette",
+  "sha": "62d6da4ddcfc56923e2b4914da3276dd729091a7",
+  "parent": "a634f00b8587b4d6aaf44f185c821eaa9bd4b42e",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/Kshitijmishradev/Cassette/commit/62d6da4ddcfc56923e2b4914da3276dd729091a7",
+  "files": [
+    "web/src/App.jsx",
+    "web/src/main.jsx",
+    "web/vite.config.js"
+  ]
+}

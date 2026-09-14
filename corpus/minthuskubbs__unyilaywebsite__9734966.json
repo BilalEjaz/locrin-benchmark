@@ -1,0 +1,13 @@
+{
+  "id": "minthuskubbs__unyilaywebsite__9734966",
+  "source": "git",
+  "repo": "minthuskubbs/unyilaywebsite",
+  "sha": "9734966d782f75277d9455b225ae87fc86334351",
+  "parent": "c158653a910290729f60f83d27049ef0529a7eee",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/minthuskubbs/unyilaywebsite/commit/9734966d782f75277d9455b225ae87fc86334351",
+  "files": [
+    "resources/views/pages/search-items.blade.php"
+  ]
+}

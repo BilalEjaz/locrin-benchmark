@@ -1,0 +1,13 @@
+{
+  "id": "hideyukiMORI__nene-profile__356a775",
+  "source": "git",
+  "repo": "hideyukiMORI/nene-profile",
+  "sha": "356a7753dc9b469e8ca9c3a13804494ad61f2bf2",
+  "parent": "2c201861a6e4fd9d47150a222b161a1f51312557",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/hideyukiMORI/nene-profile/commit/356a7753dc9b469e8ca9c3a13804494ad61f2bf2",
+  "files": [
+    "src/ImportJob/CsvExporter.php"
+  ]
+}

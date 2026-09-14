@@ -1,0 +1,31 @@
+{
+  "id": "laravel__mcp__f15df2d",
+  "source": "git",
+  "repo": "laravel/mcp",
+  "sha": "f15df2d82a5381c86cb4ff17e2926719e27c05b7",
+  "parent": "fcbb3bf59813f4dfc73c10f62249cb4e352dc59d",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/laravel/mcp/commit/f15df2d82a5381c86cb4ff17e2926719e27c05b7",
+  "files": [
+    "src/Client.php",
+    "src/Client/Contracts/MirrorsParameters.php",
+    "src/Client/Contracts/Transport.php",
+    "src/Client/Methods/Tools/CallTool.php",
+    "src/Client/Methods/Tools/ListTools.php",
+    "src/Client/Primitives/Tool.php",
+    "src/Client/Protocol.php",
+    "src/Client/Transport/HttpTransport.php",
+    "src/Client/Transport/StdioTransport.php",
+    "src/Exceptions/MirroredParameterException.php",
+    "src/Support/MirroredParameter.php",
+    "src/Support/MirroredParameterType.php",
+    "src/Support/MirroredParameters.php",
+    "src/Support/SchemaPath.php",
+    "tests/Fixtures/Client/FakeTransport.php",
+    "tests/Pest.php",
+    "tests/Unit/Client/ToolHeaderTest.php",
+    "tests/Unit/Client/Transport/HttpTransportTest.php",
+    "tests/Unit/Support/MirroredParametersTest.php"
+  ]
+}

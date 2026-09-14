@@ -1,0 +1,19 @@
+{
+  "id": "atendwa__laravel-reporting__1c153f7",
+  "source": "git",
+  "repo": "atendwa/laravel-reporting",
+  "sha": "1c153f708721cdf6f01a414338433a5ddbe91613",
+  "parent": "c76922b0c836055e115691d9aaa1de308d801483",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/atendwa/laravel-reporting/commit/1c153f708721cdf6f01a414338433a5ddbe91613",
+  "files": [
+    "config/reporting.php",
+    "src/Commands/InstallCommand.php",
+    "src/Filament/Resources/ReportHistoryResource.php",
+    "src/Filament/Resources/ReportResource.php",
+    "src/Filament/Resources/ReportingScheduleResource.php",
+    "src/Providers/ReportingServiceProvider.php",
+    "src/Support/Navigation.php"
+  ]
+}

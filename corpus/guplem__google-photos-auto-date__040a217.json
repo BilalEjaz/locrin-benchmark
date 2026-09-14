@@ -1,0 +1,14 @@
+{
+  "id": "guplem__google-photos-auto-date__040a217",
+  "source": "git",
+  "repo": "guplem/google-photos-auto-date",
+  "sha": "040a217115b07f4be373f008fa2f3ed62ef5cc60",
+  "parent": "01660e87da4000b609529ef921ca42f249069cf3",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/guplem/google-photos-auto-date/commit/040a217115b07f4be373f008fa2f3ed62ef5cc60",
+  "files": [
+    "src/contentEntry.js",
+    "src/controlPanel/controlPanelController.js"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "gasyoun__Systema-Sanscriticum__85883a5",
+  "source": "git",
+  "repo": "gasyoun/Systema-Sanscriticum",
+  "sha": "85883a5e1a61e3eb2e485499f7f152466779ff88",
+  "parent": "907a45fe286a4f420dbfd3897e9732fe5582cb35",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/gasyoun/Systema-Sanscriticum/commit/85883a5e1a61e3eb2e485499f7f152466779ff88",
+  "files": [
+    "tests/Feature/MadelineSyncBreakerTest.php"
+  ]
+}

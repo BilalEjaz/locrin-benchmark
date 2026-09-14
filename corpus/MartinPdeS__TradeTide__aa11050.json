@@ -1,0 +1,13 @@
+{
+  "id": "MartinPdeS__TradeTide__aa11050",
+  "source": "git",
+  "repo": "MartinPdeS/TradeTide",
+  "sha": "aa11050f57333a7866d19dc9ce6729f0dcf42d8d",
+  "parent": "64fbeacbbedebcc697a2f0b0482329900cf5dc5c",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/MartinPdeS/TradeTide/commit/aa11050f57333a7866d19dc9ce6729f0dcf42d8d",
+  "files": [
+    "TradeTide/gui/app.js"
+  ]
+}

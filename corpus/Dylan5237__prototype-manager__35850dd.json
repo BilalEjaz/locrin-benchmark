@@ -1,0 +1,13 @@
+{
+  "id": "Dylan5237__prototype-manager__35850dd",
+  "source": "git",
+  "repo": "Dylan5237/prototype-manager",
+  "sha": "35850dd1dcde7b59b489eb249aa69e8850d8cedf",
+  "parent": "fc7e8f5ab78f6b0b5adce59f0f08001356b65bc6",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/Dylan5237/prototype-manager/commit/35850dd1dcde7b59b489eb249aa69e8850d8cedf",
+  "files": [
+    "frontend/tests/usage-effectiveness.test.js"
+  ]
+}

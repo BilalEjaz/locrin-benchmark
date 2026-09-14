@@ -1,0 +1,15 @@
+{
+  "id": "riesbri__dshline__85bd4db",
+  "source": "git",
+  "repo": "riesbri/dshline",
+  "sha": "85bd4db1c40d6b99dca0f26fd7542b6ea99820df",
+  "parent": "80991d04c81a8bad645cfc137ad494d40f44a418",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/riesbri/dshline/commit/85bd4db1c40d6b99dca0f26fd7542b6ea99820df",
+  "files": [
+    "packages/dshline/src/completion.ts",
+    "packages/dshline/src/timing.ts",
+    "packages/dshline/tests/live-region-bounds.spec.ts"
+  ]
+}

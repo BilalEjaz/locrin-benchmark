@@ -1,0 +1,13 @@
+{
+  "id": "zwave-js__zwave-js__e44b6f2",
+  "source": "git",
+  "repo": "zwave-js/zwave-js",
+  "sha": "e44b6f2928a663ab022fcd3371d1de12d6c817db",
+  "parent": "ddbc5720c491ac069c163ef79fe7c57b14711070",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/zwave-js/zwave-js/commit/e44b6f2928a663ab022fcd3371d1de12d6c817db",
+  "files": [
+    "packages/cc/src/cc/SceneActuatorConfigurationCC.ts"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "DropTracker-io__droptracker-core__15254f0",
+  "source": "git",
+  "repo": "DropTracker-io/droptracker-core",
+  "sha": "15254f030e4b8aca85fb58fde60039c811342153",
+  "parent": "735ab7ac3bd31582c184d82089f8b8dc72cf6f56",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/DropTracker-io/droptracker-core/commit/15254f030e4b8aca85fb58fde60039c811342153",
+  "files": [
+    "tests/unit/test_plugin_config_keys.py"
+  ]
+}

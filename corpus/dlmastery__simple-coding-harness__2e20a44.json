@@ -1,0 +1,14 @@
+{
+  "id": "dlmastery__simple-coding-harness__2e20a44",
+  "source": "git",
+  "repo": "dlmastery/simple-coding-harness",
+  "sha": "2e20a449c97aead97c137b878f58f1cea79d4b3f",
+  "parent": "7b6f5a532e03c0288fb4e3b53b56d46fc9a04fe8",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/dlmastery/simple-coding-harness/commit/2e20a449c97aead97c137b878f58f1cea79d4b3f",
+  "files": [
+    "step_51_trueforge_comparison/demo.py",
+    "step_51_trueforge_comparison/test_step.py"
+  ]
+}

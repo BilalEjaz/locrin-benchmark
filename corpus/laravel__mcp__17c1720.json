@@ -1,0 +1,14 @@
+{
+  "id": "laravel__mcp__17c1720",
+  "source": "git",
+  "repo": "laravel/mcp",
+  "sha": "17c17209790dec3c6d5a9f192d7190e427f46319",
+  "parent": "ca8bb791ee700a6568237bb4c8e86cbea62f6aad",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/laravel/mcp/commit/17c17209790dec3c6d5a9f192d7190e427f46319",
+  "files": [
+    "src/Request.php",
+    "tests/Unit/RequestTest.php"
+  ]
+}

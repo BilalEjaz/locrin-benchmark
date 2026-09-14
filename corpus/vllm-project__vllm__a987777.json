@@ -1,0 +1,14 @@
+{
+  "id": "vllm-project__vllm__a987777",
+  "source": "git",
+  "repo": "vllm-project/vllm",
+  "sha": "a987777755c83863b5d563c15630dd324033d53f",
+  "parent": "fa008bdccf10f2f31f84553112a227cf1b8947d7",
+  "licence": "Apache-2.0",
+  "language": "python",
+  "url": "https://github.com/vllm-project/vllm/commit/a987777755c83863b5d563c15630dd324033d53f",
+  "files": [
+    "tests/models/multimodal/processing/test_gemma4.py",
+    "vllm/model_executor/models/gemma4_mm.py"
+  ]
+}

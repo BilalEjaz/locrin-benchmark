@@ -1,0 +1,20 @@
+{
+  "id": "phungvanquy__v2board-new__ff1debf",
+  "source": "git",
+  "repo": "phungvanquy/v2board-new",
+  "sha": "ff1debf2730fc9b760ec5c8466901d9aa9813060",
+  "parent": "4d7c385c70622f8dab1b1f3fabde7bd8962d5679",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/phungvanquy/v2board-new/commit/ff1debf2730fc9b760ec5c8466901d9aa9813060",
+  "files": [
+    "app/Http/Controllers/V1/Admin/HappCryptoController.php",
+    "app/Http/Routes/V1/AdminRoute.php",
+    "app/Support/HappCryptoService.php",
+    "config/app.php",
+    "resources/views/admin-advanced.blade.php",
+    "resources/views/happ-crypto-login.blade.php",
+    "resources/views/happ-crypto.blade.php",
+    "routes/web.php"
+  ]
+}

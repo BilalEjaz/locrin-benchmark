@@ -1,0 +1,22 @@
+{
+  "id": "vulolabs__vulolabs__d41b3a3",
+  "source": "git",
+  "repo": "vulolabs/vulolabs",
+  "sha": "d41b3a3878d84019cbc550d159934da48b0aff13",
+  "parent": "5099ab41cc28ca68d5bc99606e6853a0d4949cf5",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/vulolabs/vulolabs/commit/d41b3a3878d84019cbc550d159934da48b0aff13",
+  "files": [
+    "plugins/vulopilot/classes/RestAPI/Controllers/VuloCloudConnect.php",
+    "plugins/vulopilot/classes/RestAPI/Rest.php",
+    "plugins/vulopilot/classes/Services/ConnectBrokerClient.php",
+    "plugins/vulopilot/classes/Services/VuloCloudConnectCallbackHandler.php",
+    "plugins/vulopilot/classes/Services/VuloCloudConnection.php",
+    "plugins/vulopilot/classes/VuloPilot.php",
+    "plugins/vulopilot/config.php",
+    "plugins/vulopilot/src/components/Settings/Connections/VuloCloudConnect.ts",
+    "plugins/vulopilot/src/components/Settings/Connections/VuloCloudConnectPanel.tsx",
+    "plugins/vulopilot/tests/php/src/test-connect-broker-client.php"
+  ]
+}

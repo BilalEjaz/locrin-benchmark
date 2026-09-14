@@ -1,0 +1,16 @@
+{
+  "id": "Xveyn__vectorgrep__af3c2e5",
+  "source": "git",
+  "repo": "Xveyn/vectorgrep",
+  "sha": "af3c2e56e388ae2a88f49a74731cb29b3e8bef16",
+  "parent": "346b2ce281d3deb390f714e57c03776d81e1b9e1",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Xveyn/vectorgrep/commit/af3c2e56e388ae2a88f49a74731cb29b3e8bef16",
+  "files": [
+    "src/indexing/file-scanner.ts",
+    "src/utils/git.ts",
+    "test/unit/file-scanner-git-fallback.test.ts",
+    "test/unit/file-scanner.test.ts"
+  ]
+}

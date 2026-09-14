@@ -1,0 +1,16 @@
+{
+  "id": "SLENDER66__SINGULAR__d870414",
+  "source": "git",
+  "repo": "SLENDER66/SINGULAR",
+  "sha": "d870414da478f83318e024cf2912b06ba632fa5f",
+  "parent": "00c3b773c3e81e51d3bd963c805d1cac4da714a4",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/SLENDER66/SINGULAR/commit/d870414da478f83318e024cf2912b06ba632fa5f",
+  "files": [
+    "singular/analyse.py",
+    "singular/offres.py",
+    "singular/parle.py",
+    "tests/test_parle_budget.py"
+  ]
+}

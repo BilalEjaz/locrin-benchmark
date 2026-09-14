@@ -1,0 +1,19 @@
+{
+  "id": "Synaphi__tag-calendar__cc5174b",
+  "source": "git",
+  "repo": "Synaphi/tag-calendar",
+  "sha": "cc5174b358969fff248c955ce286cde9ff4a1fda",
+  "parent": "6c98ec236947a7de5d20e2746cd84d20f9bcca11",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Synaphi/tag-calendar/commit/cc5174b358969fff248c955ce286cde9ff4a1fda",
+  "files": [
+    "scripts/deploy-local.mjs",
+    "src/guide.ts",
+    "src/main.ts",
+    "src/views.ts",
+    "tests/guide.test.ts",
+    "tests/hub-text.test.ts",
+    "tests/styles.test.ts"
+  ]
+}

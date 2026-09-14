@@ -1,0 +1,13 @@
+{
+  "id": "masumi-network__sokosumi__9408c91",
+  "source": "git",
+  "repo": "masumi-network/sokosumi",
+  "sha": "9408c915fce67d6858c28e3f53b82be757016ed2",
+  "parent": "06850704c8b66367ecf5a42669cefe9f95a2ff26",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/masumi-network/sokosumi/commit/9408c915fce67d6858c28e3f53b82be757016ed2",
+  "files": [
+    "apps/core/src/routes/v1/tasks/[id]/schedule/occurrences/get.ts"
+  ]
+}

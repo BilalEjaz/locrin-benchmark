@@ -1,0 +1,13 @@
+{
+  "id": "Zen-cronic__rhode__a727d3e",
+  "source": "git",
+  "repo": "Zen-cronic/rhode",
+  "sha": "a727d3eac590d31dbc7dee9347be400beb15582e",
+  "parent": "46d3f40b967271ae36ba47bbf31de16215f23de6",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/Zen-cronic/rhode/commit/a727d3eac590d31dbc7dee9347be400beb15582e",
+  "files": [
+    "scripts/prepare-offline-demo-kit.mjs"
+  ]
+}

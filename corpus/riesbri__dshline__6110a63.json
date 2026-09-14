@@ -1,0 +1,26 @@
+{
+  "id": "riesbri__dshline__6110a63",
+  "source": "git",
+  "repo": "riesbri/dshline",
+  "sha": "6110a630add498f8c55049feffbcd2e6bde39dd1",
+  "parent": "7fa08e5fe016a1e604e3f7e8bd35888a762162a5",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/riesbri/dshline/commit/6110a630add498f8c55049feffbcd2e6bde39dd1",
+  "files": [
+    "packages/dshline/src/attachment.ts",
+    "packages/dshline/src/sessions/catalog.ts",
+    "packages/dshline/src/sessions/filters.ts",
+    "packages/dshline/src/sessions/index.ts",
+    "packages/dshline/src/sessions/reopen.ts",
+    "packages/dshline/src/worktrees/catalog.ts",
+    "packages/dshline/src/worktrees/index.ts",
+    "packages/dshline/src/worktrees/model.ts",
+    "packages/dshline/src/worktrees/overlay.ts",
+    "packages/dshline/tests/sessions-catalog.spec.ts",
+    "packages/dshline/tests/sessions-filters.spec.ts",
+    "packages/dshline/tests/worktrees-catalog.spec.ts",
+    "packages/dshline/tests/worktrees-overlay.spec.ts",
+    "packages/dshline/tests/worktrees-transitions.spec.ts"
+  ]
+}

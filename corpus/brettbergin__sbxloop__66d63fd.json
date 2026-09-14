@@ -1,0 +1,14 @@
+{
+  "id": "brettbergin__sbxloop__66d63fd",
+  "source": "git",
+  "repo": "brettbergin/sbxloop",
+  "sha": "66d63fd5a24d18f355587576075ab1e4d0e20dc5",
+  "parent": "002eb5844416398ba6d7975e13f1ecff6f7d3074",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/brettbergin/sbxloop/commit/66d63fd5a24d18f355587576075ab1e4d0e20dc5",
+  "files": [
+    "packages/sbxloop/src/sbxloop/vcs/gitlab/protection.py",
+    "tests/unit/test_gl_protection.py"
+  ]
+}

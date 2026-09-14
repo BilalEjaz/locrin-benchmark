@@ -1,0 +1,17 @@
+{
+  "id": "udzura__picoruby-cloudflare-worker-wasm__bbfc3e3",
+  "source": "git",
+  "repo": "udzura/picoruby-cloudflare-worker-wasm",
+  "sha": "bbfc3e3a6c015fb9a65be939cae6598af20f193c",
+  "parent": "9d05a2692bfba9b39dac3bc537230bfd20023365",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/udzura/picoruby-cloudflare-worker-wasm/commit/bbfc3e3a6c015fb9a65be939cae6598af20f193c",
+  "files": [
+    "templates/runtime/durable-object.js",
+    "templates/runtime/host-bridge.js",
+    "templates/runtime/runtime.js",
+    "templates/tools/cloudflare-binding-registry.mjs",
+    "templates/tools/generate-bindings.mjs"
+  ]
+}

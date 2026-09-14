@@ -1,0 +1,15 @@
+{
+  "id": "memorasolutions__laveille-ai__c6c0447",
+  "source": "git",
+  "repo": "memorasolutions/laveille-ai",
+  "sha": "c6c0447291066737dfb92f7fbd1d173500e8fbc5",
+  "parent": "8dadc1e0d6d7fa75b089f13c0bafba7a23634d3b",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/memorasolutions/laveille-ai/commit/c6c0447291066737dfb92f7fbd1d173500e8fbc5",
+  "files": [
+    "Modules/Core/app/Http/Middleware/ContentSecurityPolicy.php",
+    "Modules/Core/app/Http/Middleware/SecurityHeaders.php",
+    "config/version.php"
+  ]
+}

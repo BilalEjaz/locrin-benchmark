@@ -1,0 +1,21 @@
+{
+  "id": "DropTracker-io__droptracker-core__663efc3",
+  "source": "git",
+  "repo": "DropTracker-io/droptracker-core",
+  "sha": "663efc37eeb0a65d27e37300be3e9b41d04c1559",
+  "parent": "3885c1963959164bc907feadc374b9bbe4fd5588",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/DropTracker-io/droptracker-core/commit/663efc37eeb0a65d27e37300be3e9b41d04c1559",
+  "files": [
+    "commands/submissions.py",
+    "commands/user.py",
+    "db/models/__init__.py",
+    "db/models/base.py",
+    "db/models/group.py",
+    "db/models/player.py",
+    "db/ops.py",
+    "services/channel_names.py",
+    "tests/unit/test_wom_sync_detached_group.py"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "id": "hraness__oompa__b381c63",
+  "source": "git",
+  "repo": "hraness/oompa",
+  "sha": "b381c63df31e12b87e44eeda4a4aea8432803df0",
+  "parent": "899bfb6fe6e1235643d88239033140e833d74ea9",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/hraness/oompa/commit/b381c63df31e12b87e44eeda4a4aea8432803df0",
+  "files": [
+    "convex/accountDeletion.ts",
+    "convex/auth.ts",
+    "convex/authorityReductionCapacity.test.ts",
+    "convex/authorityReductionCapacity.ts",
+    "convex/command-lifecycle.test.ts",
+    "convex/commandLifecycle.ts",
+    "convex/maintenance.ts",
+    "convex/quota.test.ts",
+    "convex/quota.ts",
+    "convex/schema.ts",
+    "convex/validators.ts",
+    "scripts/deletion-backend-acceptance.test.ts",
+    "scripts/deletion-backend-acceptance.ts",
+    "scripts/deletion-backend-acceptance/fixture.test.ts",
+    "scripts/deletion-backend-acceptance/fixture.ts",
+    "scripts/manage-command-lifecycle-capacity.test.ts",
+    "scripts/manage-command-lifecycle-capacity.ts",
+    "scripts/package-policy.ts"
+  ]
+}

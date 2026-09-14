@@ -1,0 +1,14 @@
+{
+  "id": "smsag__schreibstube__13817cc",
+  "source": "git",
+  "repo": "smsag/schreibstube",
+  "sha": "13817cc9c5de09e68c3c6c15b5172193cf3118a7",
+  "parent": "f695a2c4067ceaa14418acff1f6a469f54582b47",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/smsag/schreibstube/commit/13817cc9c5de09e68c3c6c15b5172193cf3118a7",
+  "files": [
+    "src/i18n/index.test.ts",
+    "src/i18n/index.ts"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "pwoodman__the-code-sheriff__91e41b4",
+  "source": "git",
+  "repo": "pwoodman/the-code-sheriff",
+  "sha": "91e41b4b4a6b83ca495807eeceb77b6a3b718920",
+  "parent": "0bc4809327a24749a6a5a0acf3d66c1dfd0f5902",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/pwoodman/the-code-sheriff/commit/91e41b4b4a6b83ca495807eeceb77b6a3b718920",
+  "files": [
+    "src/quality_gates/cli.py",
+    "tests/test_foundation.py"
+  ]
+}

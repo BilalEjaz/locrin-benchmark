@@ -1,0 +1,15 @@
+{
+  "id": "memorasolutions__laveille-ai__8dadc1e",
+  "source": "git",
+  "repo": "memorasolutions/laveille-ai",
+  "sha": "8dadc1e0d6d7fa75b089f13c0bafba7a23634d3b",
+  "parent": "69627c46000a7ec16a86dfc96386382970f53036",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/memorasolutions/laveille-ai/commit/8dadc1e0d6d7fa75b089f13c0bafba7a23634d3b",
+  "files": [
+    "Modules/Authors/resources/views/components/newsletter-optin.blade.php",
+    "Modules/Directory/resources/views/public/index.blade.php",
+    "config/version.php"
+  ]
+}

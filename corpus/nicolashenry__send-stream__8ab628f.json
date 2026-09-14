@@ -1,0 +1,13 @@
+{
+  "id": "nicolashenry__send-stream__8ab628f",
+  "source": "git",
+  "repo": "nicolashenry/send-stream",
+  "sha": "8ab628f117fa90fd8f909e49dba0ee5d23d39af3",
+  "parent": "1f16396c319f6fbe32529a806b5305c4bd70e420",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/nicolashenry/send-stream/commit/8ab628f117fa90fd8f909e49dba0ee5d23d39af3",
+  "files": [
+    "src/storage.ts"
+  ]
+}

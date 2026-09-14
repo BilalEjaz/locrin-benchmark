@@ -1,0 +1,13 @@
+{
+  "id": "MartinCa__frontend-kit__5313502",
+  "source": "git",
+  "repo": "MartinCa/frontend-kit",
+  "sha": "531350203c8a10502a828ed13d68af7299b19261",
+  "parent": "850b06ae382f5d90821d39c038c85980d39deb84",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/MartinCa/frontend-kit/commit/531350203c8a10502a828ed13d68af7299b19261",
+  "files": [
+    "eslint.config.js"
+  ]
+}
