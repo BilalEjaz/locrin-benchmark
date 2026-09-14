@@ -319,8 +319,13 @@ def _skip(repo: str, sha: str, reason: str, kind: str | None = None) -> None:
     print(f"skip {repo}@{sha[:7]}: {reason}", file=sys.stderr)
 
 
-def accept(gh, item: dict, seen_repos: dict[str, int]):
+def accept(gh, item: dict, seen_repos: dict[str, int], language_skip=None, meta_cache: dict | None = None):
     """A (record, before, after) triple for an acceptable commit, or None with the reason on stderr.
+
+    language_skip, when given, takes the commit's corpus language and returns a skip reason
+    or None. It runs before any file is fetched and before the repository cap counts the
+    commit, so a commit in an unwanted language costs two calls at most. meta_cache, when
+    given, holds repository metadata by lower-cased name so each repository is read once.
 
     Before and after hold the supported source files only. A renamed file's
     before side is stored under its previous name, which the record lists too,
@@ -337,7 +342,12 @@ def accept(gh, item: dict, seen_repos: dict[str, int]):
     if seen_repos.get(named.lower(), 0) >= PER_REPO:
         _skip(named, sha, "repository cap")
         return None
-    meta = gh.get(f"repos/{named}")
+    if meta_cache is not None and named.lower() in meta_cache:
+        meta = meta_cache[named.lower()]
+    else:
+        meta = gh.get(f"repos/{named}")
+        if meta_cache is not None:
+            meta_cache[named.lower()] = meta
     # The name as typed with --repo, or from a search hit made before a rename, is not the record's
     # name: GitHub's canonical full_name is, so one commit always gets one id.
     repo = meta.get("full_name") or named
@@ -362,6 +372,10 @@ def accept(gh, item: dict, seen_repos: dict[str, int]):
     language = _corpus_language(files)
     if language is None:
         _skip(repo, sha, "no added or modified supported source file", "no supported source file")
+        return None
+    reason = language_skip(language) if language_skip is not None else None
+    if reason:
+        _skip(repo, sha, f"{reason}: {language}", reason)
         return None
     parent = commit["parents"][0]["sha"]
     names: list[str] = []
@@ -490,8 +504,15 @@ def _via_repos(gh, out: Path, a) -> int:
     failed_searches = 0
     SKIPS.clear()
 
+    meta_cache: dict[str, dict] = {}
+
     def full(language: str) -> bool:
         return a.language_target is not None and held[language] >= a.language_target
+
+    def language_skip(language: str) -> str | None:
+        # Checked inside accept() before any file is fetched, so an unwanted language costs no contents calls.
+        return ("language not selected" if language not in languages
+                else "language target" if full(language) else None)
 
     def summary() -> None:
         print(f"examined {len(examined)} repositories, {matched_total} commits with an agent trailer", file=sys.stderr)
@@ -542,19 +563,10 @@ def _via_repos(gh, out: Path, a) -> int:
                             done.add(c["sha"])
                             item = {"sha": c["sha"], "repository": {"full_name": name}, "parents": c.get("parents") or []}
                             try:
-                                got = accept(gh, item, seen)
+                                got = accept(gh, item, seen, language_skip=language_skip, meta_cache=meta_cache)
                                 if got is None:
                                     continue
-                                rec = got[0]
-                                lang = rec["language"]
-                                reason = ("language not selected" if lang not in languages
-                                          else "language target" if full(lang) else None)
-                                if reason:
-                                    # accept() counted the record against the repository cap; it is not written.
-                                    key = rec["repo"].lower()
-                                    seen[key] = seen.get(key, 1) - 1
-                                    _skip(rec["repo"], rec["sha"], f"{reason}: {lang}", reason)
-                                    continue
+                                lang = got[0]["language"]
                                 print(write_record(out, *got))
                             except RateLimitError:
                                 raise

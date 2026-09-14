@@ -964,7 +964,7 @@ def test_main_via_repos_skips_commits_already_recorded_and_repositories_at_the_c
     write_record(out, rec, before, after)
     tried = []
 
-    def fake_accept(gh, item, seen_repos):
+    def fake_accept(gh, item, seen_repos, **kwargs):
         tried.append(item["sha"][:7])
         return None
 
@@ -985,11 +985,16 @@ def test_main_via_repos_skips_commits_already_recorded_and_repositories_at_the_c
 def fake_records(language_of_sha=None):
     accepted = []
 
-    def fake_accept(gh, item, seen_repos):
+    def fake_accept(gh, item, seen_repos, language_skip=None, meta_cache=None):
         repo, sha = item["repository"]["full_name"], item["sha"]
         accepted.append(sha[:7])
-        seen_repos[repo.lower()] = seen_repos.get(repo.lower(), 0) + 1
         language = (language_of_sha or {}).get(sha[:7], "typescript")
+        # As accept() does: the language check comes before the repository cap counts the commit.
+        reason = language_skip(language) if language_skip else None
+        if reason:
+            bc._skip(repo, sha, f"{reason}: {language}", reason)
+            return None
+        seen_repos[repo.lower()] = seen_repos.get(repo.lower(), 0) + 1
         rec = {"id": f"{repo.replace('/', '__')}__{sha[:7]}", "source": "git", "repo": repo, "sha": sha,
                "parent": PARENT, "licence": "Apache-2.0", "language": language,
                "url": f"https://github.com/{repo}/commit/{sha}", "files": [FILE]}
@@ -1102,7 +1107,68 @@ def test_main_via_repos_passes_commit_pages(tmp_path, monkeypatch):
     full = [dict(c, sha=f"{i:040x}") for i, c in enumerate(load("commits_list.json") * 25)]
     gh = FakeGitHub({f"repos/{REPO}/commits": full})
     monkeypatch.setattr(bc, "GitHub", lambda: gh)
-    monkeypatch.setattr(bc, "accept", lambda gh, item, seen_repos: None)
+    monkeypatch.setattr(bc, "accept", lambda gh, item, seen_repos, **kwargs: None)
     assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(tmp_path / "c"), "--language", "php",
                     "--commit-pages", "2"]) == 0
     assert [params["page"] for path, params in gh.requests if path == f"repos/{REPO}/commits"] == [1, 2]
+
+
+def mixed_commit():
+    # Five JavaScript files and one PHP file: a JavaScript record, whatever repository search found it.
+    return commit_with([{"filename": f"resources/js/c{i}.js", "status": "modified"} for i in range(5)]
+                       + [{"filename": "app/Http/X.php", "status": "modified"}])
+
+
+def test_accept_checks_the_language_before_fetching_any_file_or_counting_the_repository(capsys):
+    gh = FakeGitHub({f"repos/{REPO}/commits/{SHA}": mixed_commit()})
+    seen = {}
+    asked = []
+
+    def check(language):
+        asked.append(language)
+        return "language not selected"
+
+    assert accept(gh, first_item(), seen, language_skip=check) is None
+    assert asked == ["javascript"]
+    assert seen == {} and not any("/contents/" in p for p in gh.calls)
+    assert f"skip {REPO}@5ff11f2: language not selected: javascript" in capsys.readouterr().err
+    assert bc.SKIPS["language not selected"] >= 1
+    # A check that lets the language through changes nothing.
+    rec, before, after = accept(FakeGitHub(), first_item(), seen, language_skip=lambda language: None)
+    assert rec["language"] == "typescript" and seen == {REPO: 1}
+
+
+def test_accept_reads_repository_metadata_once_per_repository_with_a_cache():
+    gh = FakeGitHub({f"repos/{REPO}/commits/{SHA}": commit_with([])})
+    cache = {}
+    for _ in range(3):
+        assert accept(gh, first_item(), {}, meta_cache=cache) is None
+    assert gh.calls.count(f"repos/{REPO}") == 1
+
+
+def test_main_via_repos_fetches_no_file_for_a_commit_in_a_language_not_selected(tmp_path, monkeypatch, capsys):
+    commits = load("commits_list.json")
+    gh = FakeGitHub({f"repos/{REPO}/commits/{c['sha']}": mixed_commit() for c in commits})
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(tmp_path / "c"), "--language", "php"]) == 0
+    assert not any("/contents/" in p for p in gh.calls)
+    # One metadata call for the repository, one detail call per matched commit, all three matched commits tried.
+    assert gh.calls.count(f"repos/{REPO}") == 1
+    assert sum(p.startswith(f"repos/{REPO}/commits/") for p in gh.calls) == 3
+    err = capsys.readouterr().err
+    assert "language not selected 3" in err and f"repo {REPO}: 4 commits, 3 matched, 0 accepted" in err
+
+
+def test_main_via_repos_fetches_no_file_for_a_commit_whose_language_is_full(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    rec, before, after = accept(FakeGitHub(), first_item(), seen_repos={})
+    write_record(out, rec, before, after)
+    gh = FakeGitHub()
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out), "--language", "typescript",
+                    "--language", "javascript", "--language-target", "1"]) == 0
+    assert not any("/contents/" in p for p in gh.calls)
+    assert sum(p.startswith(f"repos/{REPO}/commits/") for p in gh.calls) == 2
+    assert gh.calls.count(f"repos/{REPO}") == 1
+    assert len(load_corpus(out)) == 1
+    assert "language target 2" in capsys.readouterr().err
