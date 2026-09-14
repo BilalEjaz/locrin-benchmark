@@ -878,3 +878,22 @@ def test_a_failed_checkout_of_the_base_is_a_materialise_error_naming_the_diff(tm
     co = materialise(d, corpus, tmp_path / "cache")
     with pytest.raises(MaterialiseError, match="^fx-x: git checkout"):
         checkout_base(d, Checkout(root=co.root, base_ref="0" * 40), tmp_path / "cache")
+
+
+def test_added_lines_are_the_lines_the_commit_added_to_each_named_file(tmp_path):
+    from bench.materialise import added_lines
+
+    corpus = tmp_path / "corpus"
+    before = {"src/s.ts": "a\nb\nc\n", "src/[id].ts": "x\ny\n", "src/same.ts": "q\n"}
+    after = {"src/s.ts": "new\na\nb\nmid\nmid2\nc\n", "src/[id].ts": "x\nY\n", "src/same.ts": "q\n", "src/added.ts": "1\n2\n"}
+    for side, files in (("before", before), ("after", after)):
+        for rel, text in files.items():
+            (corpus / "fx-x" / side / rel).parent.mkdir(parents=True, exist_ok=True)
+            (corpus / "fx-x" / side / rel).write_bytes(text.encode("utf-8"))
+    d = Diff(id="fx-x", source="tree", repo=None, sha=None, parent=None, licence="MIT",
+             language="typescript", url="fixture", files=sorted(after))
+    co = materialise(d, corpus, tmp_path / "cache")
+    # A name with glob characters is taken literally.
+    got = added_lines(d, co, tmp_path / "cache", ["src/s.ts", "src/[id].ts", "src/same.ts", "src/added.ts"])
+    assert got == {"src/s.ts": {1, 4, 5}, "src/[id].ts": {2}, "src/same.ts": set(), "src/added.ts": {1, 2}}
+    assert added_lines(d, co, tmp_path / "cache", []) == {}

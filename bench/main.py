@@ -10,12 +10,12 @@ from pathlib import Path
 
 from bench import inputs
 from bench.corpus import CorpusError, load_corpus
-from bench.labels import LabelError, invalid_missed, load_labels
-from bench.materialise import MaterialiseError, SourceGone, materialise
+from bench.labels import LabelError, dropped_missed, invalid_missed, load_labels
+from bench.materialise import MaterialiseError, SourceGone, added_lines, materialise
 from bench.readme_table import replace_table
 from bench.run import Finding, RuleMeta, RunError, check_parent, ignore_files_above, install_locrin, normalise, run_check
-from bench.score import (excluded, excluded_count, excluded_missed, not_applicable, render_markdown, repository_of, score,
-                         split_duplicates, split_preexisting, unreproduced)
+from bench.score import (excluded, excluded_count, excluded_missed, not_applicable, render_markdown, repeated_files, repository_of,
+                         score, split_duplicates, split_preexisting, unreproduced)
 
 
 # Exit codes. Only 0 and 3 are publishable, and only then is the README table rewritten. Publishable also
@@ -23,9 +23,9 @@ from bench.score import (excluded, excluded_count, excluded_missed, not_applicab
 # confirmed by pass two with no entry left `?`, every finding has a label entry, and every labelled finding
 # is reported again by this run. Entries whose two passes disagree are excluded, and the table counts them.
 # The unit of measurement is a finding the change introduced: after the run at the commit, locrin runs at the
-# parent over the files that carry findings, and a finding it reports there too is pre-existing. A finding an
-# earlier diff (by id) from the same repository introduced is a duplicate. Neither is labelled or scored; the
-# table and run.json count both.
+# parent over the files that carry findings, and for each rule, file and id as many findings as it reports there
+# are pre-existing. Occurrences an earlier diff (by id) from the same repository already counts are duplicates.
+# Neither is labelled or scored; the table and run.json count both.
 # 0 every diff ran.
 # 1 not publishable: locrin or the harness failed on a diff, a source could not be materialised for any
 #   reason other than being confirmed gone (a network, DNS, server or disk error may pass), or no diff ran.
@@ -35,8 +35,8 @@ from bench.score import (excluded, excluded_count, excluded_missed, not_applicab
 # 4 not publishable: everything that could run ran, but the labels do not cover the run (a finding with no
 #   label entry, a diff with no label file, a label file written for another locrin version, a label file
 #   pass two never confirmed or with an entry still `?`, a labelled finding this run did not report, or a
-#   missed entry that names no construct at the commit: a repeat, a rule locrin does not have, or a file or
-#   line the commit does not hold).
+#   missed entry that names no construct at the commit: a repeat, a rule locrin does not have, a file or
+#   line the commit does not hold, or a finding the run reported there and left out as pre-existing or duplicate).
 EXIT_RUN_FAILED = 1
 EXIT_SETUP = 2
 EXIT_SOURCE_GONE = 3
@@ -110,7 +110,8 @@ def main(argv: list[str] | None = None) -> int:
             fs, rs = normalise(d.id, doc)
             # Read while the checkout is at the commit, before check_parent moves it to the parent.
             problems = invalid_missed(labels[d.id], co.root, set(rs)) if d.id in labels else []
-            fs, old = split_preexisting(fs, check_parent(locrin, d, co, Path(a.cache), Path(a.work), fs))
+            added = added_lines(d, co, Path(a.cache), repeated_files(fs))
+            fs, old = split_preexisting(fs, check_parent(locrin, d, co, Path(a.cache), Path(a.work), fs), added)
         except MaterialiseError as e:
             mat_fail.append(str(e))
             print(f"materialise failed: {e}", file=sys.stderr)
@@ -136,6 +137,9 @@ def main(argv: list[str] | None = None) -> int:
         rules = rs or rules
         print(f"{d.id}: {len(fs)} findings introduced, {len(old)} pre-existing")
     findings, duplicates = split_duplicates(findings, {d.id: repository_of(d) for d in diffs})
+    flagged = {(p["diff"], p["rule"], p["file"], p["line"]) for p in invalid}
+    invalid += [p for d in sorted(ran) if d in labels for p in dropped_missed(labels[d], preexisting + duplicates)
+                if (p["diff"], p["rule"], p["file"], p["line"]) not in flagged]
     findings.sort(key=lambda f: (f.diff, f.rule, f.file, f.line, f.id))
     # Only diffs that ran are scored, so a failed diff neither adds its misses nor loses its true entries.
     per_rule, per_pair, unlabelled = score(findings, labels, rules, ran=ran, preexisting=preexisting, duplicates=duplicates)

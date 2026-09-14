@@ -158,3 +158,16 @@ def invalid_missed(lf: LabelFile, root: Path, rules: set[str]) -> list[dict]:
         if problem:
             out.append({"diff": lf.diff, "rule": e.rule, "file": e.file, "line": e.line, "problem": problem})
     return out
+
+
+def dropped_missed(lf: LabelFile, left_out: list) -> list[dict]:
+    """Missed entries on a finding the run reported at the commit and left out, each with the reason.
+
+    left_out holds the diff's pre-existing and duplicate findings (bench.run.Finding). The engine did
+    report its rule at that file and line, so a missed entry there names no miss: it is invalid, like
+    the entries invalid_missed lists.
+    """
+    reported = {(f.rule, f.file, f.line) for f in left_out if f.diff == lf.diff}
+    return [{"diff": lf.diff, "rule": e.rule, "file": e.file, "line": e.line,
+             "problem": f"the engine reported {e.rule} here and the run left it out as pre-existing or a duplicate"}
+            for e in lf.entries if "missed" in (e.pass1, e.pass2) and (e.rule, e.file, e.line) in reported]

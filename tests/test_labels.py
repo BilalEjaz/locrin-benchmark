@@ -329,3 +329,23 @@ def test_invalid_missed_names_repeats_unknown_rules_and_files_or_lines_the_commi
     ]
     assert all(p["diff"] == "fx-01-debug" for p in got)
     assert invalid_missed(LabelFile("fx-01-debug", "v0.5.0", None, None, []), root, set()) == []
+
+
+def test_a_missed_entry_on_a_finding_the_run_reported_and_left_out_is_invalid(tmp_path):
+    from bench.labels import dropped_missed, load_label_file
+    from bench.run import Finding
+
+    label(tmp_path, [
+        entry(rule="secret-exposed", file="src/s.ts", line=6, id=None, pass1="missed", pass2="missed"),
+        entry(rule="secret-exposed", file="src/s.ts", line=7, id=None, pass1="missed", pass2="?"),
+        entry(rule="leftover-debug", file="src/s.ts", line=6, id=None, pass1="missed", pass2="missed"),
+        entry(rule="secret-exposed", file="src/s.ts", line=6, id="1" * 16),
+    ])
+    lf = load_label_file(tmp_path / "fx-01-debug.json")
+    # The engine reported secret-exposed at src/s.ts:6 and the run left it out as pre-existing or a duplicate.
+    left_out = [Finding("fx-01-debug", "secret-exposed", "src/s.ts", 6, "1" * 16, "high", "typescript"),
+                Finding("fx-01-debug", "secret-exposed", "src/t.ts", 7, "1" * 16, "high", "typescript")]
+    assert dropped_missed(lf, left_out) == [{
+        "diff": "fx-01-debug", "rule": "secret-exposed", "file": "src/s.ts", "line": 6,
+        "problem": "the engine reported secret-exposed here and the run left it out as pre-existing or a duplicate"}]
+    assert dropped_missed(lf, []) == []

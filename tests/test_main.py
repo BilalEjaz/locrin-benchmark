@@ -631,3 +631,51 @@ def test_valid_missed_entries_on_any_file_at_the_commit_publish(tmp_path, monkey
     args = _setup(tmp_path, monkeypatch, ["fx-01-ok"], {})
     assert main_mod.main(args) == 0
     assert _run_json(tmp_path)["labels"]["invalid_missed"] == []
+
+
+def test_a_missed_entry_on_a_pre_existing_or_duplicate_finding_makes_the_run_not_publishable(tmp_path, monkeypatch, capsys):
+    # Both diffs report X at src/x.ts:3; the parent of acme__w__1111111 holds it too, and acme__w__2222222 repeats
+    # Y, which acme__w__1111111 introduced. A missed entry on either line is a finding the run did report.
+    X, Y = "e" * 16, "f" * 16
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "x.ts").write_bytes(b"1\n2\n3\n4\n5\n6\n7\n8\n")
+    labels = tmp_path / "labels"
+    labels.mkdir()
+    write_label(labels, "acme__w__1111111", [entry("src/x.ts", 8, Y, "true"), entry("src/x.ts", 3, None, "missed")])
+    write_label(labels, "acme__w__2222222", [entry("src/x.ts", 8, None, "missed")])
+    args = _setup(tmp_path, monkeypatch, [], {})
+    monkeypatch.setattr(main_mod, "load_corpus", lambda root: [git_diff("acme__w__1111111"), git_diff("acme__w__2222222")])
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif(
+        [result("src/x.ts", 3, X), result("src/x.ts", 8, Y)] if diff_id.endswith("1") else [result("src/x.ts", 8, Y)]))
+    monkeypatch.setattr(main_mod, "check_parent", lambda locrin, d, co, cache, work, findings: [f for f in findings if f.id == X])
+    assert main_mod.main(args) == 4
+    run = _run_json(tmp_path)
+    assert [(p["diff"], p["file"], p["line"]) for p in run["labels"]["invalid_missed"]] == [
+        ("acme__w__1111111", "src/x.ts", 3), ("acme__w__2222222", "src/x.ts", 8)]
+    assert any("2 missed entries that name no construct at the commit" in r for r in run["not_publishable"])
+    err = capsys.readouterr().err
+    assert "invalid missed: acme__w__2222222 leftover-debug src/x.ts:8 the engine reported leftover-debug here" in err
+
+
+def test_the_occurrence_of_a_repeated_id_on_a_line_the_change_added_is_the_introduced_one(tmp_path, monkeypatch):
+    # The parent held Y once, at the line that is now 6; the change added a copy at line 2 above it.
+    Y = "f" * 16
+    labels = tmp_path / "labels"
+    labels.mkdir()
+    write_label(labels, "fx-01-ok", [entry("src/x.ts", 2, Y, "true"), entry("src/y.ts", 1, "a" * 16, "true")])
+    args = _setup(tmp_path, monkeypatch, ["fx-01-ok"], {})
+    monkeypatch.setattr(main_mod, "check_parent", lambda locrin, d, co, cache, work, findings: [findings[1]])
+    asked = []
+
+    def fake_added_lines(d, co, cache, files):
+        asked.append((d.id, files))
+        return {"src/x.ts": {1, 2, 3}}
+
+    monkeypatch.setattr(main_mod, "added_lines", fake_added_lines)
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif(
+        [result("src/x.ts", 2, Y), result("src/x.ts", 6, Y), result("src/y.ts", 1, "a" * 16)]))
+    assert main_mod.main(args) == 0
+    # Only a file where one id repeats needs its added lines.
+    assert asked == [("fx-01-ok", ["src/x.ts"])]
+    run = _run_json(tmp_path)
+    assert run["findings"] == 2 and run["preexisting"] == 1 and run["publishable"] is True

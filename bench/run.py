@@ -243,8 +243,8 @@ def check_parent(locrin: Path, diff: Diff, checkout: Checkout, cache: Path, work
 
     Moves the checkout to its base commit, then runs locrin with the same config and an emptied cache
     over each such file the parent still holds as a regular file. A finding id hashes the rule, the
-    file path and the construct, not the line, so a finding at the commit whose rule, file and id this
-    run reports was already there. A file the parent lacks (added, or renamed, which changes the path)
+    file path and an anchor that is not the line number, so score.split_preexisting counts the findings
+    at the commit on each rule, file and id against this run's. A file the parent lacks (added, or renamed, which changes the path)
     holds only new findings, so it is left out, and with no file left locrin does not run. A diff with
     no finding at the commit has nothing to compare, so its checkout stays where it is.
     """

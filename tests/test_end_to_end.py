@@ -287,3 +287,69 @@ export function total(xs: number[]): number {
             line.startswith(f"| `{rule}` |") and line.endswith("| 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | n<5, not scored |")
             for line in table.splitlines()), rule
     assert "| `leftover-debug` | on |  |  | 0 | 0 | 0 | 1 | 0 | 0 | 1 | 0 | n<5, not scored |" in table
+
+
+def _tree_diff(corpus: Path, ident: str, before: dict[str, str], after: dict[str, str]) -> None:
+    for side, files in (("before", before), ("after", after)):
+        for rel, text in files.items():
+            (corpus / ident / side / rel).parent.mkdir(parents=True, exist_ok=True)
+            (corpus / ident / side / rel).write_bytes(text.encode("utf-8"))
+    record = {"id": ident, "source": "tree", "repo": None, "sha": None, "parent": None, "licence": "MIT",
+              "language": "typescript", "url": "fixture", "files": sorted(set(before) | set(after))}
+    (corpus / f"{ident}.json").write_bytes(json.dumps(record).encode("utf-8"))
+
+
+def test_a_new_occurrence_of_an_id_the_parent_already_reports_is_introduced(tmp_path):
+    # secret-exposed anchors on the secret value and test-no-assert on the test case name, so a copy of an
+    # old secret in a new function, or a new no-assert case named like an old one, has the old finding's id.
+    # Each change adds its copy above the old one: the finding on the added line is the introduced one.
+    corpus = tmp_path / "corpus"
+    pkg = '{"name": "x", "private": true, "exports": {"./a": "./src/a.ts", "./s": "./src/s.ts"}}\n'
+    # synthetic fixture, not a real credential
+    fn = 'export function {name}(): string {{\n  const password = "Zq8vR2mK9pL4xT7wN3cB";\n  return password;\n}}\n'
+    _tree_diff(corpus, "fx-01-secret", {"package.json": pkg, "src/s.ts": fn.format(name="a")},
+               {"package.json": pkg, "src/s.ts": fn.format(name="b") + fn.format(name="a")})
+    case = "describe('{name}', () => {{\n  it('works', () => {{\n    const x = 1;\n  }});\n}});\n"
+    head = "import { it, describe } from 'vitest';\n"
+    _tree_diff(corpus, "fx-02-case", {"package.json": pkg, "src/a.ts": "export const a = 1;\n", "src/a.test.ts": head + case.format(name="A")},
+               {"package.json": pkg, "src/a.ts": "export const a = 1;\n", "src/a.test.ts": head + case.format(name="B") + case.format(name="A")})
+    labels = tmp_path / "labels"
+    labels.mkdir()
+
+    def write(ident, entries):
+        (labels / f"{ident}.json").write_bytes(json.dumps({
+            "diff": ident, "locrin": LOCRIN_VERSION, "pass1": {"by": "a", "date": "d"}, "pass2": {"by": "b", "date": "d"},
+            "entries": entries}).encode("utf-8"))
+
+    write("fx-01-secret", [])
+    write("fx-02-case", [])
+    proc = _run(tmp_path, corpus, labels)
+    assert proc.returncode == 4, proc.stdout + proc.stderr
+    results = tmp_path / "results" / LOCRIN_VERSION
+    findings = [json.loads(line) for line in (results / "findings.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert [(f["diff"], f["rule"], f["file"], f["line"]) for f in findings] == [
+        ("fx-01-secret", "secret-exposed", "src/s.ts", 2), ("fx-02-case", "test-no-assert", "src/a.test.ts", 3)]
+    run = json.loads((results / "run.json").read_text(encoding="utf-8"))
+    assert run["unlabelled"] == 2 and run["preexisting"] == 2
+
+    def found(f):
+        return {"rule": f["rule"], "file": f["file"], "line": f["line"], "id": f["id"], "pass1": "true", "pass2": "true", "note": ""}
+
+    def missed(rule, file, line):
+        return {"rule": rule, "file": file, "line": line, "id": None, "pass1": "missed", "pass2": "missed", "note": ""}
+
+    write("fx-01-secret", [found(findings[0])])
+    write("fx-02-case", [found(findings[1])])
+    proc = _run(tmp_path, corpus, labels)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    table = (results / "table.md").read_text(encoding="utf-8")
+    assert "| `secret-exposed` | locked | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | n<5, not scored |" in table
+    assert "| `test-no-assert` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | n<5, not scored |" in table
+    # A missed entry on the old occurrence names a finding the engine did report: the run does not publish.
+    write("fx-01-secret", [found(findings[0]), missed("secret-exposed", "src/s.ts", 6)])
+    write("fx-02-case", [found(findings[1]), missed("test-no-assert", "src/a.test.ts", 8)])
+    proc = _run(tmp_path, corpus, labels)
+    assert proc.returncode == 4, proc.stdout + proc.stderr
+    run = json.loads((results / "run.json").read_text(encoding="utf-8"))
+    assert [(p["diff"], p["file"], p["line"]) for p in run["labels"]["invalid_missed"]] == [
+        ("fx-01-secret", "src/s.ts", 6), ("fx-02-case", "src/a.test.ts", 8)]

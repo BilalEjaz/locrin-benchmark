@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import math
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 
 from bench.corpus import Diff, language_of
@@ -76,27 +76,58 @@ def repository_of(diff: Diff) -> str:
     return diff.repo.lower() if diff.source == "git" and diff.repo else f"tree:{diff.id}"
 
 
-def split_preexisting(at_commit: list[Finding], at_parent: list[Finding]) -> tuple[list[Finding], list[Finding]]:
-    """(introduced, pre-existing): a finding is pre-existing when the parent run reports its rule, file and id."""
-    before = {(f.rule, f.file, f.id) for f in at_parent}
-    introduced = [f for f in at_commit if (f.rule, f.file, f.id) not in before]
-    preexisting = [f for f in at_commit if (f.rule, f.file, f.id) in before]
-    return introduced, preexisting
+def _key(f: Finding) -> tuple[str, str, str]:
+    return (f.rule, f.file, f.id)
+
+
+def repeated_files(findings: list[Finding]) -> list[str]:
+    """The files where one rule reports one id more than once, sorted: only there does split_preexisting need added lines."""
+    counts = Counter(_key(f) for f in findings)
+    return sorted({f.file for f in findings if counts[_key(f)] > 1})
+
+
+def split_preexisting(at_commit: list[Finding], at_parent: list[Finding],
+                      added: dict[str, set[int]] | None = None) -> tuple[list[Finding], list[Finding]]:
+    """(introduced, pre-existing), each in the order of at_commit.
+
+    A finding id names a construct for most rules, but for some it names a value or a name within the
+    file (secret-exposed: the provider and the secret; test-no-assert and test-newly-skipped: the test
+    case name), so several findings at the commit can share one. For each rule, file and id, as many
+    findings as the parent run reports are pre-existing and the rest are introduced. added maps a file
+    to the line numbers the change added there (materialise.added_lines): the findings on added lines
+    are introduced first, then those on the latest lines.
+    """
+    added = added or {}
+    held = Counter(_key(f) for f in at_parent)
+    groups: dict[tuple[str, str, str], list[int]] = defaultdict(list)
+    for i, f in enumerate(at_commit):
+        groups[_key(f)].append(i)
+    old: set[int] = set()
+    for key, idx in groups.items():
+        ranked = sorted(idx, key=lambda i: (at_commit[i].line in added.get(at_commit[i].file, ()), at_commit[i].line))
+        old.update(ranked[:held[key]])
+    return ([f for i, f in enumerate(at_commit) if i not in old], [f for i, f in enumerate(at_commit) if i in old])
 
 
 def split_duplicates(findings: list[Finding], repository: dict[str, str]) -> tuple[list[Finding], list[Finding]]:
-    """(first, duplicates): a (repository, rule, file, id) counts only in the first diff, by id, that introduced it.
+    """(first, duplicates): the occurrences of a (repository, rule, file, id) that earlier diffs already count.
 
-    repository maps a diff id to repository_of(diff). Every finding of that first diff counts, so the
-    engine reporting one construct twice in one diff still gives two findings.
+    repository maps a diff id to repository_of(diff). Diffs are taken in id order. A diff with n
+    findings on one key, where earlier diffs from that repository count k, has min(n, k) duplicates,
+    those on its earliest lines, and counts the rest, so the key then counts max(n, k) times.
     """
-    owner: dict[tuple[str, str, str, str], str] = {}
-    first: list[Finding] = []
-    duplicates: list[Finding] = []
-    for f in sorted(findings, key=lambda f: f.diff):
-        key = (repository[f.diff], f.rule, f.file, f.id)
-        (first if owner.setdefault(key, f.diff) == f.diff else duplicates).append(f)
-    return first, duplicates
+    counted: Counter = Counter()
+    dup: set[int] = set()
+    groups: dict[tuple[str, tuple[str, str, str]], list[int]] = defaultdict(list)
+    for i, f in enumerate(findings):
+        groups[(f.diff, _key(f))].append(i)
+    for diff, key in sorted(groups):
+        idx = sorted(groups[(diff, key)], key=lambda i: findings[i].line)
+        repo_key = (repository[diff], *key)
+        dup.update(idx[:counted[repo_key]])
+        counted[repo_key] = max(counted[repo_key], len(idx))
+    ordered = sorted(range(len(findings)), key=lambda i: findings[i].diff)
+    return [findings[i] for i in ordered if i not in dup], [findings[i] for i in ordered if i in dup]
 
 
 def _is_missed(e: Entry) -> bool:

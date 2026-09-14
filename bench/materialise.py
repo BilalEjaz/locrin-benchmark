@@ -422,3 +422,29 @@ def checkout_base(diff: Diff, checkout: Checkout, cache: Path) -> None:
         _strip_engine_files(root)
 
     _named(diff, step)
+
+
+_HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", re.M)
+
+
+def added_lines(diff: Diff, checkout: Checkout, cache: Path, files: list[str]) -> dict[str, set[int]]:
+    """For each named file, the line numbers at the commit that the change added, from `git diff -U0`.
+
+    Call it while the checkout is at the commit, before checkout_base. A file the parent lacks has
+    every line added. Each name is a literal path, never a glob. Raises MaterialiseError naming the diff.
+    """
+    if not files:
+        return {}
+    cache = Path(cache).resolve()
+
+    def step() -> dict[str, set[int]]:
+        hermetic = _hermetic(cache)
+        out: dict[str, set[int]] = {}
+        for name in files:
+            patch = _git(["diff", "-U0", "--no-color", "--no-ext-diff", "--no-textconv", checkout.base_ref, "HEAD",
+                          "--", f":(literal){name}"], checkout.root, hermetic=hermetic, isolated=diff.source == "tree")
+            out[name] = {start + i for m in _HUNK.finditer(patch)
+                         for start, count in [(int(m.group(1)), int(m.group(2) or 1))] for i in range(count)}
+        return out
+
+    return _named(diff, step)

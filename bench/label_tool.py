@@ -49,9 +49,9 @@ def status(root: Path) -> None:
 def _findings_for(diff_id: str, locrin_version: str, corpus_root: Path, work: Path) -> list[Finding]:
     """The findings a label file for diff_id lists: those the diff introduced and no earlier diff counts.
 
-    As bench.main scores them: a finding the parent run also reports is pre-existing, and one an
-    earlier diff (by id) from the same repository introduced is a duplicate. Neither gets an entry,
-    so the earlier diffs from that repository run first.
+    As bench.main scores them: for each rule, file and id, as many findings as the parent run reports
+    are pre-existing, and the occurrences earlier diffs (by id) from the same repository already count
+    are duplicates. Neither gets an entry, so the earlier diffs from that repository run first.
     """
     from bench import materialise as materialise_mod
     from bench import run as run_mod
@@ -68,8 +68,9 @@ def _findings_for(diff_id: str, locrin_version: str, corpus_root: Path, work: Pa
             continue
         co = materialise_mod.materialise(d, corpus_root, work / ".cache")
         at_commit, _ = run_mod.normalise(d.id, run_mod.run_check(locrin, co, work / ".work", d.id))
+        added = materialise_mod.added_lines(d, co, work / ".cache", score_mod.repeated_files(at_commit))
         at_parent = run_mod.check_parent(locrin, d, co, work / ".cache", work / ".work", at_commit)
-        introduced += score_mod.split_preexisting(at_commit, at_parent)[0]
+        introduced += score_mod.split_preexisting(at_commit, at_parent, added)[0]
     first, _ = score_mod.split_duplicates(introduced, repository)
     return [f for f in first if f.diff == diff_id]
 

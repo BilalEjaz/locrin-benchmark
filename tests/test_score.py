@@ -505,10 +505,48 @@ def test_two_diffs_from_one_repository_count_an_unchanged_construct_zero_times_a
 
 
 def test_one_construct_reported_twice_in_its_first_diff_counts_twice_there():
-    fs = [F("b", "swallowed-error", "e.ts", 5, ident=A), F("b", "swallowed-error", "e.ts", 5, ident=A),
+    fs = [F("b", "swallowed-error", "e.ts", 5, ident=A), F("a", "swallowed-error", "e.ts", 5, ident=A),
           F("a", "swallowed-error", "e.ts", 5, ident=A)]
     first, duplicates = bench.score.split_duplicates(fs, {"a": "acme/w", "b": "acme/w"})
-    assert [f.diff for f in first] == ["a"] and [f.diff for f in duplicates] == ["b", "b"]
+    assert [f.diff for f in first] == ["a", "a"] and [f.diff for f in duplicates] == ["b"]
+
+
+def test_the_parent_count_of_an_id_decides_how_many_occurrences_are_pre_existing():
+    # secret-exposed anchors on the provider and the secret value, and test-no-assert on the test case name,
+    # so the same literal pasted into a new function, or a second case with an old name, has the parent's id.
+    at_commit = [F("a", "secret-exposed", "s.ts", 2, ident=A), F("a", "secret-exposed", "s.ts", 6, ident=A),
+                 F("a", "test-no-assert", "a.test.ts", 3, ident=B), F("a", "test-no-assert", "a.test.ts", 8, ident=B),
+                 F("a", "test-no-assert", "a.test.ts", 12, ident=B)]
+    at_parent = [F("a", "secret-exposed", "s.ts", 2, ident=A), F("a", "test-no-assert", "a.test.ts", 3, ident=B)]
+    introduced, preexisting = bench.score.split_preexisting(at_commit, at_parent)
+    # Without the added lines, the occurrences on the earliest lines are the ones the parent held.
+    assert [(f.file, f.line) for f in introduced] == [("s.ts", 6), ("a.test.ts", 8), ("a.test.ts", 12)]
+    assert [(f.file, f.line) for f in preexisting] == [("s.ts", 2), ("a.test.ts", 3)]
+    # The change added lines 1 to 4 of s.ts (a new function above the old one) and line 8 of a.test.ts: the
+    # occurrences on added lines are introduced first, then the latest lines.
+    introduced, preexisting = bench.score.split_preexisting(at_commit, at_parent, {"s.ts": {1, 2, 3, 4}, "a.test.ts": {8}})
+    assert [(f.file, f.line) for f in introduced] == [("s.ts", 2), ("a.test.ts", 8), ("a.test.ts", 12)]
+    assert [(f.file, f.line) for f in preexisting] == [("s.ts", 6), ("a.test.ts", 3)]
+    # The parent held as many as the commit: all pre-existing, whatever lines the change added.
+    introduced, preexisting = bench.score.split_preexisting(at_commit[:2], at_commit[:2], {"s.ts": {6}})
+    assert introduced == [] and len(preexisting) == 2
+
+
+def test_files_with_a_repeated_id_are_the_ones_whose_added_lines_matter():
+    fs = [F("a", "secret-exposed", "s.ts", 2, ident=A), F("a", "secret-exposed", "s.ts", 6, ident=A),
+          F("a", "leftover-debug", "s.ts", 7, ident=A), F("a", "leftover-debug", "t.ts", 1, ident=B)]
+    assert bench.score.repeated_files(fs) == ["s.ts"]
+    assert bench.score.repeated_files(fs[1:]) == []
+
+
+def test_a_later_diff_counts_the_occurrences_of_an_id_beyond_those_earlier_diffs_counted():
+    # Two diffs from one repository each add a no-assert case named `works` to a.test.ts; the later one adds
+    # a second case with that name in another describe block, which no earlier diff counted.
+    fs = [F("b", "test-no-assert", "a.test.ts", 3, ident=B), F("b", "test-no-assert", "a.test.ts", 8, ident=B),
+          F("a", "test-no-assert", "a.test.ts", 3, ident=B), F("c", "test-no-assert", "a.test.ts", 3, ident=B)]
+    first, duplicates = bench.score.split_duplicates(fs, {"a": "acme/w", "b": "acme/w", "c": "acme/w"})
+    assert [(f.diff, f.line) for f in first] == [("a", 3), ("b", 8)]
+    assert [(f.diff, f.line) for f in duplicates] == [("b", 3), ("c", 3)]
 
 
 def test_repository_of_a_git_diff_is_its_name_and_a_tree_diff_is_its_own():
