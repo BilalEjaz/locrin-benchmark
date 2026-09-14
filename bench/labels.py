@@ -171,3 +171,35 @@ def dropped_missed(lf: LabelFile, left_out: list) -> list[dict]:
     return [{"diff": lf.diff, "rule": e.rule, "file": e.file, "line": e.line,
              "problem": f"the engine reported {e.rule} here and the run left it out as pre-existing or a duplicate"}
             for e in lf.entries if "missed" in (e.pass1, e.pass2) and (e.rule, e.file, e.line) in reported]
+
+
+def missed_ranks(lf: LabelFile, root: Path, added: dict[str, set[int]]) -> list[tuple[Entry, tuple[str, str, bytes], int]]:
+    """For each missed entry on a line the commit holds, (entry, (rule, file, line text), occurrence).
+
+    root is the checkout at the commit and added maps a file to the line numbers the change added there
+    (materialise.added_lines). A missed entry names a construct by the text of its line, stripped. When the
+    file holds p lines with that text the change did not add, the diff's missed entries on that rule, file
+    and text are occurrences p+1, p+2 and so on, in line order, so score.split_missed_duplicates finds the
+    ones an earlier diff from the repository already introduced, as split_duplicates does for findings.
+    Entries invalid_missed lists for their file or line are left out; the run does not publish with them.
+    """
+    root = Path(root)
+    texts: dict[str, list[bytes]] = {}
+    keyed: list[tuple[Entry, tuple[str, str, bytes]]] = []
+    for e in lf.entries:
+        if "missed" not in (e.pass1, e.pass2):
+            continue
+        if e.file not in texts:
+            path = root / e.file
+            lines = [] if path.is_symlink() or not path.is_file() else path.read_bytes().split(b"\n")
+            if lines and lines[-1] == b"":
+                lines.pop()
+            texts[e.file] = [line.strip() for line in lines]
+        if e.line <= len(texts[e.file]):
+            keyed.append((e, (e.rule, e.file, texts[e.file][e.line - 1])))
+    out = {}
+    for key in {k for _, k in keyed}:
+        held = sum(1 for n, text in enumerate(texts[key[1]], 1) if text == key[2] and n not in added.get(key[1], ()))
+        for rank, (e, _) in enumerate(sorted((ek for ek in keyed if ek[1] == key), key=lambda ek: ek[0].line), held + 1):
+            out[id(e)] = rank
+    return [(e, key, out[id(e)]) for e, key in keyed]

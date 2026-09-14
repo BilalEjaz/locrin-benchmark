@@ -188,7 +188,7 @@ def test_cli_new_runs_the_harness_for_that_diff_and_keys_the_cache_on_it(tmp_pat
     assert rec["entries"][0]["id"] == "2" * 16 and rec["pass1"]["by"] == "opus"
 
 
-def test_findings_for_templates_only_what_the_diff_introduced_first_in_its_repository(tmp_path, monkeypatch):
+def test_findings_for_templates_only_what_the_diff_introduced_first_in_its_repository(tmp_path, monkeypatch, capsys):
     import bench.corpus
     import bench.materialise
     import bench.run
@@ -226,6 +226,8 @@ def test_findings_for_templates_only_what_the_diff_introduced_first_in_its_repos
     monkeypatch.setattr(bench.run, "check_parent", fake_check_parent)
     got = label_tool._findings_for("acme__w__2222222", "v0.5.0", Path("corpus"), tmp_path)
     assert [(f.diff, f.line, f.id) for f in got] == [("acme__w__2222222", 9, Z)]
+    # The labeller is told which earlier diffs from the repository already count what they introduced.
+    assert "earlier diffs from this repository: acme__w__1111111" in capsys.readouterr().err
     # The earlier diff from the same repository ran too, the later one and the tree diff did not.
     assert calls == [("commit", "acme__w__1111111", tmp_path / ".work"), ("parent", "acme__w__1111111", tmp_path / ".cache", ["x.ts"]),
                      ("commit", "acme__w__2222222", tmp_path / ".work"), ("parent", "acme__w__2222222", tmp_path / ".cache", ["x.ts"])]
@@ -380,3 +382,30 @@ def test_a_missed_entry_on_a_finding_the_run_reported_and_left_out_is_invalid(tm
         "diff": "fx-01-debug", "rule": "secret-exposed", "file": "src/s.ts", "line": 6,
         "problem": "the engine reported secret-exposed here and the run left it out as pre-existing or a duplicate"}]
     assert dropped_missed(lf, []) == []
+
+
+def test_missed_ranks_count_the_lines_with_that_text_the_change_did_not_add(tmp_path):
+    from bench.labels import load_label_file, missed_ranks
+
+    root = tmp_path / "checkout"
+    (root / "src").mkdir(parents=True)
+    text = b'if (false) return "never"'
+    (root / "src" / "c.ts").write_bytes(b"function f() {\r\n  " + text + b"\r\n}\nfunction g() {\n    " + text + b"\n}\n")
+    label(tmp_path, [
+        entry(rule="unreachable", file="src/c.ts", line=5, id=None, pass1="missed", pass2="missed"),
+        entry(rule="leftover-debug", file="src/c.ts", line=2, id=None, pass1="missed", pass2="?"),
+        entry(rule="unreachable", file="src/c.ts", line=5, id="1" * 16),
+        entry(rule="unreachable", file="src/c.ts", line=99, id=None, pass1="missed", pass2="missed"),
+        entry(rule="unreachable", file="src/gone.ts", line=1, id=None, pass1="missed", pass2="missed"),
+    ])
+    lf = load_label_file(tmp_path / "fx-01-debug.json")
+    # The change added g (lines 4 to 6): one line with that text is the parent's, so g's is the second occurrence.
+    got = missed_ranks(lf, root, {"src/c.ts": {4, 5, 6}})
+    assert [(e.rule, e.line, key, rank) for e, key, rank in got] == [
+        ("unreachable", 5, ("unreachable", "src/c.ts", text), 2),
+        ("leftover-debug", 2, ("leftover-debug", "src/c.ts", text), 2)]
+    assert got[0][0] is lf.entries[0]
+    # A new file has every line added: two missed entries with one text are its first and second occurrence.
+    lf.entries[1] = lf.entries[1].__class__("unreachable", "src/c.ts", 2, None, "missed", "missed", "")
+    got = missed_ranks(lf, root, {"src/c.ts": set(range(1, 7))})
+    assert [(e.line, rank) for e, _, rank in got] == [(5, 2), (2, 1)]

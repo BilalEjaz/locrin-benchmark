@@ -120,6 +120,7 @@ def test_all_diffs_ran_exits_zero_and_missing_readme_is_left_alone(tmp_path, mon
     monkeypatch.setattr(main_mod, "load_corpus", lambda root: [diff("fx-01-ok")])
     monkeypatch.setattr(main_mod, "materialise", lambda d, c, k: Checkout(root=tmp_path, base_ref="0" * 40, removed=[]))
     monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif([]))
+    monkeypatch.setattr(main_mod, "added_lines", lambda d, co, cache, files: {})
     readme = tmp_path / "README.md"
     code = main_mod.main(["--version", "v0.5.0", "--labels", str(tmp_path / "labels"), "--out", str(tmp_path / "r"),
                           "--readme", str(readme)])
@@ -269,6 +270,7 @@ def _setup(tmp_path: Path, monkeypatch, ids: list[str], failures: dict[str, Exce
     monkeypatch.setattr(main_mod, "load_corpus", lambda root: [diff(i) for i in ids])
     monkeypatch.setattr(main_mod, "materialise", _materialise_failing(tmp_path, failures))
     monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif([]))
+    monkeypatch.setattr(main_mod, "added_lines", lambda d, co, cache, files: {})
     readme = tmp_path / "README.md"
     readme.write_bytes(b"x\n<!-- results:start -->\nold\n<!-- results:end -->\n")
     return ["--version", "v0.5.0", "--labels", str(tmp_path / "labels"), "--out", str(tmp_path / "r"),
@@ -699,3 +701,32 @@ def test_the_occurrence_of_a_repeated_id_on_a_line_the_change_added_is_the_intro
     assert asked == [("fx-01-ok", ["src/x.ts"])]
     run = _run_json(tmp_path)
     assert run["findings"] == 2 and run["preexisting"] == 1 and run["publishable"] is True
+
+
+def test_a_reland_pair_counts_its_reported_and_its_missed_construct_once_each(tmp_path, monkeypatch):
+    # acme__w__1111111 adds src/c.ts with an unreachable statement the engine reports (line 5) and one it misses
+    # (line 9); acme__w__2222222 relands it onto a parent without the file. Each construct counts once.
+    Y = "f" * 16
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "c.ts").write_bytes(b"1\n2\n3\n4\nreturn 1;\n6\n7\n8\n  if (false) return 2;\n")
+    labels = tmp_path / "labels"
+    labels.mkdir()
+    write_label(labels, "acme__w__1111111", [entry("src/c.ts", 5, Y, "true"), entry("src/c.ts", 9, None, "missed")])
+    write_label(labels, "acme__w__2222222", [entry("src/c.ts", 9, None, "missed")])
+    args = _setup(tmp_path, monkeypatch, [], {})
+    monkeypatch.setattr(main_mod, "load_corpus", lambda root: [git_diff("acme__w__1111111"), git_diff("acme__w__2222222")])
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif([result("src/c.ts", 5, Y)]))
+    asked = []
+
+    def fake_added_lines(d, co, cache, files):
+        asked.append((d.id, files))
+        return {"src/c.ts": set(range(1, 10))}
+
+    monkeypatch.setattr(main_mod, "added_lines", fake_added_lines)
+    assert main_mod.main(args) == 0
+    assert asked == [("acme__w__1111111", ["src/c.ts"]), ("acme__w__2222222", ["src/c.ts"])]
+    run = _run_json(tmp_path)
+    assert (run["findings"], run["duplicates"], run["publishable"], run["labels"]["invalid_missed"]) == (1, 2, True, [])
+    table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
+    assert "0 not applicable, 0 pre-existing and 2 duplicate.\n" in table
+    assert "| `leftover-debug` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 2 | n<5, not scored |" in table

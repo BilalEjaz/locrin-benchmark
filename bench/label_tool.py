@@ -52,7 +52,8 @@ def _findings_for(diff_id: str, locrin_version: str, corpus_root: Path, work: Pa
     As bench.main scores them: for each rule, file and id, as many findings as the parent run reports
     are pre-existing, and the introduced occurrences earlier diffs (by id) from the same repository already
     introduced, counted on top of what each diff's parent held, are duplicates (score.split_duplicates).
-    Neither gets an entry, so the earlier diffs from that repository run first.
+    Neither gets an entry, so the earlier diffs from that repository run first, and their ids are printed:
+    a construct one of them already introduced is not a missed entry for this diff either.
     """
     from bench import materialise as materialise_mod
     from bench import run as run_mod
@@ -63,6 +64,10 @@ def _findings_for(diff_id: str, locrin_version: str, corpus_root: Path, work: Pa
         raise LabelError(f"{diff_id}: not in {corpus_root}")
     repository = {d.id: score_mod.repository_of(d) for d in diffs}
     locrin = run_mod.install_locrin(locrin_version, work / ".cache")
+    earlier = [d.id for d in diffs if repository[d.id] == repository[diff_id] and d.id < diff_id]
+    if earlier:
+        print(f"{diff_id}: earlier diffs from this repository: {', '.join(earlier)}; what they introduced, reported or missed, "
+              "counts there, not here", file=sys.stderr)
     introduced: list[Finding] = []
     preexisting: list[Finding] = []
     for d in diffs:

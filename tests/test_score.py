@@ -582,3 +582,42 @@ def test_repository_of_a_git_diff_is_its_name_and_a_tree_diff_is_its_own():
     tree = bench.corpus.Diff("fx-01-tree", "tree", None, None, None, "MIT", "typescript", "fixture", ["x.ts"])
     assert bench.score.repository_of(git) == "acme/w"
     assert bench.score.repository_of(tree) == "tree:fx-01-tree"
+
+
+def test_a_missed_construct_an_earlier_diff_from_the_repository_introduced_is_a_duplicate():
+    # A reland: both diffs introduce `if (false) return "never"` onto a parent that held none of that line text.
+    text = b'if (false) return "never"'
+    key = ("unreachable", "c.ts", text)
+    a_miss, b_miss = E("unreachable", "c.ts", 9, "missed"), E("unreachable", "c.ts", 9, "missed")
+    repository = {"a": "acme/w", "b": "acme/w", "t": "tree:t"}
+    assert bench.score.split_missed_duplicates([("b", b_miss, key, 1), ("a", a_miss, key, 1)], repository) == [("b", b_miss)]
+    # Linear history: b's parent held a's line, so b's construct is the second occurrence and counts again.
+    assert bench.score.split_missed_duplicates([("a", a_miss, key, 1), ("b", b_miss, key, 2)], repository) == []
+    # Another repository, or another rule or file, never repeats it.
+    assert bench.score.split_missed_duplicates([("a", a_miss, key, 1), ("t", b_miss, key, 1)], repository) == []
+    assert bench.score.split_missed_duplicates([("a", a_miss, key, 1), ("b", b_miss, ("unreachable", "d.ts", text), 1)],
+                                               repository) == []
+
+
+def test_a_reland_pair_with_one_reported_and_one_missed_construct_scores_recall_fifty_percent():
+    # a introduces an unreachable statement the engine reports (line 5) and one it misses (line 9); b relands a.
+    Y = "f" * 16
+    fs = [F("a", "unreachable", "c.ts", 5, ident=Y), F("b", "unreachable", "c.ts", 5, ident=Y)]
+    repository = {"a": "acme/w", "b": "acme/w"}
+    first, duplicates = bench.score.split_duplicates(fs, repository, [])
+    a_miss, b_miss = E("unreachable", "c.ts", 9, "missed"), E("unreachable", "c.ts", 9, "missed")
+    key = ("unreachable", "c.ts", b'if (false) return "never"')
+    missed_duplicates = bench.score.split_missed_duplicates([("a", a_miss, key, 1), ("b", b_miss, key, 1)], repository)
+    ls = labels(a=[E("unreachable", "c.ts", 5, "true", Y), a_miss], b=[b_miss])
+    per_rule, per_pair, unlabelled = score(first, ls, RULES, duplicates=duplicates, missed_duplicates=missed_duplicates)
+    row = {s.key: s for s in per_rule}["unreachable"]
+    assert unlabelled == [] and (row.true, row.false_positive, row.missed, row.duplicates) == (1, 0, 1, 2)
+    assert row.recall == 0.5
+    assert [(s.key, s.missed, s.duplicates) for s in per_pair] == [("unreachable@typescript", 1, 2)]
+    # A repeat whose passes disagree is a duplicate too, never excluded.
+    b_split = Entry("unreachable", "c.ts", 9, None, "missed", "?", "")
+    ls = labels(a=[E("unreachable", "c.ts", 5, "true", Y), a_miss], b=[b_split])
+    per_rule, _, _ = score(first, ls, RULES, duplicates=duplicates, missed_duplicates=[("b", b_split)])
+    row = {s.key: s for s in per_rule}["unreachable"]
+    assert (row.missed, row.excluded, row.duplicates) == (1, 0, 2)
+    assert bench.score.excluded_missed(bench.score.drop_missed(ls, [("b", b_split)])) == []

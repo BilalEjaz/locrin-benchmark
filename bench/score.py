@@ -1,6 +1,7 @@
 """Join findings with confirmed labels and compute precision and recall."""
 from __future__ import annotations
 
+import dataclasses
 import math
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -44,7 +45,7 @@ class Score:
     not_applicable: int = 0
     # Findings the parent run also reports, so the change did not introduce them; never labelled.
     preexisting: int = 0
-    # Introduced occurrences an earlier diff (by id) from the same repository already introduced; never labelled.
+    # Introduced occurrences, reported or missed, an earlier diff (by id) from the same repository already introduced.
     duplicates: int = 0
 
 
@@ -134,6 +135,30 @@ def split_duplicates(findings: list[Finding], repository: dict[str, str],
         counted[repo_key] |= ranks
     ordered = sorted(range(len(findings)), key=lambda i: findings[i].diff)
     return [findings[i] for i in ordered if i not in dup], [findings[i] for i in ordered if i in dup]
+
+
+def split_missed_duplicates(ranked: list[tuple[str, Entry, tuple[str, str, bytes], int]],
+                            repository: dict[str, str]) -> list[tuple[str, Entry]]:
+    """The missed entries that name a construct an earlier diff (by id) from the same repository already introduced.
+
+    ranked holds (diff, entry, (rule, file, line text), occurrence) from labels.missed_ranks. As with
+    split_duplicates, an occurrence counts once per repository, in the first diff by id order, so a reland's
+    missed construct is a duplicate, while a later diff that adds another line with that text is not.
+    """
+    counted: dict[tuple, set[int]] = defaultdict(set)
+    dup: list[tuple[str, Entry]] = []
+    for diff in sorted({d for d, *_ in ranked}):
+        mine = [(e, (repository[diff], *key), rank) for d, e, key, rank in ranked if d == diff]
+        dup += [(diff, e) for e, key, rank in mine if rank in counted[key]]
+        for _, key, rank in mine:
+            counted[key].add(rank)
+    return dup
+
+
+def drop_missed(labels: dict[str, LabelFile], dropped: list[tuple[str, Entry]]) -> dict[str, LabelFile]:
+    """labels without the missed entries in dropped (split_missed_duplicates), which count only as duplicates."""
+    gone = {id(e) for _, e in dropped}
+    return {d: dataclasses.replace(lf, entries=[e for e in lf.entries if id(e) not in gone]) for d, lf in labels.items()}
 
 
 def _is_missed(e: Entry) -> bool:
@@ -250,12 +275,14 @@ def not_applicable(findings: list[Finding], labels: dict[str, LabelFile], ran: s
 
 
 def score(findings: list[Finding], labels: dict[str, LabelFile], rules: dict[str, RuleMeta], *, ran: set[str] | None = None,
-          preexisting: list[Finding] = (), duplicates: list[Finding] = ()) -> tuple[list[Score], list[Score], list[Finding]]:
+          preexisting: list[Finding] = (), duplicates: list[Finding] = (),
+          missed_duplicates: list[tuple[str, Entry]] = ()) -> tuple[list[Score], list[Score], list[Finding]]:
     """Per-rule scores, per-pair scores and the findings no label entry covers.
 
     findings are the findings each diff introduced, first in their repository (see
     split_preexisting and split_duplicates). preexisting and duplicates are the findings
-    left out for those reasons: they are only counted, per rule and per pair.
+    left out for those reasons, and missed_duplicates the missed entries an earlier diff from the
+    repository already counts (split_missed_duplicates): they are only counted, per rule and per pair.
 
     With ran given, label files for diffs not in it are ignored entirely, so a diff that
     failed to materialise or run neither adds its missed entries nor loses its true ones.
@@ -274,7 +301,7 @@ def score(findings: list[Finding], labels: dict[str, LabelFile], rules: dict[str
     those entries. Within one locrin version that cannot happen in a published run:
     unreproduced() lists every such entry, and bench.main refuses to publish while any exist.
     """
-    labels = _ran(labels, ran)
+    labels = drop_missed(_ran(labels, ran), list(missed_duplicates))
     rule_counts: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
     pair_counts: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
     rule_side: dict[str, dict[str, int]] = {name: defaultdict(int) for name in SIDE}
@@ -325,6 +352,8 @@ def score(findings: list[Finding], labels: dict[str, LabelFile], rules: dict[str
     for name, dropped in (("preexisting", preexisting), ("duplicates", duplicates)):
         for f in dropped:
             note(name, f.rule, f.language)
+    for _, e in missed_duplicates:
+        note("duplicates", e.rule, language_of(e.file))
     rule_order = list(rules.keys()) + sorted(rule_keys - set(rules))
     return (_tally(rule_counts, rule_order, rule_side), _tally(pair_counts, sorted(pairs), pair_side), unlabelled)
 
