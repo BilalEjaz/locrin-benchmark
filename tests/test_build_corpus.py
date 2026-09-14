@@ -1172,3 +1172,235 @@ def test_main_via_repos_fetches_no_file_for_a_commit_whose_language_is_full(tmp_
     assert gh.calls.count(f"repos/{REPO}") == 1
     assert len(load_corpus(out)) == 1
     assert "language target 2" in capsys.readouterr().err
+
+
+# The owner cap: at most PER_OWNER records whose repository owner is the same, compared case-insensitively.
+
+class OwnersGitHub(FakeGitHub):
+    """FakeGitHub whose repository metadata names the repository asked for, so one owner can hold many."""
+
+    def get(self, path, params=None, accept=None):
+        parts = path.split("/")
+        if len(parts) == 3 and parts[0] == "repos" and path not in self.overrides:
+            self.calls.append(path)
+            self.requests.append((path, dict(params or {})))
+            return dict(load("repo.json"), full_name=f"{parts[1]}/{parts[2]}")
+        return super().get(path, params, accept)
+
+
+def put_record(out, repo, sha, language="typescript"):
+    rec = {"id": f"{repo.replace('/', '__')}__{sha[:7]}", "source": "git", "repo": repo, "sha": sha,
+           "parent": PARENT, "licence": "MIT", "language": language,
+           "url": f"https://github.com/{repo}/commit/{sha}", "files": [FILE]}
+    write_record(out, rec, {FILE: b"a\n"}, {FILE: b"b\n"})
+    return rec["id"]
+
+
+def hex_sha(n, i=0):
+    return f"{n:x}{i:x}" * 20
+
+
+def test_accept_caps_an_owner_at_six_records_case_insensitively_before_any_github_call(capsys):
+    assert bc.PER_OWNER == 6
+    gh = FakeGitHub()
+    seen = {"cline/a": 3, "cline/b": 3}
+    item = dict(first_item(), repository={"full_name": "CLINE/Cline"})
+    assert accept(gh, item, seen) is None
+    assert gh.calls == [] and seen == {"cline/a": 3, "cline/b": 3}
+    assert "skip CLINE/Cline@5ff11f2: owner cap" in capsys.readouterr().err
+    assert bc.SKIPS["owner cap"] >= 1
+    # Five records from the owner leave room for one more, and the accepted record counts.
+    seen = {"Cline/a": 3, "cline/b": 2}
+    rec, _, _ = accept(FakeGitHub(), first_item(), seen)
+    assert rec["repo"] == REPO and seen == {"Cline/a": 3, "cline/b": 2, REPO: 1}
+    gh = FakeGitHub()
+    assert accept(gh, dict(first_item(), sha="9" * 40), seen) is None
+    assert gh.calls == []
+
+
+def test_accept_caps_the_canonical_owner_of_a_renamed_repository_before_fetching_the_commit(capsys):
+    gh = FakeGitHub()
+    item = dict(first_item(), repository={"full_name": "old-owner/cline"})
+    seen = {"cline/a": 3, "cline/b": 3}
+    assert accept(gh, item, seen) is None
+    assert gh.calls == ["repos/old-owner/cline"] and seen == {"cline/a": 3, "cline/b": 3}
+    assert f"skip {REPO}@5ff11f2: owner cap" in capsys.readouterr().err
+
+
+def test_accept_takes_owner_counts_when_given_and_counts_the_accepted_record():
+    gh = FakeGitHub()
+    assert accept(gh, first_item(), {}, owners={"cline": 6}) is None
+    assert gh.calls == []
+    owners = {"cline": 5}
+    rec, _, _ = accept(FakeGitHub(), first_item(), {}, owners=owners)
+    assert rec["repo"] == REPO and owners == {"cline": 6}
+
+
+def test_main_trailer_search_counts_existing_records_toward_the_owner_cap(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    for n in range(6):
+        put_record(out, f"Cline/r{n}", hex_sha(n))
+    gh = OwnersGitHub()
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    monkeypatch.setattr(bc, "candidates", lambda gh, trailer, per_page=100, pages=3: [item_for(REPO, SHA)])
+    assert bc.main(["--out", str(out), "--target", "20", "--trailer", "A"]) == 0
+    assert gh.calls == []
+    err = capsys.readouterr().err
+    assert "owner cap" in err and "wrote 0 records" in err
+    assert len(list(out.glob("*.json"))) == 6
+
+
+def test_main_trailer_search_stops_taking_an_owner_at_six_records(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    items = [item_for(f"cline/r{n}", hex_sha(n)) for n in range(8)]
+    gh = OwnersGitHub()
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    monkeypatch.setattr(bc, "candidates", lambda gh, trailer, per_page=100, pages=3: items)
+    assert bc.main(["--out", str(out), "--target", "20", "--trailer", "A"]) == 0
+    assert sorted(d.repo for d in load_corpus(out)) == [f"cline/r{n}" for n in range(6)]
+    assert not any(p.startswith(("repos/cline/r6", "repos/cline/r7")) for p in gh.calls)
+    err = capsys.readouterr().err
+    assert "skip cline/r6@6060606: owner cap" in err and "wrote 6 records" in err
+
+
+def owner_repos_github(names):
+    commits = load("commits_list.json")
+    overrides = {"search/repositories": {"total_count": len(names), "incomplete_results": False,
+                                         "items": [dict(load("repo.json"), full_name=name) for name in names]}}
+    for n, name in enumerate(names):
+        overrides[f"repos/{name}/commits"] = [dict(c, sha=hex_sha(n, i)) for i, c in enumerate(commits)]
+    return OwnersGitHub(overrides)
+
+
+def test_main_via_repos_lists_no_further_repository_of_an_owner_at_the_cap(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    gh = owner_repos_github(["cline/r0", "Cline/r1", "CLINE/r2", "cline/r3"])
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out), "--language", "typescript"]) == 0
+    assert len(load_corpus(out)) == 6
+    assert not any(p.startswith(("repos/CLINE/r2", "repos/cline/r3")) for p in gh.calls)
+    err = capsys.readouterr().err
+    assert "repo CLINE/r2: at the owner cap, commits not listed" in err
+    assert "owner cap 2" in err
+
+
+def test_main_via_repos_counts_existing_records_and_skips_before_any_contents_call(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    for n in range(5):
+        put_record(out, f"CLINE/old{n}", hex_sha(n + 8))
+    gh = owner_repos_github(["cline/r0"])
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out), "--language", "typescript"]) == 0
+    assert len(load_corpus(out)) == 6
+    # One record fills the owner, so the next matched commit is never fetched.
+    assert sum(p.startswith("repos/cline/r0/commits/") for p in gh.calls) == 1
+    assert sum(p.startswith("repos/cline/r0/contents/") for p in gh.calls) == 2
+    assert "repo cline/r0: 4 commits, 3 matched, 1 accepted" in capsys.readouterr().err
+
+    gh = owner_repos_github(["cline/r1"])
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out), "--language", "typescript"]) == 0
+    assert not any(p.startswith("repos/cline/r1") for p in gh.calls) and len(load_corpus(out)) == 6
+
+
+def test_main_named_commit_counts_existing_records_toward_the_owner_cap(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    for n in range(6):
+        put_record(out, f"Cline/r{n}", hex_sha(n))
+    gh = FakeGitHub()
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    assert bc.main(["--out", str(out), "--repo", REPO, "--sha", SHA]) == 1
+    assert gh.calls == [f"repos/{REPO}/commits/{SHA}"]
+    assert "owner cap" in capsys.readouterr().err
+    assert len(list(out.glob("*.json"))) == 6
+
+    (out / "Cline__r5__5050505.json").unlink()
+    gh = FakeGitHub()
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    assert bc.main(["--out", str(out), "--repo", REPO, "--sha", SHA]) == 0
+    assert (out / "cline__cline__5ff11f2.json").exists()
+
+
+# --prune-owner-excess
+
+OWNER_RECORDS = [("acme/one", 1), ("acme/one", 2), ("acme/one", 3), ("Acme/two", 4), ("Acme/two", 5),
+                 ("Acme/two", 6), ("ACME/three", 7), ("ACME/three", 8), ("solo/x", 9), ("solo/y", 10)]
+
+
+def owner_corpus(out, order=OWNER_RECORDS):
+    return [put_record(out, repo, f"{n:x}" * 40) for repo, n in order]
+
+
+def test_prune_owner_excess_keeps_the_smallest_ids_and_removes_json_and_directory(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    owner_corpus(out)
+    monkeypatch.setattr(bc, "GitHub", lambda: pytest.fail("prune calls no GitHub"))
+    assert bc.main(["--out", str(out), "--prune-owner-excess"]) == 0
+    # Plain string order: upper case sorts before lower case.
+    removed = ["acme__one__2222222", "acme__one__3333333"]
+    assert capsys.readouterr().out.splitlines() == [f"pruned: {i}" for i in removed] + ["pruned 2 records"]
+    for ident in removed:
+        assert not (out / f"{ident}.json").exists() and not (out / ident).exists()
+    kept = sorted(d.id for d in load_corpus(out))
+    assert kept == ["ACME__three__7777777", "ACME__three__8888888", "Acme__two__4444444", "Acme__two__5555555",
+                    "Acme__two__6666666", "acme__one__1111111", "solo__x__9999999", "solo__y__aaaaaaa"]
+    assert all((out / ident / "after" / FILE).exists() for ident in kept)
+
+
+def test_prune_owner_excess_is_idempotent_and_deterministic(tmp_path, capsys):
+    first, second = tmp_path / "a", tmp_path / "b"
+    owner_corpus(first)
+    owner_corpus(second, list(reversed(OWNER_RECORDS)))
+    assert bc.main(["--out", str(first), "--prune-owner-excess"]) == 0
+    assert bc.main(["--out", str(second), "--prune-owner-excess"]) == 0
+    capsys.readouterr()
+    assert sorted(p.name for p in first.iterdir()) == sorted(p.name for p in second.iterdir())
+    before = sorted(p.name for p in first.iterdir())
+    assert bc.main(["--out", str(first), "--prune-owner-excess"]) == 0
+    assert capsys.readouterr().out.splitlines() == ["pruned 0 records"]
+    assert sorted(p.name for p in first.iterdir()) == before
+
+
+@pytest.mark.parametrize("content", [
+    {"id": "../escape", "repo": "acme/zzz"},
+    {"id": "acme/zzz__9999999", "repo": "acme/zzz"},
+    {"id": "acme__one__1111111", "repo": "acme/zzz"},
+    {"id": 7, "repo": "acme/zzz"},
+    "not json",
+])
+def test_prune_owner_excess_refuses_ids_that_are_not_plain_names_and_deletes_nothing(tmp_path, capsys, content):
+    out = tmp_path / "corpus"
+    owner_corpus(out)
+    outside = tmp_path / "escape"
+    outside.mkdir()
+    (outside / "keep.txt").write_text("x")
+    raw = content if isinstance(content, str) else json.dumps(dict(content, source="git"))
+    (out / "acme__zzz__9999999.json").write_text(raw, encoding="utf-8")
+    listing = sorted(p.name for p in out.iterdir())
+    assert bc.main(["--out", str(out), "--prune-owner-excess"]) == 1
+    assert "refusing to prune" in capsys.readouterr().err
+    assert sorted(p.name for p in out.iterdir()) == listing
+    assert (outside / "keep.txt").exists()
+
+
+@pytest.mark.parametrize("argv", [
+    ["--target", "5"],
+    ["--trailer", "Co-authored-by: Codex"],
+    ["--repo", REPO, "--sha", SHA],
+    ["--check-gone"],
+    ["--via-repos", "--since", "2026-09-01"],
+    ["--since", "2026-09-01"],
+    ["--language", "php"],
+    ["--language-target", "3"],
+    ["--commit-pages", "2"],
+])
+def test_prune_owner_excess_refuses_every_other_mode_flag(tmp_path, monkeypatch, argv):
+    out = tmp_path / "corpus"
+    owner_corpus(out)
+    listing = sorted(p.name for p in out.iterdir())
+    gh = FakeGitHub()
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    with pytest.raises(SystemExit) as err:
+        bc.main(["--out", str(out), "--prune-owner-excess", *argv])
+    assert err.value.code == 2 and gh.calls == []
+    assert sorted(p.name for p in out.iterdir()) == listing

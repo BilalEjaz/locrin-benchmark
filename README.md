@@ -48,7 +48,7 @@ Diffs from public repositories under MIT, Apache-2.0, BSD or ISC licences, chose
 
     python -m bench.build_corpus --via-repos --since 2026-08-01 --out corpus --target 300 --language-target 75
 
-Both apply the same checks to every commit. CONTRIBUTING.md describes the options.
+Both apply the same checks to every commit. The corpus holds at most 3 records from any one repository and at most 6 from any one owner (upper and lower case count as the same owner); a commit over either limit is skipped before any of its files is downloaded. `python -m bench.build_corpus --out corpus --prune-owner-excess` brings an older corpus under the owner limit by keeping each owner's 6 records with the smallest ids and deleting the rest. CONTRIBUTING.md describes the options.
 
 ## Licence
 

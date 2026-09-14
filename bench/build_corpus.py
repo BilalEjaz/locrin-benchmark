@@ -14,6 +14,7 @@ import argparse
 import base64
 import datetime
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -29,6 +30,9 @@ TRAILERS = ["Co-Authored-By: Claude", "Co-authored-by: Codex", "Co-authored-by: 
 MAX_FILES = 30
 MAX_BYTES = 200_000
 PER_REPO = 3
+# At most this many records from one owner (the part of owner/name before the slash, any case), so one
+# author cannot fill a language across many of their own repositories.
+PER_OWNER = 6
 LANG_ORDER = ["typescript", "javascript", "php", "python"]
 # gh's error for a commit GitHub does not have: 404 for an unknown repository or commit, 422 for a sha it cannot resolve.
 _NOT_FOUND = re.compile(r"\(HTTP 404\)|\(HTTP 422\)|No commit found for SHA")
@@ -319,13 +323,28 @@ def _skip(repo: str, sha: str, reason: str, kind: str | None = None) -> None:
     print(f"skip {repo}@{sha[:7]}: {reason}", file=sys.stderr)
 
 
-def accept(gh, item: dict, seen_repos: dict[str, int], language_skip=None, meta_cache: dict | None = None):
+def _owner(repo: str) -> str:
+    """The lower-cased owner of owner/name: GitHub owner names are case-insensitive."""
+    return repo.split("/", 1)[0].lower()
+
+
+def _owner_count(seen_repos: dict[str, int], owner: str) -> int:
+    """How many records seen_repos (repository name to record count) holds for the owner."""
+    return sum(n for name, n in seen_repos.items() if _owner(name) == owner)
+
+
+def accept(gh, item: dict, seen_repos: dict[str, int], language_skip=None, meta_cache: dict | None = None,
+           owners: dict[str, int] | None = None):
     """A (record, before, after) triple for an acceptable commit, or None with the reason on stderr.
 
     language_skip, when given, takes the commit's corpus language and returns a skip reason
     or None. It runs before any file is fetched and before the repository cap counts the
     commit, so a commit in an unwanted language costs two calls at most. meta_cache, when
     given, holds repository metadata by lower-cased name so each repository is read once.
+
+    The owner cap (PER_OWNER) is checked next to the repository cap, before any file is
+    fetched. Owner counts come from seen_repos, or from owners (lower-cased owner to record
+    count) when given, which an accepted record then counts in too.
 
     Before and after hold the supported source files only. A renamed file's
     before side is stored under its previous name, which the record lists too,
@@ -342,6 +361,13 @@ def accept(gh, item: dict, seen_repos: dict[str, int], language_skip=None, meta_
     if seen_repos.get(named.lower(), 0) >= PER_REPO:
         _skip(named, sha, "repository cap")
         return None
+
+    def owner_held(owner: str) -> int:
+        return owners.get(owner, 0) if owners is not None else _owner_count(seen_repos, owner)
+
+    if owner_held(_owner(named)) >= PER_OWNER:
+        _skip(named, sha, "owner cap")
+        return None
     if meta_cache is not None and named.lower() in meta_cache:
         meta = meta_cache[named.lower()]
     else:
@@ -353,6 +379,9 @@ def accept(gh, item: dict, seen_repos: dict[str, int], language_skip=None, meta_
     repo = meta.get("full_name") or named
     if repo.lower() != named.lower() and seen_repos.get(repo.lower(), 0) >= PER_REPO:
         _skip(repo, sha, "repository cap")
+        return None
+    if _owner(repo) != _owner(named) and owner_held(_owner(repo)) >= PER_OWNER:
+        _skip(repo, sha, "owner cap")
         return None
     if meta.get("private") is not False or meta.get("visibility") != "public":
         # The build search asks for is:public, but a named commit (--repo/--sha) reads with the caller's own access.
@@ -423,6 +452,8 @@ def accept(gh, item: dict, seen_repos: dict[str, int], language_skip=None, meta_
         "files": names,
     }
     seen_repos[repo.lower()] = seen_repos.get(repo.lower(), 0) + 1
+    if owners is not None:
+        owners[_owner(repo)] = owners.get(_owner(repo), 0) + 1
     return rec, before, after
 
 
@@ -541,6 +572,10 @@ def _via_repos(gh, out: Path, a) -> int:
                             SKIPS["repository cap"] += 1
                             print(f"repo {name}: at the repository cap, commits not listed", file=sys.stderr)
                             continue
+                        if _owner_count(seen, _owner(name)) >= PER_OWNER:
+                            SKIPS["owner cap"] += 1
+                            print(f"repo {name}: at the owner cap, commits not listed", file=sys.stderr)
+                            continue
                         try:
                             commits = repo_commits(gh, name, a.since, pages=a.commit_pages)
                         except RateLimitError:
@@ -555,7 +590,8 @@ def _via_repos(gh, out: Path, a) -> int:
                         matched_total += len(matched)
                         accepted = 0
                         for c in matched:
-                            if total >= a.target or full(language) or seen.get(name.lower(), 0) >= PER_REPO:
+                            if (total >= a.target or full(language) or seen.get(name.lower(), 0) >= PER_REPO
+                                    or _owner_count(seen, _owner(name)) >= PER_OWNER):
                                 break
                             if c["sha"] in done:
                                 SKIPS["already recorded"] += 1
@@ -625,10 +661,56 @@ def _check_gone(gh, out_root: Path) -> int:
     return 1 if gone else 0
 
 
+def _prune_owner_excess(out_root: Path) -> int:
+    """Delete the records past PER_OWNER for each owner in out_root, keeping the smallest ids in plain string order.
+
+    Removes <id>.json and the <id>/ directory of each record past the cap, printing
+    `pruned: <id>` for each and a count at the end. Every record is read and every id
+    checked before anything is deleted: a record that cannot be read, or whose id is not a
+    plain name equal to its file name, stops the prune with nothing removed.
+    """
+    out_root = Path(out_root)
+
+    def refuse(reason: str) -> int:
+        print(f"build_corpus: refusing to prune: {reason}", file=sys.stderr)
+        return 1
+
+    groups: dict[str, list[str]] = {}
+    if out_root.is_dir():
+        for p in sorted(out_root.glob("*.json")):
+            try:
+                raw = json.loads(p.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError) as e:
+                return refuse(f"cannot read {p.name}: {e}")
+            if not isinstance(raw, dict):
+                return refuse(f"{p.name} is not a record")
+            ident = raw.get("id")
+            if not isinstance(ident, str) or not _valid_id(ident) or ident != p.stem:
+                return refuse(f"{p.name}: id {ident!r} is not a plain name equal to the file name")
+            repo = raw.get("repo")
+            if isinstance(repo, str) and _valid_repo(repo):
+                groups.setdefault(_owner(repo), []).append(ident)
+    doomed = sorted(ident for ids in groups.values() for ident in sorted(ids)[PER_OWNER:])
+    root = out_root.resolve()
+    isjunction = getattr(os.path, "isjunction", lambda path: False)
+    for ident in doomed:
+        for path in (out_root / f"{ident}.json", out_root / ident):
+            if path.is_symlink() or isjunction(path) or path.resolve().parent != root:
+                return refuse(f"{path.name} is a link or lies outside {out_root}")
+    for ident in doomed:
+        (out_root / f"{ident}.json").unlink()
+        tree = out_root / ident
+        if tree.is_dir():
+            shutil.rmtree(tree)
+        print(f"pruned: {ident}")
+    print(f"pruned {len(doomed)} records")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="build_corpus")
     p.add_argument("--out", default="corpus")
-    p.add_argument("--target", type=int, default=300, help="stop once the corpus holds this many records")
+    p.add_argument("--target", type=int, help="stop once the corpus holds this many records (default 300)")
     p.add_argument("--trailer", action="append")
     p.add_argument("--repo")
     p.add_argument("--sha")
@@ -643,7 +725,16 @@ def main(argv: list[str] | None = None) -> int:
                    help="with --via-repos: stop accepting a language once the corpus holds this many records of it")
     p.add_argument("--commit-pages", type=int,
                    help="with --via-repos: pages of 100 commits to list per repository (default 1)")
+    p.add_argument("--prune-owner-excess", action="store_true",
+                   help=f"delete the records in --out past {PER_OWNER} per owner, keeping the smallest ids")
     a = p.parse_args(argv)
+    if a.prune_owner_excess:
+        if (a.target is not None or a.trailer or a.repo or a.sha or a.check_gone or a.via_repos or a.since
+                or a.language or a.language_target is not None or a.commit_pages is not None):
+            p.error("--prune-owner-excess goes with --out only")
+        return _prune_owner_excess(Path(a.out))
+    if a.target is None:
+        a.target = 300
     if a.via_repos:
         if a.repo or a.sha or a.check_gone or a.trailer:
             p.error("--via-repos does not go with --repo, --sha, --check-gone or --trailer")
@@ -679,13 +770,15 @@ def main(argv: list[str] | None = None) -> int:
             commit = gh.get(f"repos/{a.repo}/commits/{a.sha}")
             if not isinstance(commit, dict) or not isinstance(commit.get("sha"), str) or not isinstance(commit.get("parents"), list):
                 raise BuildError(f"GET repos/{a.repo}/commits/{a.sha}: not a commit object")
-            recorded = [ident for ident, (_, sha) in _existing(out).items() if sha == commit["sha"]]
+            existing = _existing(out)
+            recorded = [ident for ident, (_, sha) in existing.items() if sha == commit["sha"]]
             if recorded:
                 # Deduped on the full sha: the same commit under another spelling of its repository name.
                 print(out / f"{recorded[0]}.json")
                 return 0
             item = {"sha": commit["sha"], "repository": {"full_name": a.repo}, "parents": commit["parents"]}
-            got = accept(gh, item, {})
+            owners = dict(Counter(_owner(repo) for repo, _ in existing.values() if repo))
+            got = accept(gh, item, {}, owners=owners)
             if got is None:
                 return 1
             print(write_record(out, *got))

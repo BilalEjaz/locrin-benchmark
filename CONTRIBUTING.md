@@ -12,7 +12,7 @@ Run `python -m bench.build_corpus --repo owner/name --sha <commit>`; it refuses 
 
 `python -m bench.build_corpus --out corpus --target 300` searches GitHub's commit search for each agent co-author trailer. That search returns at most a few pages per trailer and most of what it finds sits in repositories without a permissive licence, so it runs dry quickly.
 
-The repository-first mode finds far more. It asks GitHub's repository search for public repositories that are not forks or archived, carry one of the five allowed licences and were pushed on or after a date, one query per language and licence, most recently updated first, up to 1000 repositories each. For every repository it lists the commits made since that date (one page of 100 by default) with the commits API, keeps those with a `Co-authored-by` line naming Claude, Codex, Copilot or Cursor, and runs each one through the same checks as every other diff: the licence read again from the repository, one parent, the file count and size limits, paths that check out on Windows and Linux, at most three diffs per repository, and no commit recorded twice.
+The repository-first mode finds far more. It asks GitHub's repository search for public repositories that are not forks or archived, carry one of the five allowed licences and were pushed on or after a date, one query per language and licence, most recently updated first, up to 1000 repositories each. For every repository it lists the commits made since that date (one page of 100 by default) with the commits API, keeps those with a `Co-authored-by` line naming Claude, Codex, Copilot or Cursor, and runs each one through the same checks as every other diff: the licence read again from the repository, one parent, the file count and size limits, paths that check out on Windows and Linux, at most three diffs per repository, at most six diffs per owner, and no commit recorded twice.
 
     python -m bench.build_corpus --via-repos --since 2026-08-01 --out corpus --target 300 --language php --language python --language-target 40
 
@@ -22,6 +22,16 @@ The repository-first mode finds far more. It asks GitHub's repository search for
 - `--commit-pages N` lists N pages of 100 commits per repository instead of one.
 
 It prints one line per repository (commits listed, commits with an agent trailer, records accepted) and ends with the records written per language and how many commits were skipped for each reason. GitHub calls are paced, three seconds apart for searches and half a second apart otherwise. When GitHub answers with a secondary rate limit the build waits at least two minutes (longer if GitHub says so) and tries again, up to three times. When the hourly limit runs out it waits for the reset if that is under 65 minutes away. Otherwise it stops with exit code 1 and keeps every record it already wrote, so running the same command again carries on where it stopped.
+
+## Limits per repository and per owner
+
+The corpus holds at most 3 records from any one repository and at most 6 from any one owner, so no single project or author can fill a language. The owner is the part of `owner/name` before the slash, and upper and lower case count as the same owner. Every way of adding a diff (the trailer search, `--via-repos` and `--repo`/`--sha`) counts the records already in `--out`, and skips a commit over either limit with the reason `repository cap` or `owner cap` before downloading any of its files. `--via-repos` does not list the commits of a repository whose owner already has 6 records.
+
+A corpus built before the owner limit may hold more than 6 records from one owner. To bring it under the limit, run
+
+    python -m bench.build_corpus --out corpus --prune-owner-excess
+
+For each owner over the limit it keeps the 6 records with the smallest ids (plain string order, so upper case sorts before lower case) and deletes the rest, both `<id>.json` and the `<id>/` directory, printing a `pruned: <id>` line for each and a count at the end. The same corpus always keeps the same records, and running it again removes nothing. It takes no other option, and it reads every record first: if one cannot be read or its id is not a plain name matching its file name, it deletes nothing and exits 1. Remove the labels of any pruned record and re-check the later diffs from its repository as described under pruning a gone diff below.
 
 ## Pruning a diff whose commit is gone
 
