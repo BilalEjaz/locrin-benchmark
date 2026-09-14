@@ -25,10 +25,12 @@ def load(name):
 class FakeGitHub:
     def __init__(self, overrides=None):
         self.calls = []
+        self.requests = []
         self.overrides = overrides or {}
 
     def get(self, path, params=None, accept=None):
         self.calls.append(path)
+        self.requests.append((path, dict(params or {})))
         if path in self.overrides:
             value = self.overrides[path]
             if isinstance(value, Exception):
@@ -36,6 +38,10 @@ class FakeGitHub:
             return value
         if path.startswith("search/commits"):
             return load("search.json")
+        if path.startswith("search/repositories"):
+            return {"total_count": 1, "incomplete_results": False, "items": [load("repo.json")]}
+        if path.endswith("/commits"):
+            return load("commits_list.json")
         if "/contents/" in path:
             ref = (params or {}).get("ref", "")
             commit = load("commit.json")
@@ -213,27 +219,12 @@ def test_github_get_shells_out_to_gh_api_and_never_reads_a_token(monkeypatch):
     doc = GitHub().get("search/commits", {"q": '"Co-Authored-By: Claude" is:public', "per_page": 100}, accept="application/x")
     assert doc == {"items": []}
     cmd, kw = seen[0]
-    assert cmd == ["gh", "api", "--method", "GET", "search/commits", "-H", "Accept: application/x",
+    assert cmd == ["gh", "api", "--method", "GET", "--include", "search/commits", "-H", "Accept: application/x",
                    "-f", 'q="Co-Authored-By: Claude" is:public', "-f", "per_page=100"]
     assert "token-value-must-not-appear" not in " ".join(cmd)
     assert "env" not in kw and kw["stdin"] is subprocess.DEVNULL
     assert GitHub().get("repos/a/b") == {"items": []}
-    assert seen[1][0] == ["gh", "api", "--method", "GET", "repos/a/b", "-H", "Accept: application/vnd.github+json"]
-
-
-def test_github_get_sleeps_once_on_a_rate_limit_then_raises(monkeypatch):
-    limited = "gh: You have exceeded a secondary rate limit. Please wait a few minutes. (HTTP 403)"
-    outcomes = [Completed(1, "{}", limited), Completed(0, '{"ok": true}')]
-    sleeps = []
-    monkeypatch.setattr(bc.subprocess, "run", lambda cmd, **kw: outcomes.pop(0))
-    monkeypatch.setattr(bc.time, "sleep", sleeps.append)
-    assert GitHub().get("repos/a/b") == {"ok": True}
-    assert sleeps == [60]
-
-    outcomes[:] = [Completed(1, "{}", "gh: API rate limit exceeded (HTTP 403)")] * 2
-    with pytest.raises(RateLimitError, match="repos/a/b"):
-        GitHub().get("repos/a/b")
-    assert sleeps == [60, 60]
+    assert seen[1][0] == ["gh", "api", "--method", "GET", "--include", "repos/a/b", "-H", "Accept: application/vnd.github+json"]
 
 
 def test_github_get_raises_build_error_on_failure_bad_json_or_missing_gh(monkeypatch):
@@ -697,3 +688,421 @@ def test_main_named_commit_with_a_malformed_response_exits_one(tmp_path, monkeyp
     monkeypatch.setattr(bc, "GitHub", lambda: FakeGitHub({f"repos/{REPO}/commits/{SHA}": response}))
     assert bc.main(["--out", str(tmp_path / "corpus"), "--repo", REPO, "--sha", SHA]) == 1
     assert "build_corpus:" in capsys.readouterr().err
+
+
+# Repository-first mode (--via-repos).
+
+CRLF = "\r\n"
+
+
+def response(status, body, headers=None):
+    """What gh api --include prints: the status line, the headers, a blank line, then the body."""
+    reason = {200: "OK", 403: "Forbidden", 404: "Not Found", 429: "Too Many Requests"}[status]
+    lines = [f"HTTP/2.0 {status} {reason}"] + [f"{k}: {v}" for k, v in (headers or {}).items()]
+    return CRLF.join(lines) + CRLF + CRLF + body
+
+
+class Clock:
+    """A monotonic clock that only moves when the code under test sleeps or the test moves it."""
+
+    def __init__(self):
+        self.now = 1000.0
+        self.sleeps = []
+
+    def __call__(self):
+        return self.now
+
+    def sleep(self, seconds):
+        self.sleeps.append(seconds)
+        self.now += seconds
+
+
+def paced_github(monkeypatch, outcomes, wall=2_000_000_000.0, rate_limit=None):
+    clock = Clock()
+    runs = []
+
+    def fake_run(cmd, **kw):
+        runs.append(cmd)
+        if "rate_limit" in cmd:
+            if isinstance(rate_limit, Completed):
+                return rate_limit
+            return Completed(0, response(200, json.dumps(rate_limit)))
+        return outcomes.pop(0)
+
+    def real_sleep(seconds):
+        pytest.fail("slept through time.sleep, not the injected sleep")
+
+    monkeypatch.setattr(bc.subprocess, "run", fake_run)
+    monkeypatch.setattr(bc.time, "sleep", real_sleep)
+    gh = GitHub(sleep=clock.sleep, clock=clock, wall=lambda: wall)
+    return gh, clock, runs
+
+
+OK = Completed(0, response(200, '{"ok": true}'))
+
+
+@pytest.mark.parametrize("language, licence, expected", [
+    ("typescript", "mit", "language:TypeScript license:mit pushed:>=2026-09-01 fork:false archived:false is:public"),
+    ("javascript", "apache-2.0", "language:JavaScript license:apache-2.0 pushed:>=2026-09-01 fork:false archived:false is:public"),
+    ("php", "bsd-3-clause", "language:PHP license:bsd-3-clause pushed:>=2026-09-01 fork:false archived:false is:public"),
+    ("python", "isc", "language:Python license:isc pushed:>=2026-09-01 fork:false archived:false is:public"),
+    ("python", "bsd-2-clause", "language:Python license:bsd-2-clause pushed:>=2026-09-01 fork:false archived:false is:public"),
+])
+def test_repo_query_names_the_github_language_licence_and_filters(language, licence, expected):
+    assert bc.repo_query(language, licence, "2026-09-01") == expected
+
+
+def test_licence_keys_and_github_language_names():
+    assert bc.LICENCE_KEYS == ["mit", "apache-2.0", "bsd-2-clause", "bsd-3-clause", "isc"]
+    assert bc.GITHUB_LANGUAGES == {"typescript": "TypeScript", "javascript": "JavaScript", "php": "PHP", "python": "Python"}
+    assert bc.AGENTS == ["Claude", "Codex", "Copilot", "Cursor"]
+
+
+def test_repositories_sorts_by_updated_and_pages_until_a_short_page_or_the_page_limit():
+    captured = load("search_repositories.json")
+    gh = FakeGitHub({"search/repositories": captured})
+    got = list(bc.repositories(gh, "typescript", "apache-2.0", "2026-09-01", per_page=3, pages=2))
+    assert [r["full_name"] for r in got[:3]] == ["cdk8s-team/cdk8s-aws-cdk", "verbara/Verbara.Platform.Web",
+                                                 "full-stack-skills/stitch-skills"]
+    assert len(got) == 6
+    q = "language:TypeScript license:apache-2.0 pushed:>=2026-09-01 fork:false archived:false is:public"
+    assert gh.requests == [
+        ("search/repositories", {"q": q, "sort": "updated", "order": "desc", "per_page": 3, "page": 1}),
+        ("search/repositories", {"q": q, "sort": "updated", "order": "desc", "per_page": 3, "page": 2}),
+    ]
+    gh = FakeGitHub({"search/repositories": captured})
+    assert len(list(bc.repositories(gh, "typescript", "apache-2.0", "2026-09-01"))) == 3
+    assert gh.requests == [("search/repositories", {"q": q, "sort": "updated", "order": "desc", "per_page": 100, "page": 1})]
+
+
+def test_repositories_asks_for_at_most_ten_pages_of_one_hundred():
+    full = {"items": [{"full_name": f"a/r{i}"} for i in range(100)]}
+    gh = FakeGitHub({"search/repositories": full})
+    assert len(list(bc.repositories(gh, "php", "mit", "2026-09-01"))) == 1000
+    assert [params["page"] for _, params in gh.requests] == list(range(1, 11))
+
+
+def test_repo_commits_lists_one_page_since_the_date_without_the_search_api():
+    gh = FakeGitHub()
+    got = bc.repo_commits(gh, REPO, "2026-03-01", per_page=4)
+    assert [c["sha"][:7] for c in got] == ["5ff11f2", "4ddb43c", "979ef6b", "121aa93"]
+    assert gh.requests == [(f"repos/{REPO}/commits", {"since": "2026-03-01T00:00:00Z", "per_page": 4, "page": 1})]
+    gh = FakeGitHub()
+    assert len(bc.repo_commits(gh, REPO, "2026-03-01", pages=2, per_page=4)) == 8
+    assert [params["page"] for _, params in gh.requests] == [1, 2]
+    gh = FakeGitHub()
+    assert len(bc.repo_commits(gh, REPO, "2026-03-01", pages=3)) == 4
+    assert [params for _, params in gh.requests] == [{"since": "2026-03-01T00:00:00Z", "per_page": 100, "page": 1}]
+
+
+@pytest.mark.parametrize("message, agent", [
+    ("Fix\n\nCo-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>", "Copilot"),
+    ("Fix\n\nco-authored-by: Cursor Agent <cursoragent@cursor.com>", "Cursor"),
+    ("Fix\n\nCO-AUTHORED-BY: codex <codex@openai.com>", "Codex"),
+    ("Fix\r\n\r\nCo-Authored-By: Claude <noreply@anthropic.com>\r\n", "Claude"),
+    ("Fix\n\nSigned-off-by: A Person <a@example.com>\nCo-authored-by: GitHub Copilot <copilot@github.com>", "Copilot"),
+    ("Fix\n\nCo-authored-by: Jane Doe <jane@example.com>\nCo-authored-by: claude[bot] <bot@example.com>", "Claude"),
+])
+def test_agent_trailer_finds_an_agent_named_in_a_co_authored_by_line(message, agent):
+    assert bc.agent_trailer(message) == agent
+
+
+@pytest.mark.parametrize("message", [
+    "Add browser exports for the shared package",
+    "Fix\n\nCo-authored-by: Jane Doe <jane@example.com>",
+    "Ask Claude to review the parser\n\nCo-authored-by: Jane Doe <jane@example.com>",
+    "Fix\n\nSigned-off-by: Claude <noreply@anthropic.com>",
+    "Fix, see the note: Co-authored-by: Claude <noreply@anthropic.com>",
+    "Fix\n\nCo-authored-by: Claudette Roy <claudette@example.com>",
+    "Fix\n\nCo-authored-by: Jane Doe <claude@example.com>",
+    "",
+])
+def test_agent_trailer_ignores_humans_and_agents_outside_a_trailer_line(message):
+    assert bc.agent_trailer(message) is None
+
+
+def test_agent_trailer_matches_the_captured_commit_list():
+    got = [bc.agent_trailer(c["commit"]["message"]) for c in load("commits_list.json")]
+    assert got == ["Claude", "Claude", "Claude", None]
+
+
+def test_github_get_paces_search_calls_three_seconds_apart_and_other_calls_half_a_second(monkeypatch):
+    gh, clock, runs = paced_github(monkeypatch, [OK] * 7)
+    gh.get("search/repositories")
+    gh.get("search/repositories")
+    clock.now += 1.0
+    gh.get("search/repositories")
+    gh.get("repos/a/b")
+    gh.get("repos/a/b/commits")
+    clock.now += 2.0
+    gh.get("repos/a/b")
+    gh.get("search/repositories")
+    # Search and other calls are paced apart from each other: the last search call ran 2.5 seconds earlier.
+    assert clock.sleeps == [pytest.approx(3.0), pytest.approx(2.0), pytest.approx(0.5), pytest.approx(0.5)]
+
+
+def test_github_get_parses_the_body_after_the_included_headers(monkeypatch):
+    gh, _, _ = paced_github(monkeypatch, [Completed(0, response(200, '{"items": [1]}', {"X-RateLimit-Remaining": "9"}))])
+    assert gh.get("search/repositories") == {"items": [1]}
+
+
+SECONDARY = "gh: You have exceeded a secondary rate limit. Please wait a few minutes before you try again. (HTTP 403)"
+
+
+def test_secondary_rate_limit_waits_at_least_120_seconds_or_the_retry_after_then_retries(monkeypatch):
+    body = '{"message": "You have exceeded a secondary rate limit."}'
+    outcomes = [
+        Completed(1, response(403, body), SECONDARY),
+        Completed(1, response(403, body, {"Retry-After": "300"}), SECONDARY),
+        Completed(1, response(429, body), "gh: You have exceeded a secondary rate limit (HTTP 429)"),
+        OK,
+    ]
+    gh, clock, runs = paced_github(monkeypatch, outcomes)
+    assert gh.get("search/repositories") == {"ok": True}
+    assert clock.sleeps == [120, 300, 120]
+    assert len(runs) == 4
+
+
+def test_any_retry_after_counts_as_a_secondary_limit(monkeypatch):
+    outcomes = [Completed(1, response(403, '{"message": "Forbidden"}', {"retry-after": "7"}), "gh: Forbidden (HTTP 403)"), OK]
+    gh, clock, _ = paced_github(monkeypatch, outcomes)
+    assert gh.get("repos/a/b") == {"ok": True}
+    assert clock.sleeps == [120]
+
+
+def test_secondary_rate_limit_raises_after_three_retries(monkeypatch):
+    outcomes = [Completed(1, response(403, "{}"), SECONDARY)] * 4
+    gh, clock, runs = paced_github(monkeypatch, outcomes)
+    with pytest.raises(RateLimitError, match="repos/a/b"):
+        gh.get("repos/a/b")
+    assert clock.sleeps == [120, 120, 120]
+    assert len(runs) == 4
+
+
+def test_a_header_that_only_lists_retry_after_is_not_a_rate_limit(monkeypatch):
+    headers = {"Access-Control-Expose-Headers": "ETag, Link, Location, Retry-After, X-RateLimit-Reset"}
+    outcomes = [Completed(1, response(404, '{"message": "Not Found"}', headers), "gh: Not Found (HTTP 404)")]
+    gh, clock, _ = paced_github(monkeypatch, outcomes)
+    with pytest.raises(BuildError, match="Not Found") as err:
+        gh.get("repos/a/b")
+    assert not isinstance(err.value, RateLimitError) and clock.sleeps == []
+
+
+PRIMARY = "gh: API rate limit exceeded for user ID 1. (HTTP 403)"
+
+
+def limits(core_reset, search_reset):
+    return {"resources": {"core": {"limit": 5000, "remaining": 0, "reset": core_reset},
+                          "search": {"limit": 30, "remaining": 0, "reset": search_reset}}}
+
+
+def test_primary_rate_limit_sleeps_until_the_reset_gh_reports_then_retries(monkeypatch):
+    wall = 2_000_000_000.0
+    outcomes = [Completed(1, response(403, "{}"), PRIMARY), OK, Completed(1, response(403, "{}"), PRIMARY), OK]
+    gh, clock, runs = paced_github(monkeypatch, outcomes, wall=wall, rate_limit=limits(int(wall) + 600, int(wall) + 40))
+    assert gh.get("repos/a/b") == {"ok": True}
+    assert clock.sleeps == [600 + bc.RESET_SLACK]
+    assert gh.get("search/repositories") == {"ok": True}
+    assert clock.sleeps == [600 + bc.RESET_SLACK, 40 + bc.RESET_SLACK]
+    assert sum("rate_limit" in cmd for cmd in runs) == 2
+
+
+def test_primary_rate_limit_raises_when_the_reset_is_more_than_65_minutes_away(monkeypatch):
+    wall = 2_000_000_000.0
+    gh, clock, _ = paced_github(monkeypatch, [Completed(1, response(403, "{}"), PRIMARY)], wall=wall,
+                                rate_limit=limits(int(wall) + 66 * 60, int(wall)))
+    with pytest.raises(RateLimitError, match="repos/a/b"):
+        gh.get("repos/a/b")
+    assert clock.sleeps == []
+
+
+def test_primary_rate_limit_raises_after_three_retries_or_when_gh_cannot_read_the_reset(monkeypatch):
+    wall = 2_000_000_000.0
+    gh, clock, runs = paced_github(monkeypatch, [Completed(1, response(403, "{}"), PRIMARY)] * 4, wall=wall,
+                                   rate_limit=limits(int(wall) + 60, int(wall)))
+    with pytest.raises(RateLimitError):
+        gh.get("repos/a/b")
+    assert clock.sleeps == [60 + bc.RESET_SLACK] * 3
+    gh, clock, _ = paced_github(monkeypatch, [Completed(1, response(403, "{}"), PRIMARY)], wall=wall,
+                                rate_limit=Completed(1, "", "gh: error connecting to api.github.com"))
+    with pytest.raises(RateLimitError):
+        gh.get("repos/a/b")
+    assert clock.sleeps == []
+
+
+def test_main_via_repos_writes_records_that_load_corpus_accepts(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    commits = load("commits_list.json")
+    gh = FakeGitHub({
+        f"repos/{REPO}/commits/{commits[1]['sha']}": commit_with([{"filename": "README.md", "status": "modified"}]),
+        f"repos/{REPO}/commits/{commits[2]['sha']}": commit_with([]),
+    })
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out)]) == 0
+    assert [d.id for d in load_corpus(out)] == ["cline__cline__5ff11f2"]
+    searches = [params for path, params in gh.requests if path == "search/repositories"]
+    assert [params["q"].split(" ")[:2] for params in searches[:6]] == [
+        ["language:TypeScript", "license:mit"], ["language:TypeScript", "license:apache-2.0"],
+        ["language:TypeScript", "license:bsd-2-clause"], ["language:TypeScript", "license:bsd-3-clause"],
+        ["language:TypeScript", "license:isc"], ["language:JavaScript", "license:mit"]]
+    assert len(searches) == 20
+    # The repository turns up in every query but is examined once, through the commits API, never search/commits.
+    assert gh.calls.count(f"repos/{REPO}/commits") == 1
+    assert not any(p.startswith("search/commits") for p in gh.calls)
+    # The fourth commit carries no agent trailer and is never fetched.
+    assert f"repos/{REPO}/commits/{commits[3]['sha']}" not in gh.calls
+    err = capsys.readouterr().err
+    assert f"repo {REPO}: 4 commits, 3 matched, 1 accepted" in err
+    assert "wrote 1 records" in err
+    assert "typescript 1, javascript 0, php 0, python 0" in err
+    assert "no supported source file 1" in err and "file count 1" in err
+
+
+def test_main_via_repos_skips_commits_already_recorded_and_repositories_at_the_cap(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    rec, before, after = accept(FakeGitHub(), first_item(), seen_repos={})
+    write_record(out, rec, before, after)
+    tried = []
+
+    def fake_accept(gh, item, seen_repos):
+        tried.append(item["sha"][:7])
+        return None
+
+    monkeypatch.setattr(bc, "GitHub", FakeGitHub)
+    monkeypatch.setattr(bc, "accept", fake_accept)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out), "--language", "typescript"]) == 0
+    assert tried == ["4ddb43c", "979ef6b"]
+    for sha in ("a" * 40, "b" * 40):
+        write_record(out, dict(rec, id=f"cline__cline__{sha[:7]}", sha=sha), before, after)
+    gh = FakeGitHub()
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    tried.clear()
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out), "--language", "typescript"]) == 0
+    assert tried == [] and f"repos/{REPO}/commits" not in gh.calls
+    assert "repository cap" in capsys.readouterr().err
+
+
+def fake_records(language_of_sha=None):
+    accepted = []
+
+    def fake_accept(gh, item, seen_repos):
+        repo, sha = item["repository"]["full_name"], item["sha"]
+        accepted.append(sha[:7])
+        seen_repos[repo.lower()] = seen_repos.get(repo.lower(), 0) + 1
+        language = (language_of_sha or {}).get(sha[:7], "typescript")
+        rec = {"id": f"{repo.replace('/', '__')}__{sha[:7]}", "source": "git", "repo": repo, "sha": sha,
+               "parent": PARENT, "licence": "Apache-2.0", "language": language,
+               "url": f"https://github.com/{repo}/commit/{sha}", "files": [FILE]}
+        return rec, {FILE: b"a\n"}, {FILE: b"b\n"}
+
+    return accepted, fake_accept
+
+
+def test_language_target_stops_accepting_a_language_once_the_corpus_holds_k_of_it(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    accepted, fake_accept = fake_records()
+    gh = FakeGitHub()
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    monkeypatch.setattr(bc, "accept", fake_accept)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out), "--language", "typescript",
+                    "--language-target", "2"]) == 0
+    assert accepted == ["5ff11f2", "4ddb43c"]
+    assert len(load_corpus(out)) == 2
+    # Once typescript is full no further typescript query runs.
+    assert [p for p in gh.calls if p.startswith("search/")] == ["search/repositories"]
+
+    gh = FakeGitHub()
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    accepted.clear()
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out), "--language", "typescript",
+                    "--language", "python", "--language-target", "2"]) == 0
+    assert gh.calls and all("language:TypeScript" not in params.get("q", "") for _, params in gh.requests)
+    assert "language:Python" in gh.requests[0][1]["q"]
+    # The python repository's commits came out as typescript records, and typescript is full.
+    assert accepted == ["979ef6b"] and len(load_corpus(out)) == 2
+    err = capsys.readouterr().err
+    assert "typescript already holds 2 records" in err
+    assert "language target 1" in err
+
+
+def test_language_target_also_skips_a_record_whose_own_language_is_full_or_not_asked_for(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    accepted, fake_accept = fake_records({"5ff11f2": "python", "4ddb43c": "javascript", "979ef6b": "typescript"})
+    written = []
+    real_write = bc.write_record
+
+    def spy_write(out_root, rec, before, after):
+        written.append(rec["language"])
+        return real_write(out_root, rec, before, after)
+
+    monkeypatch.setattr(bc, "GitHub", FakeGitHub)
+    monkeypatch.setattr(bc, "accept", fake_accept)
+    monkeypatch.setattr(bc, "write_record", spy_write)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out), "--language", "typescript",
+                    "--language", "javascript", "--language-target", "0"]) == 0
+    assert written == [] and accepted == []
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out), "--language", "typescript",
+                    "--target", "5"]) == 0
+    assert written == ["typescript"]
+    err = capsys.readouterr().err
+    assert "language not selected 2" in err
+
+
+def test_main_via_repos_honours_the_total_target(tmp_path, monkeypatch):
+    out = tmp_path / "corpus"
+    accepted, fake_accept = fake_records()
+    monkeypatch.setattr(bc, "GitHub", FakeGitHub)
+    monkeypatch.setattr(bc, "accept", fake_accept)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out), "--target", "1"]) == 0
+    assert accepted == ["5ff11f2"]
+
+
+def test_main_via_repos_stops_on_a_rate_limit_and_carries_on_after_other_errors(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    gh = FakeGitHub({"search/repositories": BuildError("GET search/repositories: gh: Server Error (HTTP 502)")})
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out), "--language", "php"]) == 1
+    assert len([p for p in gh.calls if p.startswith("search/")]) == 5
+    assert "Server Error" in capsys.readouterr().err
+
+    gh = FakeGitHub({f"repos/{REPO}/commits": BuildError("GET: gh: Git Repository is empty. (HTTP 409)")})
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out), "--language", "php"]) == 0
+    assert "commits unreadable 1" in capsys.readouterr().err
+
+    gh = FakeGitHub({f"repos/{REPO}/commits": RateLimitError("GET repos/cline/cline/commits: rate limit")})
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(out)]) == 1
+    err = capsys.readouterr().err
+    assert "build_corpus: stopped:" in err and "wrote 0 records" in err
+    assert len([p for p in gh.calls if p.startswith("search/")]) == 1
+
+
+@pytest.mark.parametrize("argv", [
+    ["--via-repos"],
+    ["--via-repos", "--since", "2026-13-01"],
+    ["--via-repos", "--since", "01/09/2026"],
+    ["--since", "2026-09-01"],
+    ["--language", "php"],
+    ["--via-repos", "--since", "2026-09-01", "--language", "ruby"],
+    ["--via-repos", "--since", "2026-09-01", "--language-target", "-1"],
+    ["--via-repos", "--since", "2026-09-01", "--commit-pages", "0"],
+    ["--via-repos", "--since", "2026-09-01", "--repo", REPO, "--sha", SHA],
+    ["--via-repos", "--since", "2026-09-01", "--trailer", "Co-authored-by: Codex"],
+])
+def test_main_via_repos_validates_its_options_before_calling_gh(tmp_path, monkeypatch, argv):
+    gh = FakeGitHub()
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    with pytest.raises(SystemExit) as err:
+        bc.main(["--out", str(tmp_path / "corpus"), *argv])
+    assert err.value.code == 2 and gh.calls == []
+
+
+def test_main_via_repos_passes_commit_pages(tmp_path, monkeypatch):
+    full = [dict(c, sha=f"{i:040x}") for i, c in enumerate(load("commits_list.json") * 25)]
+    gh = FakeGitHub({f"repos/{REPO}/commits": full})
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    monkeypatch.setattr(bc, "accept", lambda gh, item, seen_repos: None)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(tmp_path / "c"), "--language", "php",
+                    "--commit-pages", "2"]) == 0
+    assert [params["page"] for path, params in gh.requests if path == f"repos/{REPO}/commits"] == [1, 2]

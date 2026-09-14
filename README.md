@@ -44,6 +44,12 @@ Three things are deliberately not scored and say so in the table: `vulnerable-de
 
 Diffs from public repositories under MIT, Apache-2.0, BSD or ISC licences, chosen from commits that carry an agent co-author trailer. Each record in `corpus/` names the repository, commit, parent, licence and language, and stores the changed source files before and after. The harness scores each diff inside a checkout of the whole repository at that commit, because the graph rules need it. No private code is ever sampled.
 
+`bench/build_corpus.py` finds the commits in one of two ways. The trailer search asks GitHub's commit search for each agent trailer. The repository-first mode asks GitHub's repository search for public, permissively licensed repositories pushed since a date, one language and licence at a time, then lists each repository's recent commits and keeps those with a `Co-authored-by` line naming an agent, for example:
+
+    python -m bench.build_corpus --via-repos --since 2026-08-01 --out corpus --target 300 --language-target 75
+
+Both apply the same checks to every commit. CONTRIBUTING.md describes the options.
+
 ## Licence
 
 MIT. Corpus files keep the licence of the repository they came from, named in each record.

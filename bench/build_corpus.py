@@ -1,5 +1,10 @@
 """Build corpus records from GitHub commits that carry an agent co-author trailer.
 
+Two ways to find commits: the trailer search (search/commits for each trailer),
+and the repository-first mode (--via-repos), which searches for permissively
+licensed repositories pushed since a date and lists each one's recent commits
+with the commits API. Both feed the same accept() and write_record().
+
 Every GitHub call goes through the gh command line tool, which holds its own
 credentials: this module never reads a token.
 """
@@ -7,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import datetime
 import json
 import re
 import shutil
@@ -24,11 +30,26 @@ MAX_FILES = 30
 MAX_BYTES = 200_000
 PER_REPO = 3
 LANG_ORDER = ["typescript", "javascript", "php", "python"]
-RATE_LIMIT_SLEEP = 60
 # gh's error for a commit GitHub does not have: 404 for an unknown repository or commit, 422 for a sha it cannot resolve.
 _NOT_FOUND = re.compile(r"\(HTTP 404\)|\(HTTP 422\)|No commit found for SHA")
 _SHA = re.compile(r"[0-9a-fA-F]{7,40}")
 SEARCH_PAGE_SLEEP = 2
+# The agents the trailers name, in TRAILERS order.
+AGENTS = [t.split(":", 1)[1].strip() for t in TRAILERS]
+# Repository search keys for ALLOWED_LICENCES, and GitHub's names for the corpus languages.
+LICENCE_KEYS = ["mit", "apache-2.0", "bsd-2-clause", "bsd-3-clause", "isc"]
+GITHUB_LANGUAGES = {"typescript": "TypeScript", "javascript": "JavaScript", "php": "PHP", "python": "Python"}
+# Pacing: GitHub answers back-to-back search calls with a secondary rate limit.
+SEARCH_GAP = 3.0
+CALL_GAP = 0.5
+SECONDARY_WAIT = 120
+RATE_RETRIES = 3
+PRIMARY_MAX_WAIT = 65 * 60
+RESET_SLACK = 1
+_STATUS_LINE = re.compile(r"HTTP/[0-9.]+ (\d{3})")
+_HTTP_STATUS = re.compile(r"\(HTTP (\d{3})\)")
+_TRAILER_LINE = re.compile(r"^[ \t]*co-authored-by:[ \t]*(.*)$", re.IGNORECASE | re.MULTILINE)
+_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
 class BuildError(Exception):
@@ -36,35 +57,118 @@ class BuildError(Exception):
 
 
 class RateLimitError(BuildError):
-    """GitHub still refused after the one rate-limit wait."""
+    """GitHub still refused after the rate-limit waits, or a wait would run past the limit allowed."""
+
+
+def _split_include(stdout: str) -> tuple[int | None, dict[str, str], str]:
+    """(status, headers, body) from what gh api --include prints. Output with no status line is all body."""
+    if not stdout.startswith("HTTP/"):
+        return None, {}, stdout
+    m = re.search(r"\r?\n\r?\n", stdout)
+    head, body = (stdout[:m.start()], stdout[m.end():]) if m else (stdout, "")
+    lines = head.splitlines()
+    status = _STATUS_LINE.match(lines[0])
+    headers = {}
+    for line in lines[1:]:
+        name, colon, value = line.partition(":")
+        if colon:
+            headers[name.strip().lower()] = value.strip()
+    return (int(status.group(1)) if status else None), headers, body
 
 
 class GitHub:
-    def __init__(self, program: str = "gh"):
-        self.program = program
+    """gh api, paced, with rate limits waited out.
 
-    def get(self, path: str, params: dict | None = None, accept: str = "application/vnd.github+json") -> dict:
-        cmd = [self.program, "api", "--method", "GET", path, "-H", f"Accept: {accept}"]
+    Search calls run at least SEARCH_GAP seconds apart and other calls at least
+    CALL_GAP seconds apart, on a monotonic clock. Every wait goes through the
+    one sleep function, which tests replace.
+    """
+
+    def __init__(self, program: str = "gh", sleep=None, clock=None, wall=None):
+        self.program = program
+        self._sleep_fn = sleep
+        self._clock = clock or time.monotonic
+        self._wall = wall or time.time
+        self._last: dict[str, float] = {}
+
+    def _sleep(self, seconds: float) -> None:
+        # Looked up at call time, so a patched time.sleep still applies when none was injected.
+        (self._sleep_fn or time.sleep)(seconds)
+
+    def _command(self, path: str, params: dict | None, accept: str) -> list[str]:
+        cmd = [self.program, "api", "--method", "GET", "--include", path, "-H", f"Accept: {accept}"]
         for key, value in (params or {}).items():
             cmd += ["-f", f"{key}={value}"]
-        for attempt in (1, 2):
+        return cmd
+
+    def _run(self, path: str, cmd: list[str]):
+        try:
+            return subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                                  stdin=subprocess.DEVNULL)
+        except OSError as e:
+            raise BuildError(f"GET {path}: cannot run gh: {e}") from e
+
+    def _pace(self, kind: str) -> None:
+        last = self._last.get(kind)
+        if last is None:
+            return
+        wait = (SEARCH_GAP if kind == "search" else CALL_GAP) - (self._clock() - last)
+        if wait > 0:
+            self._sleep(wait)
+
+    def _reset_wait(self, kind: str, path: str, message: str) -> float:
+        """Seconds until the primary limit for kind resets, from gh api rate_limit. Raises RateLimitError past 65 minutes."""
+        r = self._run("rate_limit", self._command("rate_limit", None, "application/vnd.github+json"))
+        try:
+            if r.returncode != 0:
+                raise ValueError(r.stderr.strip() or f"gh exit {r.returncode}")
+            reset = float(json.loads(_split_include(r.stdout)[2])["resources"][kind]["reset"])
+        except (ValueError, KeyError, TypeError) as e:
+            raise RateLimitError(f"GET {path}: {message} (cannot read the reset time: {e})") from e
+        wait = max(reset - self._wall(), 0.0) + RESET_SLACK
+        if wait > PRIMARY_MAX_WAIT:
+            raise RateLimitError(f"GET {path}: {message} (resets in {int(wait)} seconds)")
+        return wait
+
+    def get(self, path: str, params: dict | None = None, accept: str = "application/vnd.github+json") -> dict:
+        cmd = self._command(path, params, accept)
+        kind = "search" if path.startswith("search/") else "core"
+        retries = 0
+        while True:
+            self._pace(kind)
             try:
-                r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
-                                   stdin=subprocess.DEVNULL)
-            except OSError as e:
-                raise BuildError(f"GET {path}: cannot run gh: {e}") from e
+                r = self._run(path, cmd)
+            finally:
+                self._last[kind] = self._clock()
+            status, headers, body = _split_include(r.stdout or "")
             if r.returncode == 0:
                 try:
-                    return json.loads(r.stdout)
+                    return json.loads(body)
                 except json.JSONDecodeError as e:
                     raise BuildError(f"GET {path}: gh printed no JSON: {e}") from e
             message = r.stderr.strip() or f"gh exit {r.returncode}"
-            if "rate limit" not in message.lower():
+            if status is None:
+                m = _HTTP_STATUS.search(message)
+                status = int(m.group(1)) if m else None
+            text = f"{message} {body}".lower()
+            retry_after = headers.get("retry-after")
+            secondary = retry_after is not None or (status in (403, 429) and "secondary rate limit" in text)
+            primary = not secondary and "api rate limit exceeded" in text
+            if not (secondary or primary or "rate limit" in text):
                 raise BuildError(f"GET {path}: {message}")
-            if attempt == 2:
+            if retries >= RATE_RETRIES:
                 raise RateLimitError(f"GET {path}: {message}")
-            time.sleep(RATE_LIMIT_SLEEP)
-        raise AssertionError("unreachable")
+            retries += 1
+            if primary:
+                wait = self._reset_wait(kind, path, message)
+            else:
+                try:
+                    asked = float(retry_after) if retry_after is not None else 0.0
+                except ValueError:
+                    asked = 0.0
+                wait = max(asked, SECONDARY_WAIT)
+            print(f"build_corpus: rate limited on {path}, waiting {int(wait)} seconds", file=sys.stderr)
+            self._sleep(wait)
 
 
 def candidates(gh, trailer: str, per_page: int = 100, pages: int = 3) -> list[dict]:
@@ -79,6 +183,51 @@ def candidates(gh, trailer: str, per_page: int = 100, pages: int = 3) -> list[di
         if len(got) < per_page:
             break
     return items
+
+
+def repo_query(language: str, licence: str, since: str) -> str:
+    """The search/repositories query for one corpus language and one licence key."""
+    return (f"language:{GITHUB_LANGUAGES[language]} license:{licence} pushed:>={since} "
+            "fork:false archived:false is:public")
+
+
+def repositories(gh, language: str, licence: str, since: str, per_page: int = 100, pages: int = 10):
+    """Repositories for one language and licence, most recently updated first, one search page at a time."""
+    q = repo_query(language, licence, since)
+    for page in range(1, pages + 1):
+        doc = gh.get("search/repositories", {"q": q, "sort": "updated", "order": "desc", "per_page": per_page,
+                                             "page": page})
+        got = doc.get("items", []) if isinstance(doc, dict) else []
+        yield from got
+        if len(got) < per_page:
+            return
+
+
+def repo_commits(gh, full_name: str, since: str, pages: int = 1, per_page: int = 100) -> list[dict]:
+    """The repository's commits since the date, newest first, from the commits API (not search)."""
+    commits: list[dict] = []
+    for page in range(1, pages + 1):
+        got = gh.get(f"repos/{full_name}/commits", {"since": f"{since}T00:00:00Z", "per_page": per_page, "page": page})
+        if not isinstance(got, list):
+            raise BuildError(f"GET repos/{full_name}/commits: not a list of commits")
+        commits.extend(got)
+        if len(got) < per_page:
+            break
+    return commits
+
+
+def agent_trailer(message: str) -> str | None:
+    """The agent a Co-authored-by line of the message names, or None.
+
+    Only a line that starts with Co-authored-by (any case) counts, and only its
+    name part (before the email address), where the agent must be a whole word.
+    """
+    for m in _TRAILER_LINE.finditer(message or ""):
+        name = m.group(1).split("<", 1)[0]
+        for agent in AGENTS:
+            if re.search(rf"(?<![A-Za-z0-9]){re.escape(agent)}(?![A-Za-z0-9])", name, re.IGNORECASE):
+                return agent
+    return None
 
 
 def _corpus_language(files: list[dict]) -> str | None:
@@ -161,7 +310,12 @@ def _contents(gh, repo: str, path: str, ref: str) -> bytes:
     return data
 
 
-def _skip(repo: str, sha: str, reason: str) -> None:
+# Skipped commits by kind of reason, for the summary a build prints at the end.
+SKIPS: Counter[str] = Counter()
+
+
+def _skip(repo: str, sha: str, reason: str, kind: str | None = None) -> None:
+    SKIPS[kind or reason] += 1
     print(f"skip {repo}@{sha[:7]}: {reason}", file=sys.stderr)
 
 
@@ -192,20 +346,22 @@ def accept(gh, item: dict, seen_repos: dict[str, int]):
         return None
     if meta.get("private") is not False or meta.get("visibility") != "public":
         # The build search asks for is:public, but a named commit (--repo/--sha) reads with the caller's own access.
-        _skip(repo, sha, f"repository is not public (private={meta.get('private')}, visibility={meta.get('visibility')})")
+        _skip(repo, sha, f"repository is not public (private={meta.get('private')}, visibility={meta.get('visibility')})",
+              "not public")
         return None
     licence = (meta.get("license") or {}).get("spdx_id")
     if licence not in ALLOWED_LICENCES or meta.get("fork") or meta.get("archived"):
-        _skip(repo, sha, f"licence {licence}, fork={meta.get('fork')}, archived={meta.get('archived')}")
+        _skip(repo, sha, f"licence {licence}, fork={meta.get('fork')}, archived={meta.get('archived')}",
+              "licence, fork or archived")
         return None
     commit = gh.get(f"repos/{repo}/commits/{sha}")
     files = commit.get("files", [])
     if not 1 <= len(files) <= MAX_FILES:
-        _skip(repo, sha, f"{len(files)} files")
+        _skip(repo, sha, f"{len(files)} files", "file count")
         return None
     language = _corpus_language(files)
     if language is None:
-        _skip(repo, sha, "no added or modified supported source file")
+        _skip(repo, sha, "no added or modified supported source file", "no supported source file")
         return None
     parent = commit["parents"][0]["sha"]
     names: list[str] = []
@@ -233,13 +389,13 @@ def accept(gh, item: dict, seen_repos: dict[str, int]):
     if not problem and set(names) != set(want_before) | set(want_after):
         problem = f"files {sorted(set(names) - set(want_before) - set(want_after))} have no stored copy"
     if problem:
-        _skip(repo, sha, problem)
+        _skip(repo, sha, problem, "path not portable or not stored")
         return None
     try:
         before = {n: _contents(gh, repo, n, parent) for n in want_before}
         after = {n: _contents(gh, repo, n, sha) for n in want_after}
     except _Skip as e:
-        _skip(repo, sha, str(e))
+        _skip(repo, sha, str(e), "file unreadable or too large")
         return None
     rec = {
         "id": f"{repo.replace('/', '__')}__{sha[:7]}",
@@ -306,6 +462,125 @@ def _existing(out_root: Path) -> dict[str, tuple[str, str]]:
     return found
 
 
+def _existing_languages(out_root: Path) -> Counter[str]:
+    """How many records of each language out_root already holds."""
+    counts: Counter[str] = Counter()
+    if Path(out_root).is_dir():
+        for p in Path(out_root).glob("*.json"):
+            try:
+                raw = json.loads(p.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                continue
+            if isinstance(raw, dict) and isinstance(raw.get("language"), str):
+                counts[raw["language"]] += 1
+    return counts
+
+
+def _via_repos(gh, out: Path, a) -> int:
+    """The repository-first build: search repositories per language and licence, list their commits, accept matches."""
+    existing = _existing(out)
+    done = {sha for _, sha in existing.values() if sha}
+    seen: dict[str, int] = dict(Counter(repo.lower() for repo, _ in existing.values() if repo))
+    held = _existing_languages(out)
+    languages = list(dict.fromkeys(a.language or LANG_ORDER))
+    total = len(existing)
+    written: Counter[str] = Counter()
+    examined: set[str] = set()
+    matched_total = 0
+    failed_searches = 0
+    SKIPS.clear()
+
+    def full(language: str) -> bool:
+        return a.language_target is not None and held[language] >= a.language_target
+
+    def summary() -> None:
+        print(f"examined {len(examined)} repositories, {matched_total} commits with an agent trailer", file=sys.stderr)
+        print(f"wrote {sum(written.values())} records: "
+              + ", ".join(f"{lang} {written[lang]}" for lang in languages), file=sys.stderr)
+        if SKIPS:
+            print("skipped: " + "; ".join(f"{kind} {n}" for kind, n in SKIPS.most_common()), file=sys.stderr)
+
+    try:
+        for language in languages:
+            if full(language):
+                print(f"{language} already holds {held[language]} records, the language target", file=sys.stderr)
+                continue
+            for licence in LICENCE_KEYS:
+                if total >= a.target or full(language):
+                    break
+                try:
+                    for repo in repositories(gh, language, licence, a.since):
+                        if total >= a.target or full(language):
+                            break
+                        name = repo.get("full_name") if isinstance(repo, dict) else None
+                        if not isinstance(name, str) or not _valid_repo(name) or name.lower() in examined:
+                            continue
+                        examined.add(name.lower())
+                        if seen.get(name.lower(), 0) >= PER_REPO:
+                            SKIPS["repository cap"] += 1
+                            print(f"repo {name}: at the repository cap, commits not listed", file=sys.stderr)
+                            continue
+                        try:
+                            commits = repo_commits(gh, name, a.since, pages=a.commit_pages)
+                        except RateLimitError:
+                            raise
+                        except BuildError as e:
+                            # An empty repository answers 409; one unreadable repository must not end the build.
+                            SKIPS["commits unreadable"] += 1
+                            print(f"repo {name}: cannot list commits: {e}", file=sys.stderr)
+                            continue
+                        matched = [c for c in commits if isinstance(c, dict) and isinstance(c.get("sha"), str)
+                                   and agent_trailer((c.get("commit") or {}).get("message", ""))]
+                        matched_total += len(matched)
+                        accepted = 0
+                        for c in matched:
+                            if total >= a.target or full(language) or seen.get(name.lower(), 0) >= PER_REPO:
+                                break
+                            if c["sha"] in done:
+                                SKIPS["already recorded"] += 1
+                                continue
+                            done.add(c["sha"])
+                            item = {"sha": c["sha"], "repository": {"full_name": name}, "parents": c.get("parents") or []}
+                            try:
+                                got = accept(gh, item, seen)
+                                if got is None:
+                                    continue
+                                rec = got[0]
+                                lang = rec["language"]
+                                reason = ("language not selected" if lang not in languages
+                                          else "language target" if full(lang) else None)
+                                if reason:
+                                    # accept() counted the record against the repository cap; it is not written.
+                                    key = rec["repo"].lower()
+                                    seen[key] = seen.get(key, 1) - 1
+                                    _skip(rec["repo"], rec["sha"], f"{reason}: {lang}", reason)
+                                    continue
+                                print(write_record(out, *got))
+                            except RateLimitError:
+                                raise
+                            except (BuildError, OSError) as e:
+                                _skip(name, c["sha"], str(e), "error")
+                                continue
+                            total += 1
+                            held[lang] += 1
+                            written[lang] += 1
+                            accepted += 1
+                        print(f"repo {name}: {len(commits)} commits, {len(matched)} matched, {accepted} accepted",
+                              file=sys.stderr)
+                except RateLimitError:
+                    raise
+                except BuildError as e:
+                    print(f"build_corpus: search for {language} {licence} repositories failed: {e}", file=sys.stderr)
+                    failed_searches += 1
+                    continue
+    except RateLimitError as e:
+        print(f"build_corpus: stopped: {e}", file=sys.stderr)
+        summary()
+        return 1
+    summary()
+    return 1 if failed_searches else 0
+
+
 def _check_gone(gh, out_root: Path) -> int:
     """Print `gone: <id>: <reason>` for every git record whose commit GitHub says it does not have.
 
@@ -347,7 +622,36 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--sha")
     p.add_argument("--check-gone", action="store_true",
                    help="list the git records in --out whose commit GitHub no longer serves, and exit 1 if any")
+    p.add_argument("--via-repos", action="store_true",
+                   help="find commits repository first: search licensed repositories, then list their commits")
+    p.add_argument("--since", help="with --via-repos: repositories pushed and commits made on or after YYYY-MM-DD")
+    p.add_argument("--language", action="append", choices=LANG_ORDER,
+                   help="with --via-repos: a language to search for, repeatable (default all four)")
+    p.add_argument("--language-target", type=int,
+                   help="with --via-repos: stop accepting a language once the corpus holds this many records of it")
+    p.add_argument("--commit-pages", type=int,
+                   help="with --via-repos: pages of 100 commits to list per repository (default 1)")
     a = p.parse_args(argv)
+    if a.via_repos:
+        if a.repo or a.sha or a.check_gone or a.trailer:
+            p.error("--via-repos does not go with --repo, --sha, --check-gone or --trailer")
+        if not a.since:
+            p.error("--via-repos needs --since YYYY-MM-DD")
+        try:
+            if not _DATE.fullmatch(a.since):
+                raise ValueError(a.since)
+            datetime.date.fromisoformat(a.since)
+        except ValueError:
+            p.error(f"--since must be a date YYYY-MM-DD, got {a.since!r}")
+        if a.language_target is not None and a.language_target < 0:
+            p.error("--language-target must be 0 or more")
+        if a.commit_pages is None:
+            a.commit_pages = 1
+        elif a.commit_pages < 1:
+            p.error("--commit-pages must be 1 or more")
+        return _via_repos(GitHub(), Path(a.out), a)
+    if a.since or a.language or a.language_target is not None or a.commit_pages is not None:
+        p.error("--since, --language, --language-target and --commit-pages go with --via-repos")
     if a.check_gone:
         return _check_gone(GitHub(), Path(a.out))
     if bool(a.repo) != bool(a.sha):
