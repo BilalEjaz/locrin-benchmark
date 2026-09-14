@@ -1,13 +1,23 @@
 # Labelling protocol
 
-Every label is written twice, by two independent passes, and counts only when both agree. Pass one runs `python label.py new <id> --locrin <version> --by <name>`, which runs the engine on the diff and writes `labels/<id>.json` with every reported finding as an entry marked `?`. `new` refuses to overwrite an existing label file, so filled verdicts are never lost; pass `--force` only to discard one on purpose. The labeller reads the diff and the code around each finding and sets `pass1` on every entry, then adds `missed` entries for anything a rule should have reported and did not. Pass two works from a copy of the unfilled template that `new` wrote, so it never sees `pass1`: it sets `pass2` on every entry and adds its own `missed` entries, its verdicts are merged into `labels/<id>.json`, and then it runs `python label.py confirm <id> --by <name>`. `confirm` refuses a file that still has an entry marked `?` in either pass. Until `confirm` has recorded pass two in the file, none of its entries count, and a run over that diff does not publish (exit code 4, the file listed under `labels.unconfirmed` in `run.json`).
+## What gets labelled
+
+The benchmark measures the findings a change introduced, so every verdict is about a construct the diff introduced. A finding Locrin also reports at the diff's parent (the same rule, file and finding id) was already there: it is pre-existing and never gets a label entry. A finding an earlier diff (by id) from the same repository already introduced is a duplicate and gets no entry either. A rename changes the file path and so the finding id: the findings in a renamed file count as introduced and are labelled like any other. `label.py new` leaves pre-existing findings and duplicates out of the template by itself: it runs the engine at the commit and at the parent, for this diff and for every earlier diff from the same repository. A missed entry likewise names only a construct the diff introduced: one the change added, or one it made meet a rule's definition (removing the last use of an import makes that import unused; a new `return` makes the code after it unreachable), in any file of the repository. A construct that was already there before the change is never a missed entry.
+
+## Two passes
+
+Every label is written twice, by two independent passes, and counts only when both agree. Pass one runs `python label.py new <id> --locrin <version> --by <name>`, which writes `labels/<id>.json` with every finding the diff introduced as an entry marked `?`. `new` refuses to overwrite an existing label file, so filled verdicts are never lost; pass `--force` only to discard one on purpose. The labeller reads the diff and the code around each finding and sets `pass1` on every entry, then adds `missed` entries for anything a rule should have reported and did not. Pass two works from a copy of the unfilled template that `new` wrote, so it never sees `pass1`: it sets `pass2` on every entry and writes its own `missed` entries.
+
+The two passes' verdicts are then merged into `labels/<id>.json`. A missed entry both passes wrote (same rule, file and line) becomes one entry with `missed` in both passes. A missed entry only one pass wrote goes in with that pass's `missed` and the other pass set to `?`, and the other pass then looks at that construct and records its own verdict: `missed` when the definition is met there and the diff introduced it, `false-positive` when it is not. Never copy one pass's `missed` into the other pass: that records an agreement that never happened. A `false-positive` against `missed` is a disagreement, settled as described under Disputes. After the merge pass two runs `python label.py confirm <id> --by <name>`. `confirm` refuses a file that still has an entry marked `?` in either pass. Until `confirm` has recorded pass two in the file, none of its entries count, and a run over that diff does not publish (exit code 4, the file listed under `labels.unconfirmed` in `run.json`).
+
+A run also checks every missed entry against the checkout at the commit. A missed entry that repeats another missed entry on the same rule, file and line, names a rule this Locrin version does not have, or names a file the commit does not hold or a line past its end, stops the run from publishing (exit code 4, listed under `labels.invalid_missed`). A reported finding's entry and a missed entry may share a line: the engine can report one construct there and miss another.
 
 Verdicts:
 
 - `true`: the rule's definition below is met at that file and line.
-- `false-positive`: the engine reported it and the definition is not met.
-- `missed`: the definition is met at that file and line and the engine did not report it. Use the first line of the offending construct. A missed entry has `"id": null`; every other entry carries the engine's 16 character id.
-- `not-applicable`: the finding is on a file the diff did not really change (a rename, a generated file, vendored code). Excluded from both precision and recall.
+- `false-positive`: the definition is not met at that file and line: the engine reported it wrongly, or, on a missed entry the other pass wrote, the claimed miss is not there.
+- `missed`: the definition is met at that file and line, on a construct the diff introduced, and the engine did not report it. Use the first line of the offending construct. A missed entry has `"id": null`; every other entry carries the engine's 16 character id.
+- `not-applicable`: the finding is on a file the diff did not really author: generated code or vendored code committed with the change. It is counted in the Not applicable column and excluded from both precision and recall.
 
 ## What counts as true, per rule
 
@@ -27,11 +37,11 @@ Verdicts:
 - `html-injection`: unescaped interpolation into innerHTML, dangerouslySetInnerHTML or a template rendered as HTML.
 - `supabase-service-role-in-client`, `supabase-table-without-rls`, `express-cors-wildcard-on-authenticated`, `express-cookie-insecure`: the named construct in code that runs on the client (or the server, for the Express pair) exactly as the rule name says.
 
-Not scored: `vulnerable-dependency` (advisory feed), `boundary-violation` and `express-route-without-auth` (need per-repository config). The table never gives them a number, but an entry for one still gets a truthful verdict under the definitions above: `true` when the finding is a real instance of what the rule name describes, `false-positive` when it is not. `not-applicable` keeps its one meaning, a file the diff did not really change.
+Not scored: `vulnerable-dependency` (advisory feed), `boundary-violation` and `express-route-without-auth` (need per-repository config). The table never gives them a number, but an entry for one still gets a truthful verdict under the definitions above: `true` when the finding is a real instance of what the rule name describes, `false-positive` when it is not. `not-applicable` keeps its one meaning, generated or vendored code the diff did not really author.
 
 ## Disputes
 
-An entry where the two passes disagree is listed by `python label.py status --labels labels` (a `disagree:` line under its file's counts) and excluded from every number until a maintainer settles it by editing both passes with a note that says why. A run still publishes with disagreements, and the table counts them in its heading and in the Excluded column of each rule and pair.
+An entry where the two passes disagree is listed by `python label.py status --labels labels` (a `disagree:` line under its file's counts) and excluded from every number until a maintainer settles it by editing both passes with a note that says why. A missed entry settled as not a miss is deleted instead, since only a missed entry may have no id. A run still publishes with disagreements, lists each one as an `excluded:` line, and the table counts them in its heading and in the Excluded column of each rule and pair.
 
 ## A new Locrin version
 
