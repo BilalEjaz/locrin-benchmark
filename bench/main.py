@@ -24,7 +24,8 @@ from bench.score import (excluded, excluded_count, excluded_missed, not_applicab
 # is reported again by this run. Entries whose two passes disagree are excluded, and the table counts them.
 # The unit of measurement is a finding the change introduced: after the run at the commit, locrin runs at the
 # parent over the files that carry findings, and for each rule, file and id as many findings as it reports there
-# are pre-existing. Occurrences an earlier diff (by id) from the same repository already counts are duplicates.
+# are pre-existing. Introduced occurrences an earlier diff (by id) from the same repository already introduced,
+# counted on top of what each diff's parent held, are duplicates.
 # Neither is labelled or scored; the table and run.json count both.
 # 0 every diff ran.
 # 1 not publishable: locrin or the harness failed on a diff, a source could not be materialised for any
@@ -136,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
         invalid.extend(problems)
         rules = rs or rules
         print(f"{d.id}: {len(fs)} findings introduced, {len(old)} pre-existing")
-    findings, duplicates = split_duplicates(findings, {d.id: repository_of(d) for d in diffs})
+    findings, duplicates = split_duplicates(findings, {d.id: repository_of(d) for d in diffs}, preexisting)
     flagged = {(p["diff"], p["rule"], p["file"], p["line"]) for p in invalid}
     invalid += [p for d in sorted(ran) if d in labels for p in dropped_missed(labels[d], preexisting + duplicates)
                 if (p["diff"], p["rule"], p["file"], p["line"]) not in flagged]

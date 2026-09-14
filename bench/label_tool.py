@@ -50,8 +50,9 @@ def _findings_for(diff_id: str, locrin_version: str, corpus_root: Path, work: Pa
     """The findings a label file for diff_id lists: those the diff introduced and no earlier diff counts.
 
     As bench.main scores them: for each rule, file and id, as many findings as the parent run reports
-    are pre-existing, and the occurrences earlier diffs (by id) from the same repository already count
-    are duplicates. Neither gets an entry, so the earlier diffs from that repository run first.
+    are pre-existing, and the introduced occurrences earlier diffs (by id) from the same repository already
+    introduced, counted on top of what each diff's parent held, are duplicates (score.split_duplicates).
+    Neither gets an entry, so the earlier diffs from that repository run first.
     """
     from bench import materialise as materialise_mod
     from bench import run as run_mod
@@ -63,6 +64,7 @@ def _findings_for(diff_id: str, locrin_version: str, corpus_root: Path, work: Pa
     repository = {d.id: score_mod.repository_of(d) for d in diffs}
     locrin = run_mod.install_locrin(locrin_version, work / ".cache")
     introduced: list[Finding] = []
+    preexisting: list[Finding] = []
     for d in diffs:
         if repository[d.id] != repository[diff_id] or d.id > diff_id:
             continue
@@ -70,8 +72,10 @@ def _findings_for(diff_id: str, locrin_version: str, corpus_root: Path, work: Pa
         at_commit, _ = run_mod.normalise(d.id, run_mod.run_check(locrin, co, work / ".work", d.id))
         added = materialise_mod.added_lines(d, co, work / ".cache", score_mod.repeated_files(at_commit))
         at_parent = run_mod.check_parent(locrin, d, co, work / ".cache", work / ".work", at_commit)
-        introduced += score_mod.split_preexisting(at_commit, at_parent, added)[0]
-    first, _ = score_mod.split_duplicates(introduced, repository)
+        new, old = score_mod.split_preexisting(at_commit, at_parent, added)
+        introduced += new
+        preexisting += old
+    first, _ = score_mod.split_duplicates(introduced, repository, preexisting)
     return [f for f in first if f.diff == diff_id]
 
 

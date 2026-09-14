@@ -44,7 +44,7 @@ class Score:
     not_applicable: int = 0
     # Findings the parent run also reports, so the change did not introduce them; never labelled.
     preexisting: int = 0
-    # Findings an earlier diff (by id) from the same repository already counts; never labelled.
+    # Introduced occurrences an earlier diff (by id) from the same repository already introduced; never labelled.
     duplicates: int = 0
 
 
@@ -109,23 +109,29 @@ def split_preexisting(at_commit: list[Finding], at_parent: list[Finding],
     return ([f for i, f in enumerate(at_commit) if i not in old], [f for i, f in enumerate(at_commit) if i in old])
 
 
-def split_duplicates(findings: list[Finding], repository: dict[str, str]) -> tuple[list[Finding], list[Finding]]:
-    """(first, duplicates): the occurrences of a (repository, rule, file, id) that earlier diffs already count.
+def split_duplicates(findings: list[Finding], repository: dict[str, str],
+                     preexisting: list[Finding]) -> tuple[list[Finding], list[Finding]]:
+    """(first, duplicates): the introduced occurrences of a (repository, rule, file, id) an earlier diff already counts.
 
-    repository maps a diff id to repository_of(diff). Diffs are taken in id order. A diff with n
-    findings on one key, where earlier diffs from that repository count k, has min(n, k) duplicates,
-    those on its earliest lines, and counts the rest, so the key then counts max(n, k) times.
+    repository maps a diff id to repository_of(diff); preexisting holds each diff's pre-existing findings
+    (split_preexisting). A diff whose parent run reports p of a key and which introduces n more introduces
+    occurrences p+1 to p+n of it. Diffs are taken in id order: an occurrence an earlier diff from that
+    repository already introduced is a duplicate, taken from the diff's earliest lines. So in linear history
+    a later diff that adds another occurrence beside ones its parent held introduces it, whatever the id
+    order, and a reland onto a parent with the same count is a duplicate.
     """
-    counted: Counter = Counter()
+    held = Counter((f.diff, _key(f)) for f in preexisting)
+    counted: dict[tuple[str, str, str, str], set[int]] = defaultdict(set)
     dup: set[int] = set()
     groups: dict[tuple[str, tuple[str, str, str]], list[int]] = defaultdict(list)
     for i, f in enumerate(findings):
         groups[(f.diff, _key(f))].append(i)
     for diff, key in sorted(groups):
         idx = sorted(groups[(diff, key)], key=lambda i: findings[i].line)
+        ranks = set(range(held[(diff, key)] + 1, held[(diff, key)] + len(idx) + 1))
         repo_key = (repository[diff], *key)
-        dup.update(idx[:counted[repo_key]])
-        counted[repo_key] = max(counted[repo_key], len(idx))
+        dup.update(idx[:len(ranks & counted[repo_key])])
+        counted[repo_key] |= ranks
     ordered = sorted(range(len(findings)), key=lambda i: findings[i].diff)
     return [findings[i] for i in ordered if i not in dup], [findings[i] for i in ordered if i in dup]
 

@@ -657,6 +657,26 @@ def test_a_missed_entry_on_a_pre_existing_or_duplicate_finding_makes_the_run_not
     assert "invalid missed: acme__w__2222222 leftover-debug src/x.ts:8 the engine reported leftover-debug here" in err
 
 
+def test_a_child_diff_that_adds_an_occurrence_beside_one_its_parent_held_introduces_it(tmp_path, monkeypatch):
+    # Linear history: acme__w__1111111 adds a no-assert case `renders` at line 8; acme__w__2222222, its child,
+    # adds a second case with that name at line 13. Both are introduced once, and nothing is a duplicate.
+    W = "d" * 16
+    labels = tmp_path / "labels"
+    labels.mkdir()
+    write_label(labels, "acme__w__1111111", [entry("src/x.ts", 8, W, "true")])
+    write_label(labels, "acme__w__2222222", [entry("src/x.ts", 13, W, "true")])
+    args = _setup(tmp_path, monkeypatch, [], {})
+    monkeypatch.setattr(main_mod, "load_corpus", lambda root: [git_diff("acme__w__1111111"), git_diff("acme__w__2222222")])
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif(
+        [result("src/x.ts", 8, W)] if diff_id.endswith("1") else [result("src/x.ts", 8, W), result("src/x.ts", 13, W)]))
+    monkeypatch.setattr(main_mod, "added_lines", lambda d, co, cache, files: {"src/x.ts": {11, 12, 13}})
+    monkeypatch.setattr(main_mod, "check_parent", lambda locrin, d, co, cache, work, findings:
+                        findings[:1] if d.id.endswith("2") else [])
+    assert main_mod.main(args) == 0
+    run = _run_json(tmp_path)
+    assert (run["findings"], run["preexisting"], run["duplicates"], run["publishable"]) == (2, 1, 0, True)
+
+
 def test_the_occurrence_of_a_repeated_id_on_a_line_the_change_added_is_the_introduced_one(tmp_path, monkeypatch):
     # The parent held Y once, at the line that is now 6; the change added a copy at line 2 above it.
     Y = "f" * 16

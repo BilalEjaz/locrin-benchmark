@@ -233,6 +233,37 @@ def test_findings_for_templates_only_what_the_diff_introduced_first_in_its_repos
     assert [(f.diff, f.id) for f in label_tool._findings_for("fx-01-tree", "v0.5.0", Path("corpus"), tmp_path)] == [("fx-01-tree", Y)]
 
 
+def test_findings_for_templates_an_occurrence_a_child_diff_adds_beside_one_its_parent_held(tmp_path, monkeypatch):
+    # Linear history: 1111111 adds a no-assert case `renders`; 2222222, its child, adds a second case with that
+    # name. The child's parent run reports the first, so the child's new case is introduced, not a duplicate.
+    import bench.corpus
+    import bench.materialise
+    import bench.run
+    from bench.corpus import Diff
+
+    diffs = [Diff(i, "git", "acme/w", i[-1] * 40, "0" * 40, "MIT", "typescript", "u", ["a.test.ts"])
+             for i in ("acme__w__1111111", "acme__w__2222222")]
+    W = "d" * 16
+
+    def result(line):
+        return {"ruleId": "test-no-assert", "partialFingerprints": {"locrin/id": W},
+                "locations": [{"physicalLocation": {"artifactLocation": {"uri": "a.test.ts"}, "region": {"startLine": line}}}]}
+
+    at_commit = {"acme__w__1111111": [result(8)], "acme__w__2222222": [result(8), result(13)]}
+    monkeypatch.setattr(bench.corpus, "load_corpus", lambda root: diffs)
+    monkeypatch.setattr(bench.run, "install_locrin", lambda version, cache: Path("locrin"))
+    monkeypatch.setattr(bench.materialise, "materialise", lambda diff, root, cache: diff.id)
+    monkeypatch.setattr(bench.materialise, "added_lines", lambda diff, co, cache, files: {"a.test.ts": {11, 12, 13}})
+    monkeypatch.setattr(bench.run, "run_check", lambda locrin, checkout, work, diff_id: {
+        "runs": [{"results": at_commit[diff_id], "tool": {"driver": {"rules": []}}}]})
+    monkeypatch.setattr(bench.run, "check_parent", lambda locrin, diff, checkout, cache, work, findings:
+                        findings[:1] if diff.id.endswith("2") else [])
+    got = label_tool._findings_for("acme__w__2222222", "v0.5.0", Path("corpus"), tmp_path)
+    assert [(f.diff, f.line) for f in got] == [("acme__w__2222222", 13)]
+    assert [(f.diff, f.line) for f in label_tool._findings_for("acme__w__1111111", "v0.5.0", Path("corpus"), tmp_path)] == [
+        ("acme__w__1111111", 8)]
+
+
 def test_cli_confirm_refusal_exits_1(tmp_path, capsys):
     fs = [Finding("fx-01-debug", "leftover-debug", "src/a.ts", 5, "1" * 16, "high", "typescript")]
     new("fx-01-debug", fs, "v0.5.0", tmp_path, by="opus", date="2026-09-14")

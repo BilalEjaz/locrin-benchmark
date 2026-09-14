@@ -488,7 +488,7 @@ def test_two_diffs_from_one_repository_count_an_unchanged_construct_zero_times_a
         new, old = bench.score.split_preexisting(commit[d], parent[d])
         introduced += new
         preexisting += old
-    first, duplicates = bench.score.split_duplicates(introduced, repository)
+    first, duplicates = bench.score.split_duplicates(introduced, repository, preexisting)
     assert [(f.diff, f.id) for f in first] == [("acme__w__1111111", Y), ("fx-01-tree", Y)]
     assert [(f.diff, f.id) for f in duplicates] == [("acme__w__2222222", Y)]
     assert [(f.diff, f.id) for f in preexisting] == [("acme__w__1111111", X), ("acme__w__2222222", X)]
@@ -507,7 +507,7 @@ def test_two_diffs_from_one_repository_count_an_unchanged_construct_zero_times_a
 def test_one_construct_reported_twice_in_its_first_diff_counts_twice_there():
     fs = [F("b", "swallowed-error", "e.ts", 5, ident=A), F("a", "swallowed-error", "e.ts", 5, ident=A),
           F("a", "swallowed-error", "e.ts", 5, ident=A)]
-    first, duplicates = bench.score.split_duplicates(fs, {"a": "acme/w", "b": "acme/w"})
+    first, duplicates = bench.score.split_duplicates(fs, {"a": "acme/w", "b": "acme/w"}, [])
     assert [f.diff for f in first] == ["a", "a"] and [f.diff for f in duplicates] == ["b"]
 
 
@@ -544,9 +544,37 @@ def test_a_later_diff_counts_the_occurrences_of_an_id_beyond_those_earlier_diffs
     # a second case with that name in another describe block, which no earlier diff counted.
     fs = [F("b", "test-no-assert", "a.test.ts", 3, ident=B), F("b", "test-no-assert", "a.test.ts", 8, ident=B),
           F("a", "test-no-assert", "a.test.ts", 3, ident=B), F("c", "test-no-assert", "a.test.ts", 3, ident=B)]
-    first, duplicates = bench.score.split_duplicates(fs, {"a": "acme/w", "b": "acme/w", "c": "acme/w"})
+    first, duplicates = bench.score.split_duplicates(fs, {"a": "acme/w", "b": "acme/w", "c": "acme/w"}, [])
     assert [(f.diff, f.line) for f in first] == [("a", 3), ("b", 8)]
     assert [(f.diff, f.line) for f in duplicates] == [("b", 3), ("c", 3)]
+
+
+def test_an_occurrence_a_later_diff_adds_beside_one_its_parent_held_is_not_a_duplicate():
+    # Linear history: c1 adds a no-assert case `renders`; c2, a child of c1, adds a second case with that name.
+    # c2's parent run reports c1's case, so c2's new case is the second occurrence, which no diff counted yet.
+    c1 = [F("acme__w__1111111", "test-no-assert", "a.test.ts", 8, ident=B)]
+    c2_new = [F("acme__w__2222222", "test-no-assert", "a.test.ts", 13, ident=B)]
+    c2_old = [F("acme__w__2222222", "test-no-assert", "a.test.ts", 8, ident=B)]
+    repository = {"acme__w__1111111": "acme/w", "acme__w__2222222": "acme/w"}
+    first, duplicates = bench.score.split_duplicates(c1 + c2_new, repository, c2_old)
+    assert [(f.diff, f.line) for f in first] == [("acme__w__1111111", 8), ("acme__w__2222222", 13)]
+    assert duplicates == []
+    # Whatever the id order, nothing is a duplicate.
+    repository = {"acme__w__2222222": "acme/w", "acme__w__0000000": "acme/w"}
+    c0 = [F("acme__w__2222222", "test-no-assert", "a.test.ts", 8, ident=B)]
+    later = [F("acme__w__0000000", "test-no-assert", "a.test.ts", 13, ident=B)]
+    first, duplicates = bench.score.split_duplicates(c0 + later, repository,
+                                                     [F("acme__w__0000000", "test-no-assert", "a.test.ts", 8, ident=B)])
+    assert len(first) == 2 and duplicates == []
+
+
+def test_a_reland_of_an_occurrence_with_the_same_parent_count_is_a_duplicate():
+    # Both diffs add the case to a parent that held none of it (a revert and a reland, or parallel branches).
+    fs = [F("b", "test-no-assert", "a.test.ts", 13, ident=B), F("a", "test-no-assert", "a.test.ts", 8, ident=B)]
+    old = [F("a", "test-no-assert", "a.test.ts", 3, ident=B), F("b", "test-no-assert", "a.test.ts", 3, ident=B)]
+    first, duplicates = bench.score.split_duplicates(fs, {"a": "acme/w", "b": "acme/w"}, old)
+    assert [(f.diff, f.line) for f in first] == [("a", 8)]
+    assert [(f.diff, f.line) for f in duplicates] == [("b", 13)]
 
 
 def test_repository_of_a_git_diff_is_its_name_and_a_tree_diff_is_its_own():
