@@ -667,7 +667,8 @@ def _prune_owner_excess(out_root: Path) -> int:
     Removes <id>.json and the <id>/ directory of each record past the cap, printing
     `pruned: <id>` for each and a count at the end. Every record is read and every id
     checked before anything is deleted: a record that cannot be read, or whose id is not a
-    plain name equal to its file name, stops the prune with nothing removed.
+    plain name equal to its file name, stops the prune with nothing removed. A delete that
+    fails stops the prune with exit 1, leaving that record's json so a second run retries it.
     """
     out_root = Path(out_root)
 
@@ -698,10 +699,16 @@ def _prune_owner_excess(out_root: Path) -> int:
             if path.is_symlink() or isjunction(path) or path.resolve().parent != root:
                 return refuse(f"{path.name} is a link or lies outside {out_root}")
     for ident in doomed:
-        (out_root / f"{ident}.json").unlink()
-        tree = out_root / ident
-        if tree.is_dir():
-            shutil.rmtree(tree)
+        # The directory goes first and the json last, the reverse of write_record: a delete
+        # that fails leaves the json in place, so running the prune again retries the record.
+        try:
+            tree = out_root / ident
+            if tree.is_dir():
+                shutil.rmtree(tree)
+            (out_root / f"{ident}.json").unlink()
+        except OSError as e:
+            print(f"build_corpus: stopped pruning {ident}: {e}", file=sys.stderr)
+            return 1
         print(f"pruned: {ident}")
     print(f"pruned {len(doomed)} records")
     return 0

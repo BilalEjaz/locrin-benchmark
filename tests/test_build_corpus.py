@@ -1404,3 +1404,33 @@ def test_prune_owner_excess_refuses_every_other_mode_flag(tmp_path, monkeypatch,
         bc.main(["--out", str(out), "--prune-owner-excess", *argv])
     assert err.value.code == 2 and gh.calls == []
     assert sorted(p.name for p in out.iterdir()) == listing
+
+
+def test_prune_owner_excess_stops_on_a_failed_delete_keeping_the_json_so_a_rerun_finishes(tmp_path, monkeypatch, capsys):
+    out = tmp_path / "corpus"
+    owner_corpus(out)
+    real_rmtree = bc.shutil.rmtree
+    stuck = "acme__one__3333333"
+    seen = []
+
+    def failing_rmtree(path, *args, **kwargs):
+        # The record's json is still there while its directory goes.
+        seen.append((Path(path).name, (Path(path).parent / f"{Path(path).name}.json").exists()))
+        if Path(path).name == stuck:
+            raise PermissionError(13, "file is in use", str(path))
+        return real_rmtree(path, *args, **kwargs)
+
+    monkeypatch.setattr(bc.shutil, "rmtree", failing_rmtree)
+    assert bc.main(["--out", str(out), "--prune-owner-excess"]) == 1
+    captured = capsys.readouterr()
+    assert seen == [("acme__one__2222222", True), (stuck, True)]
+    assert captured.out.splitlines() == ["pruned: acme__one__2222222"]
+    assert captured.err.startswith(f"build_corpus: stopped pruning {stuck}: ")
+    assert "Traceback" not in captured.err
+    assert not (out / "acme__one__2222222.json").exists() and not (out / "acme__one__2222222").exists()
+    assert (out / f"{stuck}.json").exists() and (out / stuck).is_dir()
+
+    monkeypatch.setattr(bc.shutil, "rmtree", real_rmtree)
+    assert bc.main(["--out", str(out), "--prune-owner-excess"]) == 0
+    assert capsys.readouterr().out.splitlines() == [f"pruned: {stuck}", "pruned 1 records"]
+    assert not (out / f"{stuck}.json").exists() and not (out / stuck).exists()
