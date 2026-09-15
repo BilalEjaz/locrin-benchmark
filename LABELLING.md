@@ -41,7 +41,7 @@ Verdicts:
 - `html-injection`: unescaped interpolation into innerHTML, dangerouslySetInnerHTML or a template rendered as HTML.
 - `supabase-service-role-in-client`, `supabase-table-without-rls`, `express-cors-wildcard-on-authenticated`, `express-cookie-insecure`: the named construct in code that runs on the client (or the server, for the Express pair) exactly as the rule name says.
 
-The `swallowed-error` line wave one was labelled under named the catch block alone and omitted the second and third forms, the log-only catch whose result a caller reads and the floating promise, so the six reported `swallowed-error` entries were re-judged under the text above by two independent labellers on 2026-09-15 and their labels carry a note saying so.
+The `swallowed-error` line wave one was labelled under named the catch block alone and omitted the second and third forms, the log-only catch whose result a caller reads and the floating promise, so the six of the twelve reported `swallowed-error` entries that both passes had marked false-positive under the old text were re-judged under the text above by two independent labellers on 2026-09-15 (five became true, one stayed false-positive) and their labels carry a note saying so.
 
 Not scored: `vulnerable-dependency` (advisory feed), `boundary-violation` and `express-route-without-auth` (need per-repository config). The table never gives them a number, but an entry for one still gets a truthful verdict under the definitions above: `true` when the finding is a real instance of what the rule name describes, `false-positive` when it is not. `not-applicable` keeps its one meaning, generated or vendored code the diff did not really author.
 
