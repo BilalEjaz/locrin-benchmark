@@ -102,9 +102,9 @@ def merge(diff_id: str, pass2_path: Path, root: Path, dry_run: bool = False) -> 
     id, equal keys in order. A missed entry both passes wrote becomes one entry with `missed` in both;
     one only pass one wrote keeps `missed` with pass two `?`, for pass two to look at that construct;
     one only pass two wrote is appended with pass one `?`. One pass's `missed` is never copied into the
-    other, not even when an earlier hand-edit did copy it: that would record an agreement that never
-    happened. A verdict a later hand-edit recorded for a missed entry pass two did not write is kept.
-    Notes that differ are joined. Returns the counts, and with dry_run writes nothing.
+    other: that would record an agreement that never happened. Nothing already recorded is cleared; the
+    merge writes `?` only into a slot that is `?`, so a verdict a hand recorded for a missed entry pass
+    two did not write survives a re-merge of the same pass-two file. Notes that differ are joined. Returns the counts, and with dry_run writes nothing.
     """
     path = Path(root) / f"{diff_id}.json"
     lf = load_label_file(path)
@@ -133,10 +133,11 @@ def merge(diff_id: str, pass2_path: Path, root: Path, dry_run: bool = False) -> 
             counts["missed_both" if e.pass1 == "missed" else "missed_pass_two_only"] += 1
             out.append(replace(e, pass2="missed", note=note))
         else:
-            # `?` puts the question to pass two; anything else it recorded itself stays, and a copied
-            # `missed` goes back to `?` because pass two never wrote that entry.
+            # Pass two did not write this entry, so the merge leaves its slot open. It writes `?` only
+            # into a slot that is already `?`: a verdict in the file is a labeller's work, and a re-merge
+            # of the same pass-two file would otherwise throw away what a hand recorded there.
             counts["missed_pass_one_only"] += 1
-            out.append(replace(e, pass2="?" if e.pass2 == "missed" else e.pass2))
+            out.append(e)
     left = sorted(k for k, queue in free.items() if queue)
     if left:
         rule, file, line, ident = left[0]

@@ -66,11 +66,30 @@ def test_merge_folds_a_reported_verdict_and_the_three_kinds_of_missed_entry(tmp_
     ]
 
 
-def test_merge_never_copies_one_passs_missed_into_the_other(tmp_path):
-    root = label(tmp_path, [entry(line=9, id=None, pass1="missed", pass2="missed")])
+def test_merge_never_copies_one_passs_missed_into_the_other_and_keeps_a_recorded_verdict(tmp_path):
+    """Merge writes `?` into a missed entry pass two did not write only when the slot is still `?`."""
+    root = label(tmp_path, [entry(line=9, id=None, pass1="missed", pass2="missed"),
+                            entry(line=11, id=None, pass1="missed")])
     path = pass2_file(tmp_path, [])
     merge(DIFF, path, root)
-    assert entries_of(root) == [("leftover-debug", "src/a.ts", 9, None, "missed", "?", "")]
+    assert entries_of(root) == [
+        # A verdict already in the file is a labeller's work, and the merge does not undo it.
+        ("leftover-debug", "src/a.ts", 9, None, "missed", "missed", ""),
+        # The merge itself never copies pass one's missed into pass two: the question stays open.
+        ("leftover-debug", "src/a.ts", 11, None, "missed", "?", ""),
+    ]
+
+
+def test_a_re_merge_keeps_a_verdict_a_hand_recorded_for_a_missed_entry_pass_two_did_not_write(tmp_path):
+    root = label(tmp_path, [entry(), entry(line=9, id=None, pass1="missed")])
+    path = pass2_file(tmp_path, [p2()])
+    merge(DIFF, path, root)
+    assert entries_of(root)[1] == ("leftover-debug", "src/a.ts", 9, None, "missed", "?", "")
+    record = json.loads((root / f"{DIFF}.json").read_text(encoding="utf-8"))
+    record["entries"][1]["pass2"] = "missed"
+    (root / f"{DIFF}.json").write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+    merge(DIFF, path, root)
+    assert entries_of(root)[1] == ("leftover-debug", "src/a.ts", 9, None, "missed", "missed", "")
 
 
 def test_merge_joins_notes_that_differ_and_keeps_one_that_does_not(tmp_path):
