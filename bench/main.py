@@ -160,8 +160,10 @@ def main(argv: list[str] | None = None) -> int:
     missing = sorted(d for d in ran if d not in labels)
     other_version = sorted(d for d in ran if d in labels and labels[d].locrin != a.version)
     # label.py new writes every entry as `?` with pass two unrecorded; such a file only looks like labels.
+    # An entry whose note says an adjudication is still pending is listed here too: it waits for a review,
+    # so the run must not publish numbers that rest on it, whatever its two passes say.
     unconfirmed = sorted(d for d in ran if d in labels and (
-        labels[d].pass2 is None or any("?" in (e.pass1, e.pass2) for e in labels[d].entries)))
+        labels[d].pass2 is None or any("?" in (e.pass1, e.pass2) or e.adjudication_pending for e in labels[d].entries)))
     # Labels for this version were written from this version's output, so an entry no finding matches means
     # the run did not reproduce what was labelled (another engine build, checkout or machine difference).
     not_reproduced = unreproduced(findings, labels, ran=ran)
@@ -182,7 +184,8 @@ def main(argv: list[str] | None = None) -> int:
         found = ", ".join(v for v in label_versions if v != a.version)
         reasons.append(f"labels written for locrin {found}, not {a.version}: {', '.join(other_version)}")
     if unconfirmed:
-        reasons.append(f"labels pass two has not confirmed, or with an entry still `?`: {', '.join(unconfirmed)}")
+        reasons.append("labels pass two has not confirmed, or with an entry still `?` or an adjudication still "
+                       f"pending: {', '.join(unconfirmed)}")
     if not_reproduced_here:
         n = len(not_reproduced_here)
         reasons.append(f"{n} labelled finding{'' if n == 1 else 's'} not reproduced by this run")

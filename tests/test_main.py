@@ -481,6 +481,22 @@ def test_a_label_file_pass_two_never_confirmed_makes_the_run_not_publishable(tmp
     assert "not publishable" in capsys.readouterr().err
 
 
+def test_an_adjudication_still_marked_pending_is_unconfirmed_and_the_run_does_not_publish(tmp_path, monkeypatch, capsys):
+    labels = tmp_path / "labels"
+    labels.mkdir()
+    write_label(labels, "fx-01-ok", [dict(entry("src/x.ts", 2, "a" * 16, "true"),
+                                          note="adjudicated (opus), pending Fable review")])
+    args = _setup(tmp_path, monkeypatch, ["fx-01-ok"], {})
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif([result("src/x.ts", 2, "a" * 16)]))
+    assert main_mod.main(args) == 4
+    run = _run_json(tmp_path)
+    assert run["publishable"] is False and run["labels"]["unconfirmed"] == ["fx-01-ok"]
+    # It counts nowhere while it waits for the review, and the Excluded column says so.
+    assert run["excluded"] == 1 and run["unlabelled"] == 0
+    assert (tmp_path / "README.md").read_bytes() == OLD_README
+    assert "not publishable" in capsys.readouterr().err
+
+
 @pytest.mark.parametrize("verdict", ["false-positive", "true", "not-applicable"])
 def test_a_labelled_finding_the_run_does_not_reproduce_makes_the_run_not_publishable(tmp_path, monkeypatch, capsys, verdict):
     # Labels name this locrin version, so every finding entry came from this version's output: one the run

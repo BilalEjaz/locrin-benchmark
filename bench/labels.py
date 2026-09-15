@@ -37,8 +37,20 @@ class Entry:
     note: str
 
     @property
+    def adjudication_pending(self) -> bool:
+        """A maintainer proposed a resolution and it is still waiting for the review the note names.
+
+        Adjudication records the proposed resolution in the note and leaves the two passes as they
+        are, so an adjudicated entry stays a disagreement. Should the passes be edited to agree
+        while the note still says pending, this keeps the entry out of the numbers all the same:
+        what counts must never depend on a maintainer remembering not to edit a pass.
+        """
+        note = self.note.strip().lower()
+        return note.startswith("adjudicated") and "pending" in note
+
+    @property
     def confirmed(self) -> bool:
-        return self.pass1 != "?" and self.pass1 == self.pass2
+        return self.pass1 != "?" and self.pass1 == self.pass2 and not self.adjudication_pending
 
     @property
     def verdict(self) -> str | None:
