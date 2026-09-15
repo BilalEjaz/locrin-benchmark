@@ -44,6 +44,11 @@ _SETTINGS = (
     ("core.autocrlf", "false"),
     ("core.eol", "lf"),
     ("core.longpaths", "true"),
+    # A symbolic link checks out as a link where the platform has them and as a text file holding the
+    # target path where it does not, and the engine would then read different bytes on each platform.
+    # Pinned to false, so every platform checks the link out as that text file. A commit that changes
+    # one is refused below all the same: its text file is then scored as source.
+    ("core.symlinks", "false"),
     ("core.excludesFile", ""),
     ("core.attributesFile", ""),
     ("commit.gpgsign", "false"),
@@ -279,6 +284,16 @@ def _clear_info_exclude(root: Path) -> None:
         exclude.unlink()
 
 
+def _tree_entries(out: str) -> list[tuple[str, str]]:
+    """The (mode, path) pairs of `git ls-tree -r -z <sha>`, whose records read `<mode> <type> <sha>\tpath`."""
+    entries = []
+    for record in out.split("\0"):
+        if record:
+            meta, _, name = record.partition("\t")
+            entries.append((meta.split(" ", 1)[0], name))
+    return entries
+
+
 def _case_clash(names: list[str]) -> str | None:
     """Two paths (files or directories) in one tree that differ only by case, or None."""
     seen: dict[str, str] = {}
@@ -336,7 +351,8 @@ def _materialise_git(diff: Diff, cache: Path, hermetic: Path) -> Checkout:
     first = git(["rev-parse", "--verify", f"{diff.sha}^1"]).strip()
     if first != diff.parent:
         raise MaterialiseError(f"recorded parent {diff.parent} is not the first parent {first or '(none)'} of {diff.sha}")
-    clash = _case_clash([n for n in git(["ls-tree", "-r", "-z", "--name-only", diff.sha]).split("\0") if n])
+    tree = _tree_entries(git(["ls-tree", "-r", "-z", diff.sha]))
+    clash = _case_clash([name for _, name in tree])
     if clash:
         raise MaterialiseError(f"the tree at {diff.sha[:7]} holds {clash}, "
                                "so a case-insensitive filesystem would check out other files")
@@ -355,6 +371,10 @@ def _materialise_git(diff: Diff, cache: Path, hermetic: Path) -> Checkout:
         worktree = _names(git(["diff", "--name-only", "-z", "--diff-filter=ACMR", diff.parent]))
     except subprocess.CalledProcessError as e:
         _gone_or_raise(diff, e)
+    links = sorted({name for mode, name in tree if mode == "120000"} & set(changed))
+    if links:
+        raise MaterialiseError(f"the commit changes the symbolic link {links[0]}, which checks out as a link "
+                               "where the platform has them and as a text file holding its target where it does not")
     if worktree != changed:
         extra = sorted(set(worktree) ^ set(changed))
         raise MaterialiseError(f"the working tree differs from {diff.sha[:7]} in {', '.join(extra)}, "
