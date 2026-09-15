@@ -1,0 +1,33 @@
+{
+  "diff": "vulolabs__vulolabs__d41b3a3",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "dead-file",
+      "file": "plugins/vulopilot/src/components/Settings/Connections/VuloCloudConnect.ts",
+      "line": 1,
+      "id": "a5d9fbaa5c591d25",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Not dead: templateService.ts loads every .ts in components/Settings via require.context, which auto-discovers this tab file like its siblings. pass two: Loaded at runtime by templateService.ts's require.context('../components/Settings', true, /\\.ts$/) (and searchIndex.ts's), the same auto-discovery every sibling tab file uses, so it is imported."
+    },
+    {
+      "rule": "leftover-commented-code",
+      "file": "plugins/vulopilot/classes/Services/VuloCloudConnection.php",
+      "line": 160,
+      "id": "0bbdc75f6a54f607",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Prose comment explaining why VULOPILOT_VULOCLOUD_URL and $config['domain'] must not be conflated, not disabled code. pass two: Prose explaining why VULOPILOT_VULOCLOUD_URL and not $config['domain'] is the API base, not disabled code."
+    }
+  ]
+}

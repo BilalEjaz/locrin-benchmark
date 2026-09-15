@@ -1,0 +1,33 @@
+{
+  "diff": "MartinCa__frontend-kit__218ea99",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "dead-file",
+      "file": "test/fixtures/store.ts",
+      "line": 1,
+      "id": "15ceba24bad3845e",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: The test entry point test/eslint-config.test.mjs names this fixture by file name and lints it, so the file is used. pass two: The test entry point test/eslint-config.test.mjs names this lint fixture by file name, so it is not a dead file."
+    },
+    {
+      "rule": "dead-file",
+      "file": "test/fixtures/violations.tsx",
+      "line": 1,
+      "id": "6cd974c2e65f0c2f",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: The test entry point test/eslint-config.test.mjs names this fixture by file name and lints it, so the file is used. pass two: The test entry point test/eslint-config.test.mjs names this lint fixture by file name, so it is not a dead file."
+    }
+  ]
+}

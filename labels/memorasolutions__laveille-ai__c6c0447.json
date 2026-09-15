@@ -1,0 +1,24 @@
+{
+  "diff": "memorasolutions__laveille-ai__c6c0447",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "leftover-commented-code",
+      "file": "Modules/Core/app/Http/Middleware/SecurityHeaders.php",
+      "line": 28,
+      "id": "1d12e3210860ae9b",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Line 28 begins a prose comment block (ACTION/SELF/RAISON rationale plus the Cloudflare measurement note) explaining why hosts were added to the CSP header; no disabled code is commented out. pass two: Lines 28-37 are prose annotations explaining why hosts were added to the CSP, not code that was disabled."
+    }
+  ]
+}

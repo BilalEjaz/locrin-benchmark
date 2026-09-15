@@ -1,0 +1,33 @@
+{
+  "diff": "banalasiva__Rhyza__87eaa73",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "dead-file",
+      "file": "web/src/app/api/seeds/[id]/forward/route.ts",
+      "line": 1,
+      "id": "ecb536d20af14138",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: A Next.js app router route.ts is a framework entry point served at its path, not a dead file. pass two: A Next.js app router route.ts file is a framework entry point loaded by convention."
+    },
+    {
+      "rule": "dead-file",
+      "file": "web/src/components/ForwardPicker.tsx",
+      "line": 1,
+      "id": "29ba001904912aaa",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: ForwardPicker is imported by web/src/components/SeedRoom.tsx in the same commit. pass two: SeedRoom.tsx imports ForwardPicker from this file in the same commit."
+    }
+  ]
+}

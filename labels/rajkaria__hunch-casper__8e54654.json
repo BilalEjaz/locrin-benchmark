@@ -1,0 +1,51 @@
+{
+  "diff": "rajkaria__hunch-casper__8e54654",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/config/csprclick.ts",
+      "line": 51,
+      "id": "a46941d6858dd2f0",
+      "pass1": "true",
+      "pass2": "true",
+      "note": ""
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/config/csprclick.ts",
+      "line": 102,
+      "id": "59cac2f393679967",
+      "pass1": "true",
+      "pass2": "true",
+      "note": ""
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/wallet-connector.ts",
+      "line": 114,
+      "id": "eacc558701a965d0",
+      "pass1": "true",
+      "pass2": "true",
+      "note": ""
+    },
+    {
+      "rule": "html-injection",
+      "file": "src/components/csprclick-script.tsx",
+      "line": 51,
+      "id": "e8a3539bc9a166f3",
+      "pass1": "true",
+      "pass2": "true",
+      "note": ""
+    }
+  ]
+}

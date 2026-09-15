@@ -1,0 +1,24 @@
+{
+  "diff": "medstudy-cz__quiz_proforientationgit__e9130c3",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "leftover-debug",
+      "file": "app/api/sendEmail/route.ts",
+      "line": 46,
+      "id": "2309f3e60e804dc5",
+      "pass1": "true",
+      "pass2": "true",
+      "note": ""
+    }
+  ]
+}

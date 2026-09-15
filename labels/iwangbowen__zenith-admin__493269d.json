@@ -1,0 +1,51 @@
+{
+  "diff": "iwangbowen__zenith-admin__493269d",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "packages/shared/src/contracts.ts",
+      "line": 35,
+      "id": "5d7cefab1c80e973",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "isContract is exported but used only inside contracts.ts; no importer repo-wide."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/shared/src/contracts.ts",
+      "line": 42,
+      "id": "d86bca7f9dbfd7e5",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "collectContracts is exported but used only inside contracts.ts; no importer repo-wide."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/shared/src/contracts.ts",
+      "line": 76,
+      "id": "26b9ce1e4bf54cfa",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "ALL_CONTRACTS has no reference outside its own declaration anywhere in the repo."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/shared/src/contracts.ts",
+      "line": 78,
+      "id": "40e4ff9d3da6b7ce",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "CatalogOperation is used only as a local return type; no file imports it."
+    }
+  ]
+}

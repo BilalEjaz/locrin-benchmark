@@ -1,0 +1,78 @@
+{
+  "diff": "denimar__ccx__19b73cd",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/ui/layout.ts",
+      "line": 10,
+      "id": "e82c2703dce6554a",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "CHROME is exported but no file in the repo imports it; layout.ts is not an entry point."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/ui/layout.ts",
+      "line": 11,
+      "id": "14f040263dc4adf6",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "MIN_LIST is exported but used only inside layout.ts; no importer anywhere."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/ui/layout.ts",
+      "line": 13,
+      "id": "a29331490e38d46b",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "SCROLLBAR_W is exported but used only inside layout.ts; no importer anywhere."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/ui/layout.ts",
+      "line": 15,
+      "id": "283e9f11e8ce14bc",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "GUTTER is exported but used only inside layout.ts; no importer anywhere."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/ui/layout.ts",
+      "line": 17,
+      "id": "8ec70099be51730e",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "The Metrics interface is exported but only referenced inside layout.ts."
+    },
+    {
+      "rule": "test-no-assert",
+      "file": "test/ui.test.ts",
+      "line": 143,
+      "id": "3fed26cba40d4e13",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: fit() here is the text-fitting helper imported from layout.js, not Jasmine's focused test; the line is itself an expect() inside an it() full of assertions. pass two: Line 143 is an expect(...) assertion calling the layout helper fit(); it is not a test case (the engine read fit( as a focused test)."
+    },
+    {
+      "rule": "test-no-assert",
+      "file": "test/ui.test.ts",
+      "line": 144,
+      "id": "187cfaae8996fe44",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Same: expect(fit('a-very-long-name', 8)) is an assertion, not a test case without one. pass two: Same: expect(fit('a-very-long-name', 8)).toBe(...) is an assertion inside an it() that has five of them, not a test body."
+    }
+  ]
+}

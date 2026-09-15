@@ -1,0 +1,24 @@
+{
+  "diff": "kass2024__Xanderschool__c341fa2",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "unused-import",
+      "file": "app/Controllers/TimetableManagement.php",
+      "line": 12,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: The change deleted lockCorrectSpecialCriteriaEntries(), the only user of SecondaryTimetableCriteria, leaving this import with no remaining use in the file. pass two: The diff deleted the sole use `$criteria = new SecondaryTimetableCriteria();` (parent line 1571), leaving `use App\\Services\\Timetable\\SecondaryTimetableCriteria;` with no remaining reference in the file, which LABELLING.md counts as introduced; earlier-by-id diffs 21334d4 and b80e5d0 still have the import used."
+    }
+  ]
+}

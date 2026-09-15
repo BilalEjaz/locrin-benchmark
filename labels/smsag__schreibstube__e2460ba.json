@@ -1,0 +1,33 @@
+{
+  "diff": "smsag__schreibstube__e2460ba",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/services/task-count.ts",
+      "line": 12,
+      "id": "d35c6002980d2704",
+      "pass1": "true",
+      "pass2": "true",
+      "note": ""
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/services/task-count.ts",
+      "line": 17,
+      "id": "d6c1134fdf927a19",
+      "pass1": "true",
+      "pass2": "true",
+      "note": ""
+    }
+  ]
+}

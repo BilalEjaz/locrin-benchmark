@@ -1,0 +1,87 @@
+{
+  "diff": "huizongsong__deepchat__ed06dc2",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "leftover-debug",
+      "file": "src/main/presenter/threadPresenter/index.ts",
+      "line": 2769,
+      "id": "c50497ea6959c485",
+      "pass1": "true",
+      "pass2": "true",
+      "note": ""
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "src/main/presenter/threadPresenter/index.ts",
+      "line": 2775,
+      "id": "8d0cc1e3aee0fbdb",
+      "pass1": "true",
+      "pass2": "true",
+      "note": ""
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "src/main/presenter/threadPresenter/index.ts",
+      "line": 2778,
+      "id": "2d09ff05295004d1",
+      "pass1": "true",
+      "pass2": "true",
+      "note": ""
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "src/main/presenter/threadPresenter/index.ts",
+      "line": 2815,
+      "id": "a547d68aaa615f14",
+      "pass1": "true",
+      "pass2": "true",
+      "note": ""
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "src/main/presenter/threadPresenter/index.ts",
+      "line": 2818,
+      "id": "24c1f1b87a800fb7",
+      "pass1": "true",
+      "pass2": "true",
+      "note": ""
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "src/main/presenter/threadPresenter/index.ts",
+      "line": 2961,
+      "id": "0d5f5420ef31c638",
+      "pass1": "true",
+      "pass2": "true",
+      "note": ""
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "src/main/presenter/threadPresenter/index.ts",
+      "line": 2975,
+      "id": "7e08a50d072dcbbf",
+      "pass1": "true",
+      "pass2": "true",
+      "note": ""
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "src/main/presenter/threadPresenter/index.ts",
+      "line": 2997,
+      "id": "e1ad0e362e28f791",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "re-judged 2026-09-15 under the corrected swallowed-error definition (floating promises are form 3), previously false-positive/false-positive; pass one: `checkReady()` invokes the `const checkReady = async () => {...}` arrow declared at line 2967 and discards the promise: no await, no .catch, no void marker (form 3). pass two: `checkReady()` inside the `new Promise` in waitForMcpServiceReady; checkReady is declared `const checkReady = async () => {...}` (line 2967) and the kick-off call is not awaited, carries no .then/.catch/.finally and no void marker, so a rejection is unobservable."
+    }
+  ]
+}

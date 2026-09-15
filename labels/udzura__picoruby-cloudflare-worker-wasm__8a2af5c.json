@@ -1,0 +1,51 @@
+{
+  "diff": "udzura__picoruby-cloudflare-worker-wasm__8a2af5c",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "dead-file",
+      "file": "spike/test/durable-object-workerd.mjs",
+      "line": 1,
+      "id": "b8181bf695abfcfa",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: spike/package.json's test script names this file (node test/durable-object-workerd.mjs), so it is an entry point, not a dead file. pass two: spike/package.json's test script runs `node test/durable-object-workerd.mjs`, so an entry point names the file."
+    },
+    {
+      "rule": "dead-file",
+      "file": "spike/test/durable-object.mjs",
+      "line": 1,
+      "id": "33322fadb30b948d",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: spike/package.json's test script names this file (node test/durable-object.mjs), so it is an entry point, not a dead file. pass two: spike/package.json's test script runs `node test/durable-object.mjs`, so an entry point names the file."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "spike/test/durable-object-workerd.mjs",
+      "line": 37,
+      "id": "3a80d7079a54b89c",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: The console.log is the test script's own pass-message output on its main path, matching every other test script in spike/test. pass two: Final console.log is the node test script's own pass report on its main path, matching every other spike/test script, not a leftover debug print."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "spike/test/durable-object.mjs",
+      "line": 58,
+      "id": "c73a0e1bf2e35045",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: The console.log is the test script's own pass-message output on its main path, matching every other test script in spike/test. pass two: Final console.log is the node test script's own pass report on its main path, matching every other spike/test script, not a leftover debug print."
+    }
+  ]
+}

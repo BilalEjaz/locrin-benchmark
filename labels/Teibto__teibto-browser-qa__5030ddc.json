@@ -1,0 +1,14 @@
+{
+  "diff": "Teibto__teibto-browser-qa__5030ddc",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": []
+}

@@ -1,0 +1,105 @@
+{
+  "diff": "hoplight-ai__pandoras-router__b052851",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "dead-file",
+      "file": "test/concurrency-test.mjs",
+      "line": 1,
+      "id": "f67beedde8e18807",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: test/run.mjs discovers and imports every `*-test.mjs` beside it, so `npm test` names this file; it is not unimported. pass two: test/run.mjs discovers and imports every *-test.mjs beside it, and npm test runs it."
+    },
+    {
+      "rule": "leftover-commented-code",
+      "file": "src/bin/lane-open.mjs",
+      "line": 307,
+      "id": "85851e040c3438b9",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: A section banner comment explaining the compare-and-set and the records-first ordering: prose, not disabled code. pass two: A section-header comment explaining the locked compare-and-set, not disabled code."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "test/concurrency-test.mjs",
+      "line": 418,
+      "id": "0f2b3168509322e8",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: Result output of a runnable test script on its main path, not a debug print left behind."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "test/concurrency-test.mjs",
+      "line": 419,
+      "id": "53382d1d8f5cb0a8",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: Result output of a runnable test script on its main path, not a debug print left behind."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "test/concurrency-test.mjs",
+      "line": 420,
+      "id": "9aa1d1fc23aad5a8",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: Result output of a runnable test script on its main path, not a debug print left behind."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "test/concurrency-test.mjs",
+      "line": 421,
+      "id": "fe44896a2df33542",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: Result output of a runnable test script on its main path, not a debug print left behind."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/lock.mjs",
+      "line": 71,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: WAIT_MS is exported from the new lock.mjs and no file in the repository imports it (used only inside lock.mjs). pass two: WAIT_MS is exported by the new lock.mjs but used only inside that file; no file in the repository imports it and lock.mjs is not an entry point."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/lock.mjs",
+      "line": 80,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: GUARD_STALE_MS is exported from the new lock.mjs and no file in the repository imports it. pass two: GUARD_STALE_MS is exported by the new lock.mjs but used only inside that file; no file in the repository imports it and lock.mjs is not an entry point."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/lock.mjs",
+      "line": 90,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: lockPath is exported from the new lock.mjs and no file in the repository imports it. pass two: lockPath is exported by the new lock.mjs but used only inside that file; no file in the repository imports it and lock.mjs is not an entry point."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/lock.mjs",
+      "line": 283,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: holdsLock is exported from the new lock.mjs and no file in the repository imports it. pass two: holdsLock is exported by the new lock.mjs but used only inside that file; no file in the repository imports it and lock.mjs is not an entry point."
+    }
+  ]
+}

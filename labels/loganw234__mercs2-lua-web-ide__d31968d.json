@@ -1,0 +1,42 @@
+{
+  "diff": "loganw234__mercs2-lua-web-ide__d31968d",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "html-injection",
+      "file": "src/app/82_assist.js",
+      "line": 501,
+      "id": "931bb3a7550ae06d",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: d.innerHTML joins static markup with IDE.ground.label() (a fixed VERDICT constant) and esc()-escaped phrases, so nothing unescaped is interpolated. pass two: html.join() holds only static literals plus esc()-escaped values (IDE.render.esc escapes & < > \" '), so nothing unescaped is interpolated into innerHTML."
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "src/app/40_console.js",
+      "line": 227,
+      "id": "aaaeffdfb11c683b",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "empty catch around localStorage.getItem, no rethrow/log/error value and no comment documenting the swallow."
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "src/app/40_console.js",
+      "line": 244,
+      "id": "ccd9a7140a8d662c",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "empty catch around localStorage.setItem, no rethrow/log/error value and no comment documenting the swallow."
+    }
+  ]
+}

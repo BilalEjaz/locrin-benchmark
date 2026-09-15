@@ -1,0 +1,24 @@
+{
+  "diff": "loganw234__mercs2-lua-web-ide__e15fd49",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "html-injection",
+      "file": "src/app/82_assist.js",
+      "line": 481,
+      "id": "53fd7a9e36bac2f7",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: render() is IDE.render.md, which esc()-escapes all text before building markup, so c.text reaches innerHTML escaped. pass two: render() is IDE.render.md, whose prose/code paths escape every interpolated character before returning HTML, so the innerHTML assignment is not unescaped interpolation."
+    }
+  ]
+}

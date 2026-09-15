@@ -1,0 +1,33 @@
+{
+  "diff": "MartinPdeS__TradeTide__e7e7d76",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "opus-blind",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "opus-blind",
+  "entries": [
+    {
+      "rule": "swallowed-error",
+      "file": "TradeTide/gui/app.js",
+      "line": 237,
+      "id": "37f4f4be33f44b04",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "re-judged 2026-09-15 under the corrected swallowed-error definition (floating promises are form 3), previously false-positive/false-positive; pass one: `if (config) executeRun(config);` inside the submit listener calls `async function executeRun` (line 212) and discards the promise: no await, no .then/.catch/.finally, no void marker, so a rejection is unobservable (form 3). pass two: `const config = validateDraft(); if (config) executeRun(config);` inside the submit handler; executeRun is declared `async function executeRun(config)` at line 212, and the call is not awaited, has no .then/.catch/.finally and no void marker, so a rejection (e.g. from the statements before its internal try at line 216) is unobservable."
+    },
+    {
+      "rule": "unused-import",
+      "file": "TradeTide/gui/app.js",
+      "line": 3,
+      "id": "c07fb4908f063b2b",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: pathLabel's only use (app.js:204 at the parent) was deleted by this change, leaving the binding unused. pass two: The pathLabel binding lost its only use when the sweep code was removed and is now unused in app.js."
+    }
+  ]
+}
