@@ -15,12 +15,17 @@ def entry(**over):
     return e
 
 
-def label(tmp_path, entries, diff=DIFF):
-    """A label file as pass one leaves it: pass1 filled, pass2 still `?`, pass two unrecorded."""
+def label(tmp_path, entries, diff=DIFF, pass2_by=None):
+    """A label file as pass one leaves it: pass1 filled, pass2 still `?`, pass two unrecorded.
+
+    `pass2_by` names a pass two already folded in, which is what the file looks like after a merge.
+    """
     root = tmp_path / "labels"
     root.mkdir(exist_ok=True)
     rec = {"diff": diff, "locrin": "v0.5.0", "pass1": {"by": "opus", "date": "2026-09-14"}, "pass2": None,
            "entries": entries}
+    if pass2_by is not None:
+        rec["pass2_by"] = pass2_by
     (root / f"{diff}.json").write_text(json.dumps(rec, indent=2) + "\n", encoding="utf-8")
     return root
 
@@ -66,10 +71,49 @@ def test_merge_folds_a_reported_verdict_and_the_three_kinds_of_missed_entry(tmp_
     ]
 
 
-def test_merge_never_copies_one_passs_missed_into_the_other(tmp_path):
-    root = label(tmp_path, [entry(line=9, id=None, pass1="missed", pass2="missed")])
+def test_a_first_merge_reopens_a_pass_two_slot_the_file_already_held(tmp_path):
+    """A pass-two verdict in a file no pass two has been folded into can only be pass one's copy."""
+    root = label(tmp_path, [entry(line=9, id=None, pass1="missed", pass2="missed"),
+                            entry(line=11, id=None, pass1="missed")])
     path = pass2_file(tmp_path, [])
     merge(DIFF, path, root)
+    assert entries_of(root) == [
+        # opus-blind is not the name in the file (there is none), so it judged neither of these.
+        ("leftover-debug", "src/a.ts", 9, None, "missed", "?", ""),
+        # The merge itself never copies pass one's missed into pass two: the question stays open.
+        ("leftover-debug", "src/a.ts", 11, None, "missed", "?", ""),
+    ]
+
+
+def test_a_re_merge_by_the_same_pass_two_name_keeps_a_verdict_a_hand_recorded(tmp_path):
+    root = label(tmp_path, [entry(), entry(line=9, id=None, pass1="missed")])
+    path = pass2_file(tmp_path, [p2()])
+    merge(DIFF, path, root)
+    assert entries_of(root)[1] == ("leftover-debug", "src/a.ts", 9, None, "missed", "?", "")
+    record = json.loads((root / f"{DIFF}.json").read_text(encoding="utf-8"))
+    record["entries"][1]["pass2"] = "missed"
+    (root / f"{DIFF}.json").write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+    merge(DIFF, path, root)
+    assert entries_of(root)[1] == ("leftover-debug", "src/a.ts", 9, None, "missed", "missed", "")
+
+
+def test_a_merge_under_another_name_is_a_replacement_pass_and_reopens_what_it_did_not_write(tmp_path):
+    """The second-model pass replaces opus-blind, so it owns every pass-two slot in the file."""
+    root = label(tmp_path, [entry(), entry(line=9, id=None, pass1="missed", pass2="missed")],
+                 pass2_by="opus-blind")
+    merge(DIFF, pass2_file(tmp_path, [p2(pass2="false-positive")], by="fable"), root)
+    assert entries_of(root) == [
+        # The reported entry takes the replacement pass's verdict.
+        ("leftover-debug", "src/a.ts", 5, "0" * 16, "true", "false-positive", ""),
+        # fable never judged this construct, so opus-blind's verdict does not stand under its name.
+        ("leftover-debug", "src/a.ts", 9, None, "missed", "?", ""),
+    ]
+    assert load_label_file(root / f"{DIFF}.json").pass2_by == "fable"
+
+
+def test_a_merge_under_another_name_never_copies_pass_ones_missed_into_pass_two(tmp_path):
+    root = label(tmp_path, [entry(line=9, id=None, pass1="missed", pass2="?")], pass2_by="opus-blind")
+    merge(DIFF, pass2_file(tmp_path, [], by="fable"), root)
     assert entries_of(root) == [("leftover-debug", "src/a.ts", 9, None, "missed", "?", "")]
 
 
@@ -132,6 +176,14 @@ def test_merge_refuses_a_pass_two_entry_without_an_id_that_is_not_missed(tmp_pat
     root = label(tmp_path, [entry()])
     with pytest.raises(LabelError, match="without an id"):
         merge(DIFF, pass2_file(tmp_path, [p2(), p2(line=9, id=None, pass2="true")]), root)
+
+
+def test_merge_refuses_a_missed_entry_pass_two_wrote_twice(tmp_path):
+    # Two entries on one construct would fold into one, so the second verdict would vanish unremarked.
+    root = label(tmp_path, [entry()])
+    path = pass2_file(tmp_path, [p2(), p2(line=9, id=None, pass2="missed"), p2(line=9, id=None, pass2="missed")])
+    with pytest.raises(LabelError, match="twice"):
+        merge(DIFF, path, root)
 
 
 def test_merge_refuses_a_pass_two_missed_verdict_on_a_reported_finding(tmp_path):

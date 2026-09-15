@@ -137,7 +137,7 @@ def test_every_pair_with_a_label_or_a_finding_gets_a_row():
 def test_empty_cells_and_pair_table_heading():
     md = render_markdown([Score("dead-export", 0, 0, 0, None, None, False, "n<5, not scored")],
                          [Score("leftover-debug@php", 1, 0, 0, 1.0, 1.0, False, "n<5, not scored")], "v0.5.0", 2, 3)
-    assert md.startswith("Locrin v0.5.0, 2 diffs. Left out of the numbers: 3 unlabelled, 0 without an agreed and confirmed label, 0 not applicable, 0 pre-existing and 0 duplicate.\n\n| Rule | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Excluded | Not applicable | Pre-existing | Duplicate | Note |\n")
+    assert md.startswith("Locrin v0.5.0, 2 diffs. Left out of the numbers: 3 unlabelled, 0 without an agreed and confirmed label, 0 not applicable, 0 pre-existing and 0 duplicate. 0 of 1 rules and 0 of 1 pairs reached n=5 and are scored.\n\n| Rule | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Excluded | Not applicable | Pre-existing | Duplicate | Note |\n")
     assert "| `dead-export` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |" in md
     assert "\n\n| Pair | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Excluded | Not applicable | Pre-existing | Duplicate | Note |\n" in md
     assert md.endswith("| `leftover-debug@php` | opt-in | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |\n\n"
@@ -178,7 +178,7 @@ def test_fixture_labels_produce_the_truthful_numbers():
     ]
     assert all(not s.scored for s in per_rule + per_pair)
     md = render_markdown(per_rule, per_pair, "v0.5.0", corpus_size=10, unlabelled=0, rules=rules)
-    assert md.startswith("Locrin v0.5.0, 10 diffs. Left out of the numbers: 0 unlabelled, 0 without an agreed and confirmed label, 0 not applicable, 0 pre-existing and 0 duplicate.\n")
+    assert md.startswith("Locrin v0.5.0, 10 diffs. Left out of the numbers: 0 unlabelled, 0 without an agreed and confirmed label, 0 not applicable, 0 pre-existing and 0 duplicate. 0 of 21 rules and 0 of 9 pairs reached n=5 and are scored.\n")
     assert "| `leftover-debug` | on | 75% | 100% | 3 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |" in md
     assert "| `unreachable` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |" in md
     assert "| `dead-file` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |" in md
@@ -324,9 +324,19 @@ def test_label_files_for_diffs_that_did_not_run_are_ignored():
     assert [(d, e.line) for d, e in stale(fs, ls)] == [("b", 2)]
 
 
+def test_heading_says_how_many_rules_and_pairs_reached_n():
+    # The count belongs in the rendered heading, the one place it stays true when the table is rewritten.
+    md = render_markdown([Score("leftover-debug", 5, 0, 0, 1.0, 1.0, True, ""),
+                          Score("dead-export", 0, 0, 0, None, None, False, "n<5, not scored")],
+                         [Score("leftover-debug@python", 3, 0, 0, 1.0, 1.0, False, "n<5, not scored"),
+                          Score("leftover-debug@typescript", 2, 0, 0, 1.0, 1.0, False, "n<5, not scored")],
+                         "v0.5.0", corpus_size=2, unlabelled=0)
+    assert md.splitlines()[0].endswith("1 of 2 rules and 0 of 2 pairs reached n=5 and are scored.")
+
+
 def test_heading_says_how_many_diffs_ran_when_told():
     md = render_markdown([], [], "v0.5.0", corpus_size=10, unlabelled=0, ran=9)
-    assert md.startswith("Locrin v0.5.0, 9 of 10 diffs ran. Left out of the numbers: 0 unlabelled, 0 without an agreed and confirmed label, 0 not applicable, 0 pre-existing and 0 duplicate.\n")
+    assert md.startswith("Locrin v0.5.0, 9 of 10 diffs ran. Left out of the numbers: 0 unlabelled, 0 without an agreed and confirmed label, 0 not applicable, 0 pre-existing and 0 duplicate. 0 of 0 rules and 0 of 0 pairs reached n=5 and are scored.\n")
 
 
 def test_a_precision_just_under_the_line_never_renders_as_the_line():
@@ -419,7 +429,7 @@ def test_findings_and_missed_entries_whose_passes_disagree_are_counted_excluded_
     assert bench.score.excluded_count(fs, ls) == 2
     assert bench.score.excluded_count(fs, ls, ran=set()) == 0
     md = render_markdown(per_rule, per_pair, "v0.5.0", 1, 0, rules=RULES, excluded=2)
-    assert md.startswith("Locrin v0.5.0, 1 diffs. Left out of the numbers: 0 unlabelled, 2 without an agreed and confirmed label, 0 not applicable, 0 pre-existing and 0 duplicate.\n")
+    assert md.startswith("Locrin v0.5.0, 1 diffs. Left out of the numbers: 0 unlabelled, 2 without an agreed and confirmed label, 0 not applicable, 0 pre-existing and 0 duplicate. 0 of 4 rules and 0 of 3 pairs reached n=5 and are scored.\n")
     assert "| `leftover-debug` | on | 100% | 100% | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | n<5, not scored |" in md
     assert "| `leftover-debug@php` | opt-in |  |  | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | n<5, not scored |" in md
     assert "| `unreachable@typescript` | on |  |  | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | n<5, not scored |" in md

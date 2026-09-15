@@ -29,13 +29,31 @@ def new(diff_id: str, findings: list[Finding], locrin_version: str, out_root: Pa
     return Path(out_root) / f"{diff_id}.json"
 
 
-def confirm(diff_id: str, root: Path, by: str, date: str) -> None:
+def confirm(diff_id: str, root: Path, by: str | None, date: str, force: bool = False) -> tuple[str, str | None]:
+    """Stamp pass two on the label file, under the name the merge folded in.
+
+    `pass2.by` says whose verdicts these are, so it must be the pass `merge` recorded in `pass2_by`:
+    without `--by` that name is taken, and another name is refused rather than written over it, since
+    the two name different labellers and only one of them made the pass. `--force` is for a file whose
+    recorded name is wrong, so it corrects `pass2_by` too rather than leaving the file naming two
+    labellers. Returns the name recorded and the name it replaced, for the caller to report.
+    """
     lf = load_label_file(Path(root) / f"{diff_id}.json")
     unfilled = [e for e in lf.entries if e.pass1 == "?" or e.pass2 == "?"]
     if unfilled:
         raise LabelError(f"{diff_id}: {len(unfilled)} unfilled entries; fill pass1 and pass2 before confirming")
+    if by is None:
+        if not lf.pass2_by:
+            raise LabelError(f"{diff_id}: no pass two name in the file; pass --by to say who made pass two")
+        by = lf.pass2_by
+    elif lf.pass2_by and lf.pass2_by != by and not force:
+        raise LabelError(f"{diff_id}: the merge folded in pass two by {lf.pass2_by}, not {by}; "
+                         "confirm under that name, or pass --force to record another")
+    replaced = lf.pass2_by if lf.pass2_by and lf.pass2_by != by else None
     lf.pass2 = {"by": by, "date": date}
+    lf.pass2_by = by
     save_label_file(root, lf)
+    return by, replaced
 
 
 PASS2_VERDICTS = {"true", "false-positive", "not-applicable", "missed"}
@@ -102,13 +120,18 @@ def merge(diff_id: str, pass2_path: Path, root: Path, dry_run: bool = False) -> 
     id, equal keys in order. A missed entry both passes wrote becomes one entry with `missed` in both;
     one only pass one wrote keeps `missed` with pass two `?`, for pass two to look at that construct;
     one only pass two wrote is appended with pass one `?`. One pass's `missed` is never copied into the
-    other, not even when an earlier hand-edit did copy it: that would record an agreement that never
-    happened. A verdict a later hand-edit recorded for a missed entry pass two did not write is kept.
-    Notes that differ are joined. Returns the counts, and with dry_run writes nothing.
+    other: that would record an agreement that never happened. A pass-two verdict already in the file is
+    kept only when the pass-two file names the labeller the file records in `pass2_by`, so a re-merge of
+    the same pass-two file keeps a verdict a hand recorded for a missed entry that pass did not write.
+    Under any other name, `pass2_by` absent included, the file is a replacement pass (LABELLING.md owes
+    one by a second model): it owns every pass-two slot, and a missed entry it did not write goes back to
+    `?`, because the labeller it names judged no construct it did not write and must not be stamped on
+    the pass before it. Notes that differ are joined. Returns the counts, and with dry_run writes nothing.
     """
     path = Path(root) / f"{diff_id}.json"
     lf = load_label_file(path)
     by, p2_reported, p2_missed = _pass2_entries(diff_id, Path(pass2_path))
+    same_pass = by == lf.pass2_by
     free = {k: list(v) for k, v in p2_reported.items()}
     counts = {"reported": 0, "missed_both": 0, "missed_pass_one_only": 0, "missed_pass_two_only": 0, "notes_joined": 0}
     out: list[Entry] = []
@@ -133,10 +156,12 @@ def merge(diff_id: str, pass2_path: Path, root: Path, dry_run: bool = False) -> 
             counts["missed_both" if e.pass1 == "missed" else "missed_pass_two_only"] += 1
             out.append(replace(e, pass2="missed", note=note))
         else:
-            # `?` puts the question to pass two; anything else it recorded itself stays, and a copied
-            # `missed` goes back to `?` because pass two never wrote that entry.
+            # Pass two did not write this entry, so the merge leaves its slot open. A verdict already
+            # there is kept only for the labeller the file records: a re-merge of the same pass-two file
+            # would otherwise throw away what a hand recorded, and a merge under another name would put
+            # that name on a verdict it never gave.
             counts["missed_pass_one_only"] += 1
-            out.append(replace(e, pass2="?" if e.pass2 == "missed" else e.pass2))
+            out.append(e if same_pass else replace(e, pass2="?"))
     left = sorted(k for k, queue in free.items() if queue)
     if left:
         rule, file, line, ident = left[0]
@@ -220,8 +245,9 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--dry-run", action="store_true", help="print what the merge would change and write nothing")
     c = sub.add_parser("confirm")
     c.add_argument("diff")
-    c.add_argument("--by", required=True)
+    c.add_argument("--by", help="who made pass two (default: the name the merge recorded)")
     c.add_argument("--labels", default="labels")
+    c.add_argument("--force", action="store_true", help="record a name other than the one the merge folded in")
     s = sub.add_parser("status")
     s.add_argument("--labels", default="labels")
     a = p.parse_args(argv)
@@ -241,8 +267,11 @@ def main(argv: list[str] | None = None) -> int:
                   f"{counts['missed_both']} missed in both passes, {counts['missed_pass_one_only']} missed by pass one "
                   f"only, {counts['missed_pass_two_only']} missed by pass two only, {counts['notes_joined']} notes joined")
         elif a.cmd == "confirm":
-            confirm(a.diff, Path(a.labels), a.by, today)
-            print(f"{a.diff}: pass two recorded")
+            name, replaced = confirm(a.diff, Path(a.labels), a.by, today, force=a.force)
+            # A forced confirm rewrites the name the merge recorded, so say so: the file now reads as
+            # that labeller's pass, and the one it replaced is nowhere in it to be noticed later.
+            changed = f", the pass two name changed from {replaced} to {name}" if replaced else ""
+            print(f"{a.diff}: pass two recorded{changed}")
         else:
             status(Path(a.labels))
     except LabelError as e:

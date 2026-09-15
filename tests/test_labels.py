@@ -129,6 +129,54 @@ def test_confirm_sets_pass2_metadata_and_refuses_unfilled(tmp_path):
     assert json.loads(p.read_text())["pass2"] == {"by": "fable", "date": "2026-09-15"}
 
 
+def _merged(tmp_path, pass2_by="opus-blind"):
+    """A label file as `merge` leaves it: every slot filled, pass two named but not yet stamped."""
+    rec = {"diff": "fx-01-debug", "locrin": "v0.5.0", "pass1": {"by": "opus", "date": "2026-09-14"},
+           "pass2": None, "pass2_by": pass2_by, "entries": [entry()]}
+    path = tmp_path / "fx-01-debug.json"
+    path.write_text(json.dumps(rec), encoding="utf-8")
+    return path
+
+
+def test_confirm_takes_the_name_the_merge_recorded_when_by_is_not_given(tmp_path):
+    path = _merged(tmp_path)
+    confirm("fx-01-debug", tmp_path, by=None, date="2026-09-15")
+    assert json.loads(path.read_text())["pass2"] == {"by": "opus-blind", "date": "2026-09-15"}
+
+
+def test_confirm_refuses_a_name_that_is_not_the_one_the_merge_folded_in(tmp_path):
+    path = _merged(tmp_path)
+    with pytest.raises(LabelError, match="opus-blind"):
+        confirm("fx-01-debug", tmp_path, by="fable", date="2026-09-15")
+    assert json.loads(path.read_text())["pass2"] is None
+    confirm("fx-01-debug", tmp_path, by="fable", date="2026-09-15", force=True)
+    rec = json.loads(path.read_text())
+    # The forced name is the file's pass two everywhere, so the file never names two labellers.
+    assert rec["pass2"] == {"by": "fable", "date": "2026-09-15"} and rec["pass2_by"] == "fable"
+
+
+def test_cli_confirm_with_force_says_the_pass_two_name_changed(tmp_path, capsys):
+    _merged(tmp_path)
+    assert main(["confirm", "fx-01-debug", "--by", "fable", "--force", "--labels", str(tmp_path)]) == 0
+    out = capsys.readouterr().out
+    assert "opus-blind" in out and "fable" in out
+    assert main(["confirm", "fx-01-debug", "--labels", str(tmp_path)]) == 0
+    assert "opus-blind" not in capsys.readouterr().out
+
+
+def test_confirm_needs_a_name_when_no_merge_recorded_one(tmp_path):
+    label(tmp_path, [entry()])
+    with pytest.raises(LabelError, match="--by"):
+        confirm("fx-01-debug", tmp_path, by=None, date="2026-09-15")
+
+
+def test_cli_confirm_takes_the_recorded_name_and_reports_a_mismatch(tmp_path, capsys):
+    _merged(tmp_path)
+    assert main(["confirm", "fx-01-debug", "--by", "fable", "--labels", str(tmp_path)]) == 1
+    assert "label.py: " in capsys.readouterr().err
+    assert main(["confirm", "fx-01-debug", "--labels", str(tmp_path)]) == 0
+
+
 def test_label_files_are_written_with_lf_line_endings(tmp_path):
     fs = [Finding("fx-01-debug", "leftover-debug", "src/a.ts", 5, "1" * 16, "high", "typescript")]
     path = new("fx-01-debug", fs, "v0.5.0", tmp_path, by="opus", date="2026-09-14")
