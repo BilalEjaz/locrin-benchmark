@@ -281,6 +281,62 @@ def _local_upstream(tmp_path: Path, monkeypatch, before: dict[str, bytes] | None
                 licence="MIT", language="typescript", url="u", files=["src/a.ts"])
 
 
+def _link_blob(work: Path, target: str) -> str:
+    return subprocess.run(["git", "hash-object", "-w", "--stdin"], input=target, cwd=work,
+                          capture_output=True, text=True, check=True).stdout.strip()
+
+
+def _upstream_with_link(tmp_path: Path, monkeypatch, *, in_the_commit: bool) -> Diff:
+    """An upstream whose tree holds a symbolic link, put there with git update-index.
+
+    The entry is written into the index, so the test needs no privilege to create a link on the disk
+    and runs the same on every platform. With in_the_commit the link is one of the files the commit
+    changed; otherwise both commits hold it and the commit does not touch it.
+    """
+    work = tmp_path / "upstream"
+    work.mkdir()
+    _run(["init", "-q", "-b", "main"], work)
+    link = _link_blob(work, "../src/a.ts")
+
+    def side(text: bytes, name: str | None) -> None:
+        _write_side(work, {"src/a.ts": text})
+        _run(["add", "-A"], work)
+        if name:
+            # _write_side left nothing on disk for it, so re-add the entry after every `add -A`.
+            _run(["update-index", "--add", "--cacheinfo", f"120000,{link},{name}"], work)
+
+    side(b"export const a = 1;\n", None if in_the_commit else "docs/link.ts")
+    _run(["commit", "-q", "--no-verify", "-m", "one"], work)
+    parent = _run(["rev-parse", "HEAD"], work).strip()
+    side(b"export const a = 2;\n", "src/link.ts" if in_the_commit else "docs/link.ts")
+    _run(["commit", "-q", "--no-verify", "-m", "two"], work)
+    sha = _run(["rev-parse", "HEAD"], work).strip()
+    remotes = tmp_path / "remotes"
+    (remotes / "acme").mkdir(parents=True)
+    _run(["clone", "-q", "--bare", str(work), str(remotes / "acme" / "w.git")], tmp_path)
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", f"url.{remotes.as_uri()}/.insteadOf")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "https://github.com/")
+    return Diff(id=f"acme__w__{sha[:7]}", source="git", repo="acme/w", sha=sha, parent=parent,
+                licence="MIT", language="typescript", url="u", files=["src/a.ts"])
+
+
+def test_a_commit_that_changes_a_symbolic_link_fails_the_diff(tmp_path, monkeypatch):
+    d = _upstream_with_link(tmp_path, monkeypatch, in_the_commit=True)
+    with pytest.raises(MaterialiseError, match=f"{d.id}: .*symbolic link.*src/link.ts"):
+        materialise(d, tmp_path / "corpus", tmp_path / "cache")
+
+
+def test_a_symbolic_link_the_commit_does_not_change_checks_out_as_a_text_file(tmp_path, monkeypatch):
+    # core.symlinks=false, so Windows and Linux both hold the link's target as the file's content
+    # and the engine reads the same bytes on either platform.
+    d = _upstream_with_link(tmp_path, monkeypatch, in_the_commit=False)
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    link = co.root / "docs" / "link.ts"
+    assert link.is_file() and not link.is_symlink()
+    assert link.read_bytes() == b"../src/a.ts"
+
+
 @pytest.mark.parametrize("how", ["xdg", "home"])
 def test_git_source_ignores_default_global_ignore_and_attributes_files(tmp_path, monkeypatch, how):
     d = _local_upstream(tmp_path, monkeypatch)

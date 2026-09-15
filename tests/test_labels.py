@@ -172,6 +172,16 @@ def test_half_filled_entries_count_as_unfilled_and_never_as_disagreements(tmp_pa
     ]
 
 
+def test_an_adjudication_marked_pending_never_counts_until_it_is_settled(tmp_path):
+    # Adjudication never edits the two passes, so the numbers cannot depend on a note. Should a
+    # maintainer edit them anyway, a note that still says pending keeps the entry out of the numbers.
+    label(tmp_path, [entry(note="adjudicated (opus), pending Fable review"),
+                     entry(line=9, note="settled: the print is in a CLI script's main path")])
+    es = load_labels(tmp_path)["fx-01-debug"].entries
+    assert [e.confirmed for e in es] == [False, True]
+    assert es[0].verdict is None and es[1].verdict == "true"
+
+
 def test_cli_new_runs_the_harness_for_that_diff_and_keys_the_cache_on_it(tmp_path, monkeypatch):
     calls = {}
 

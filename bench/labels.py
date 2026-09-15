@@ -37,8 +37,20 @@ class Entry:
     note: str
 
     @property
+    def adjudication_pending(self) -> bool:
+        """A maintainer proposed a resolution and it is still waiting for the review the note names.
+
+        Adjudication records the proposed resolution in the note and leaves the two passes as they
+        are, so an adjudicated entry stays a disagreement. Should the passes be edited to agree
+        while the note still says pending, this keeps the entry out of the numbers all the same:
+        what counts must never depend on a maintainer remembering not to edit a pass.
+        """
+        note = self.note.strip().lower()
+        return note.startswith("adjudicated") and "pending" in note
+
+    @property
     def confirmed(self) -> bool:
-        return self.pass1 != "?" and self.pass1 == self.pass2
+        return self.pass1 != "?" and self.pass1 == self.pass2 and not self.adjudication_pending
 
     @property
     def verdict(self) -> str | None:
@@ -52,6 +64,10 @@ class LabelFile:
     pass1: dict | None
     pass2: dict | None
     entries: list[Entry]
+    # Who made the blind pass two `label.py merge` folded in. Metadata only: until `label.py confirm`
+    # stamps pass2 with a name and a date, none of the file's entries count, so a merge alone can
+    # never publish numbers pass two has not signed off.
+    pass2_by: str = ""
 
 
 def _entry(name: str, i: int, raw: object) -> Entry:
@@ -100,8 +116,11 @@ def load_label_file(path: Path) -> LabelFile:
     if not isinstance(entries_raw, list):
         raise LabelError(f"{path.name}: entries must be a list")
     entries = [_entry(path.name, i, e) for i, e in enumerate(entries_raw)]
+    by = raw.get("pass2_by", "")
+    if not isinstance(by, str):
+        raise LabelError(f"{path.name}: pass2_by must be a string")
     return LabelFile(diff=raw["diff"], locrin=raw.get("locrin", ""), pass1=_pass(path.name, "pass1", raw.get("pass1")),
-                     pass2=_pass(path.name, "pass2", raw.get("pass2")), entries=entries)
+                     pass2=_pass(path.name, "pass2", raw.get("pass2")), entries=entries, pass2_by=by)
 
 
 def load_labels(root: Path) -> dict[str, LabelFile]:
@@ -121,6 +140,8 @@ def disagreements(labels: dict[str, LabelFile]) -> list[tuple[str, Entry]]:
 def save_label_file(root: Path, lf: LabelFile) -> None:
     raw = {
         "diff": lf.diff, "locrin": lf.locrin, "pass1": lf.pass1, "pass2": lf.pass2,
+        # Only written once a merge has recorded it, so the key never appears in a file no merge touched.
+        **({"pass2_by": lf.pass2_by} if lf.pass2_by else {}),
         "entries": [{"rule": e.rule, "file": e.file, "line": e.line, "id": e.id, "pass1": e.pass1, "pass2": e.pass2, "note": e.note} for e in lf.entries],
     }
     # Bytes, so Windows never writes CRLF into a tracked label file.
