@@ -29,13 +29,14 @@ def new(diff_id: str, findings: list[Finding], locrin_version: str, out_root: Pa
     return Path(out_root) / f"{diff_id}.json"
 
 
-def confirm(diff_id: str, root: Path, by: str | None, date: str, force: bool = False) -> None:
+def confirm(diff_id: str, root: Path, by: str | None, date: str, force: bool = False) -> tuple[str, str | None]:
     """Stamp pass two on the label file, under the name the merge folded in.
 
     `pass2.by` says whose verdicts these are, so it must be the pass `merge` recorded in `pass2_by`:
     without `--by` that name is taken, and another name is refused rather than written over it, since
     the two name different labellers and only one of them made the pass. `--force` is for a file whose
-    recorded name is wrong.
+    recorded name is wrong, so it corrects `pass2_by` too rather than leaving the file naming two
+    labellers. Returns the name recorded and the name it replaced, for the caller to report.
     """
     lf = load_label_file(Path(root) / f"{diff_id}.json")
     unfilled = [e for e in lf.entries if e.pass1 == "?" or e.pass2 == "?"]
@@ -48,8 +49,11 @@ def confirm(diff_id: str, root: Path, by: str | None, date: str, force: bool = F
     elif lf.pass2_by and lf.pass2_by != by and not force:
         raise LabelError(f"{diff_id}: the merge folded in pass two by {lf.pass2_by}, not {by}; "
                          "confirm under that name, or pass --force to record another")
+    replaced = lf.pass2_by if lf.pass2_by and lf.pass2_by != by else None
     lf.pass2 = {"by": by, "date": date}
+    lf.pass2_by = by
     save_label_file(root, lf)
+    return by, replaced
 
 
 PASS2_VERDICTS = {"true", "false-positive", "not-applicable", "missed"}
@@ -263,8 +267,11 @@ def main(argv: list[str] | None = None) -> int:
                   f"{counts['missed_both']} missed in both passes, {counts['missed_pass_one_only']} missed by pass one "
                   f"only, {counts['missed_pass_two_only']} missed by pass two only, {counts['notes_joined']} notes joined")
         elif a.cmd == "confirm":
-            confirm(a.diff, Path(a.labels), a.by, today, force=a.force)
-            print(f"{a.diff}: pass two recorded")
+            name, replaced = confirm(a.diff, Path(a.labels), a.by, today, force=a.force)
+            # A forced confirm rewrites the name the merge recorded, so say so: the file now reads as
+            # that labeller's pass, and the one it replaced is nowhere in it to be noticed later.
+            changed = f", the pass two name changed from {replaced} to {name}" if replaced else ""
+            print(f"{a.diff}: pass two recorded{changed}")
         else:
             status(Path(a.labels))
     except LabelError as e:

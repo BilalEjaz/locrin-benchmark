@@ -150,7 +150,18 @@ def test_confirm_refuses_a_name_that_is_not_the_one_the_merge_folded_in(tmp_path
         confirm("fx-01-debug", tmp_path, by="fable", date="2026-09-15")
     assert json.loads(path.read_text())["pass2"] is None
     confirm("fx-01-debug", tmp_path, by="fable", date="2026-09-15", force=True)
-    assert json.loads(path.read_text())["pass2"] == {"by": "fable", "date": "2026-09-15"}
+    rec = json.loads(path.read_text())
+    # The forced name is the file's pass two everywhere, so the file never names two labellers.
+    assert rec["pass2"] == {"by": "fable", "date": "2026-09-15"} and rec["pass2_by"] == "fable"
+
+
+def test_cli_confirm_with_force_says_the_pass_two_name_changed(tmp_path, capsys):
+    _merged(tmp_path)
+    assert main(["confirm", "fx-01-debug", "--by", "fable", "--force", "--labels", str(tmp_path)]) == 0
+    out = capsys.readouterr().out
+    assert "opus-blind" in out and "fable" in out
+    assert main(["confirm", "fx-01-debug", "--labels", str(tmp_path)]) == 0
+    assert "opus-blind" not in capsys.readouterr().out
 
 
 def test_confirm_needs_a_name_when_no_merge_recorded_one(tmp_path):
