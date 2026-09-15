@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "dead-file",
@@ -18,7 +18,7 @@
       "id": "8b073f8c4c3ed065",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: test/run.mjs discovers and imports every `*-test.mjs` beside it, so `npm test` names this file; it is not unimported. pass two: test/run.mjs discovers and imports every *-test.mjs beside it, and npm test runs it; the file is also runnable on its own."
+      "note": "pass one: test/run.mjs discovers and imports every `*-test.mjs` beside it, so `npm test` names this file; it is not unimported. pass two: test/run.mjs discovers and imports every *-test.mjs beside it (readdirSync filter), and npm test runs run.mjs, so the file has an importer"
     },
     {
       "rule": "leftover-commented-code",
@@ -27,7 +27,7 @@
       "id": "aee109f352e07060",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: The header block is prose (a usage line and an explanation of why the test exists), not code that was disabled. pass two: The header comment is prose describing what the suite checks, not disabled code."
+      "note": "pass one: The header block is prose (a usage line and an explanation of why the test exists), not code that was disabled. pass two: prose header comment describing the file purpose, not disabled code"
     },
     {
       "rule": "leftover-debug",
@@ -36,7 +36,7 @@
       "id": "40bf417bf5363c9c",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: Result output of a runnable test script on its main path, not a debug print left behind."
+      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
     },
     {
       "rule": "leftover-debug",
@@ -45,7 +45,7 @@
       "id": "e71e77965ab8bdce",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: Result output of a runnable test script on its main path, not a debug print left behind."
+      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
     },
     {
       "rule": "leftover-debug",
@@ -54,7 +54,7 @@
       "id": "89a9be1052bc3276",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: Result output of a runnable test script on its main path, not a debug print left behind."
+      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
     },
     {
       "rule": "leftover-debug",
@@ -63,7 +63,7 @@
       "id": "270f76b4b443f70b",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: Result output of a runnable test script on its main path, not a debug print left behind."
+      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
     }
   ]
 }

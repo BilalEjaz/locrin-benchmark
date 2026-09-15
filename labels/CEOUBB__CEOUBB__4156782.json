@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "dead-export",
@@ -18,7 +18,7 @@
       "id": null,
       "pass1": "missed",
       "pass2": "missed",
-      "note": "pass one: New exported daysUntil is only used inside portal-utils.ts and no file imports it. pass two: The diff added `export function daysUntil` (parent lib/portal-utils.ts holds no `daysUntil` at all); `git grep daysUntil` at the sha finds only the definition and two in-file calls (lines 223, 238), no importer anywhere, and the file is a lib module, not an entry point."
+      "note": "pass one: New exported daysUntil is only used inside portal-utils.ts and no file imports it. pass two: new export daysUntil is called only inside lib/portal-utils.ts (countdown, evaluationUrgency); no file in the repository imports it and the module is not an entry point"
     },
     {
       "rule": "dead-export",
@@ -27,7 +27,7 @@
       "id": null,
       "pass1": "missed",
       "pass2": "missed",
-      "note": "pass one: New exported type EvaluationUrgency is only used inside portal-utils.ts and no file imports it. pass two: The diff added `export type EvaluationUrgency` (absent from the parent's lib/portal-utils.ts); repo-wide grep at the sha finds it only at its own definition and as the in-file return type of evaluationUrgency on line 237, so no importer and no entry point."
+      "note": "pass one: New exported type EvaluationUrgency is only used inside portal-utils.ts and no file imports it. pass two: new exported type EvaluationUrgency is used only as a return type inside lib/portal-utils.ts; no file in the repository imports it"
     }
   ]
 }

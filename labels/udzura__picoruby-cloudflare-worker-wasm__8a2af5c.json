@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "dead-file",
@@ -18,7 +18,7 @@
       "id": "b8181bf695abfcfa",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: spike/package.json's test script names this file (node test/durable-object-workerd.mjs), so it is an entry point, not a dead file. pass two: spike/package.json's test script runs `node test/durable-object-workerd.mjs`, so an entry point names the file."
+      "note": "pass one: spike/package.json's test script names this file (node test/durable-object-workerd.mjs), so it is an entry point, not a dead file. pass two: entry point: spike/package.json \"test\" script runs node test/durable-object-workerd.mjs"
     },
     {
       "rule": "dead-file",
@@ -27,7 +27,7 @@
       "id": "33322fadb30b948d",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: spike/package.json's test script names this file (node test/durable-object.mjs), so it is an entry point, not a dead file. pass two: spike/package.json's test script runs `node test/durable-object.mjs`, so an entry point names the file."
+      "note": "pass one: spike/package.json's test script names this file (node test/durable-object.mjs), so it is an entry point, not a dead file. pass two: entry point: spike/package.json \"test\" script runs node test/durable-object.mjs"
     },
     {
       "rule": "leftover-debug",
@@ -36,7 +36,7 @@
       "id": "3a80d7079a54b89c",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: The console.log is the test script's own pass-message output on its main path, matching every other test script in spike/test. pass two: Final console.log is the node test script's own pass report on its main path, matching every other spike/test script, not a leftover debug print."
+      "note": "pass one: The console.log is the test script's own pass-message output on its main path, matching every other test script in spike/test. pass two: final \"passed\" console.log in the main path of a standalone node test script, not a debug print"
     },
     {
       "rule": "leftover-debug",
@@ -45,7 +45,7 @@
       "id": "c73a0e1bf2e35045",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: The console.log is the test script's own pass-message output on its main path, matching every other test script in spike/test. pass two: Final console.log is the node test script's own pass report on its main path, matching every other spike/test script, not a leftover debug print."
+      "note": "pass one: The console.log is the test script's own pass-message output on its main path, matching every other test script in spike/test. pass two: final \"passed\" console.log in the main path of a standalone node test script, not a debug print"
     }
   ]
 }

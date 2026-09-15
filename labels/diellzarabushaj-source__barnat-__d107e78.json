@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "dead-file",
@@ -18,7 +18,7 @@
       "id": "d352ed5f25d439fc",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: package.json's \"test\" script names the file (node tests/registry-list-view-v2-test.js), so an entry point does reference it. pass two: The package.json test script names it as an entry point (node tests/registry-list-view-v2-test.js), added in this same commit."
+      "note": "pass one: package.json's \"test\" script names the file (node tests/registry-list-view-v2-test.js), so an entry point does reference it. pass two: package.json's test script runs node tests/registry-list-view-v2-test.js, so an entry point names it"
     },
     {
       "rule": "leftover-debug",
@@ -27,7 +27,7 @@
       "id": "c21c0788f5a211bd",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: Main-path pass report of a standalone node gate script, not a leftover debug print. pass two: Final summary print on the main path of a standalone node gate script, not a debug leftover."
+      "note": "pass one: Main-path pass report of a standalone node gate script, not a leftover debug print. pass two: console.log is the gate script's pass message on its main path, not a debug print"
     },
     {
       "rule": "swallowed-error",
@@ -36,7 +36,7 @@
       "id": "47c49e98a604204f",
       "pass1": "true",
       "pass2": "true",
-      "note": ""
+      "note": "empty catch with no comment in the new storedRowView"
     },
     {
       "rule": "swallowed-error",
@@ -45,7 +45,7 @@
       "id": "4ebe6917edacd7c7",
       "pass1": "true",
       "pass2": "true",
-      "note": ""
+      "note": "empty catch with no comment in the new setRowView"
     },
     {
       "rule": "swallowed-error",
@@ -54,7 +54,7 @@
       "id": "d42ebabf5d8d5735",
       "pass1": "true",
       "pass2": "true",
-      "note": ""
+      "note": "empty catch with no comment inside logout; definition met, though the parent held the same catch in logout at line 1519"
     },
     {
       "rule": "swallowed-error",
@@ -63,7 +63,7 @@
       "id": "02404e8f3a627108",
       "pass1": "true",
       "pass2": "true",
-      "note": "re-judged 2026-09-15 under the corrected swallowed-error definition (floating promises are form 3), previously false-positive/false-positive; pass one: `showDetail(findRow(card.dataset.rowId))` calls `async function showDetail` (line 1421) and drops the promise: no await, no .catch, no void marker (the same file marks other floating calls with `void` at lines 1756/1758) (form 3). pass two: `if (card && event.target === card) { event.preventDefault(); showDetail(findRow(card.dataset.rowId)); }` in the keydown listener; showDetail is `async function showDetail(row)` (line 1421) and this call has no await, no .catch and no void marker (unlike the sibling `void toggleFavoriteRow(...)` calls at 1756/1758)."
+      "note": "pass one: re-judged 2026-09-15 under the corrected swallowed-error definition (floating promises are form 3), previously false-positive/false-positive; pass one: `showDetail(findRow(card.dataset.rowId))` calls `async function showDetail` (line 1421) and drops the promise: no await, no .catch, no void marker (the same file marks other floating calls with `void` at lines 1756/1758) (form 3). pass two: `if (card && event.target === card) { event.preventDefault(); showDetail(findRow(card.dataset.rowId)); }` in the keydown listener; showDetail is `async function showDetail(row)` (line 1421) and this call has no await, no .catch and no void marker (unlike the sibling `void toggleFavoriteRow(...)` calls at 1756/1758). pass two: floating promise: async showDetail called in the new list keydown handler with no await, handler, binding or void"
     },
     {
       "rule": "swallowed-error",
@@ -72,7 +72,7 @@
       "id": "31788cdc9b45d36e",
       "pass1": "true",
       "pass2": "true",
-      "note": "re-judged 2026-09-15 under the corrected swallowed-error definition (floating promises are form 3), previously false-positive/false-positive; pass one: `if (rowNode) showDetail(findRow(rowNode.dataset.rowId));` calls the same `async function showDetail` (line 1421) with the promise discarded: no await, no handler, no void marker (form 3). pass two: `if (rowNode) showDetail(findRow(rowNode.dataset.rowId));` at the end of rowContainerClick; showDetail is async (line 1421) and the promise is discarded with no await, no handler and no void marker."
+      "note": "pass one: re-judged 2026-09-15 under the corrected swallowed-error definition (floating promises are form 3), previously false-positive/false-positive; pass one: `if (rowNode) showDetail(findRow(rowNode.dataset.rowId));` calls the same `async function showDetail` (line 1421) with the promise discarded: no await, no handler, no void marker (form 3). pass two: `if (rowNode) showDetail(findRow(rowNode.dataset.rowId));` at the end of rowContainerClick; showDetail is async (line 1421) and the promise is discarded with no await, no handler and no void marker. pass two: floating promise: async showDetail called on the rewritten rowNode line with no await, handler, binding or void"
     }
   ]
 }

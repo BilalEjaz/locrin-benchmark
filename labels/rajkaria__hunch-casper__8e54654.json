@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "dead-export",
@@ -18,7 +18,7 @@
       "id": "a46941d6858dd2f0",
       "pass1": "true",
       "pass2": "true",
-      "note": ""
+      "note": "exported type CsprClickContentMode is used only inside csprclick.ts; git grep at the commit finds no importer in src/ or test/"
     },
     {
       "rule": "dead-export",
@@ -27,7 +27,7 @@
       "id": "59cac2f393679967",
       "pass1": "true",
       "pass2": "true",
-      "note": ""
+      "note": "exported interface CsprClickInitOptions is used only inside csprclick.ts; no importer anywhere at the commit"
     },
     {
       "rule": "dead-export",
@@ -36,7 +36,7 @@
       "id": "eacc558701a965d0",
       "pass1": "true",
       "pass2": "true",
-      "note": ""
+      "note": "firstAvailableProvider is called only inside wallet-connector.ts (line 149); no other file imports it, tests exercise it through csprClickConnector"
     },
     {
       "rule": "html-injection",
@@ -45,7 +45,7 @@
       "id": "e8a3539bc9a166f3",
       "pass1": "true",
       "pass2": "true",
-      "note": ""
+      "note": "dangerouslySetInnerHTML __html is csprClickBootstrapScript(...), a string interpolating env-derived appId via JSON.stringify with no HTML escaping; parent held a dangerouslySetInnerHTML at the same line with a different interpolation"
     }
   ]
 }

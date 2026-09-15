@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "injection-sink",
@@ -18,7 +18,7 @@
       "id": "0a7a9e19092a0275",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: ConvexHttpClient.query with a typed function reference and an args object: a parameterised RPC call, no string-built query and no user-controlled input. pass two: Convex client query taking a typed function reference and a structured args object; no query string is built from input, so there is no unescaped sink."
+      "note": "pass one: ConvexHttpClient.query with a typed function reference and an args object: a parameterised RPC call, no string-built query and no user-controlled input. pass two: ConvexHttpClient.query invoking a named Convex function with fixture-derived args; not a query/shell/eval/HTML sink and no user-controlled input"
     },
     {
       "rule": "injection-sink",
@@ -27,7 +27,7 @@
       "id": "d27d361fee531bf5",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: Same parameterised Convex RPC call inside requireDenied; the capability is a locally generated random value, not a query string. pass two: Convex client query taking a typed function reference and a structured args object; no query string is built from input, so there is no unescaped sink."
+      "note": "pass one: Same parameterised Convex RPC call inside requireDenied; the capability is a locally generated random value, not a query string. pass two: ConvexHttpClient.query invoking a named Convex function with fixture-derived args; not a query/shell/eval/HTML sink and no user-controlled input"
     },
     {
       "rule": "injection-sink",
@@ -36,7 +36,7 @@
       "id": "685d7b6812876c95",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime query with a typed function reference and a structured args object; no query string is built, so there is no unescaped sink."
+      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime/actor .query() invoking a Convex function reference in a test; not an injection sink and no user-controlled input"
     },
     {
       "rule": "injection-sink",
@@ -45,7 +45,7 @@
       "id": "c3b367f711a45c4e",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime query with a typed function reference and a structured args object; no query string is built, so there is no unescaped sink."
+      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime/actor .query() invoking a Convex function reference in a test; not an injection sink and no user-controlled input"
     },
     {
       "rule": "injection-sink",
@@ -54,7 +54,7 @@
       "id": "66ff26e74b5e51c6",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime query with a typed function reference and a structured args object; no query string is built, so there is no unescaped sink."
+      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime/actor .query() invoking a Convex function reference in a test; not an injection sink and no user-controlled input"
     },
     {
       "rule": "injection-sink",
@@ -63,7 +63,7 @@
       "id": "985e40c20ff0c364",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime query with a typed function reference and a structured args object; no query string is built, so there is no unescaped sink."
+      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime/actor .query() invoking a Convex function reference in a test; not an injection sink and no user-controlled input"
     },
     {
       "rule": "injection-sink",
@@ -72,7 +72,7 @@
       "id": "c1da109bf649fa7e",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime query with a typed function reference and a structured args object; no query string is built, so there is no unescaped sink."
+      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime/actor .query() invoking a Convex function reference in a test; not an injection sink and no user-controlled input"
     },
     {
       "rule": "injection-sink",
@@ -81,7 +81,7 @@
       "id": "8ebcfab8140ed73b",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime query with a typed function reference and a structured args object; no query string is built, so there is no unescaped sink."
+      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime/actor .query() invoking a Convex function reference in a test; not an injection sink and no user-controlled input"
     },
     {
       "rule": "injection-sink",
@@ -90,7 +90,7 @@
       "id": "cb56c410ea30d4e0",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime query with a typed function reference and a structured args object; no query string is built, so there is no unescaped sink."
+      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime/actor .query() invoking a Convex function reference in a test; not an injection sink and no user-controlled input"
     },
     {
       "rule": "injection-sink",
@@ -99,7 +99,7 @@
       "id": "ec89ebf610385d30",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime query with a typed function reference and a structured args object; no query string is built, so there is no unescaped sink."
+      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime/actor .query() invoking a Convex function reference in a test; not an injection sink and no user-controlled input"
     },
     {
       "rule": "injection-sink",
@@ -108,7 +108,7 @@
       "id": "398b17b8ee5e11dc",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime query with a typed function reference and a structured args object; no query string is built, so there is no unescaped sink."
+      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime/actor .query() invoking a Convex function reference in a test; not an injection sink and no user-controlled input"
     },
     {
       "rule": "injection-sink",
@@ -117,7 +117,7 @@
       "id": "e33b128e06dbc40e",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime query with a typed function reference and a structured args object; no query string is built, so there is no unescaped sink."
+      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime/actor .query() invoking a Convex function reference in a test; not an injection sink and no user-controlled input"
     },
     {
       "rule": "injection-sink",
@@ -126,7 +126,7 @@
       "id": "86fab405f586b42c",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime query with a typed function reference and a structured args object; no query string is built, so there is no unescaped sink."
+      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime/actor .query() invoking a Convex function reference in a test; not an injection sink and no user-controlled input"
     },
     {
       "rule": "injection-sink",
@@ -135,7 +135,7 @@
       "id": "c739138f6fabcdb7",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime query with a typed function reference and a structured args object; no query string is built, so there is no unescaped sink."
+      "note": "pass one: convex-test runtime/actor .query or .mutation with a function reference and a literal args object: parameterised RPC in a test harness, not a query sink. pass two: convex-test runtime/actor .query() invoking a Convex function reference in a test; not an injection sink and no user-controlled input"
     },
     {
       "rule": "injection-sink",
@@ -144,7 +144,7 @@
       "id": "0c3c736952de351c",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: ctx.db.query(table) takes a Convex table name drawn from the schema's own keys, not a user-supplied query string. pass two: ctx.db.query(table) names a Convex table taken from the static schema keys, not a query string built from user input."
+      "note": "pass one: ctx.db.query(table) takes a Convex table name drawn from the schema's own keys, not a user-supplied query string. pass two: ctx.db.query(table) is Convex's typed table builder over schema table names; no user-controlled input reaches a query/shell/eval/HTML sink"
     },
     {
       "rule": "dead-export",
@@ -153,7 +153,7 @@
       "id": null,
       "pass1": "missed",
       "pass2": "missed",
-      "note": "pass two: fixtureOwner is exported by the new fixture.ts but no file in the repository imports it (fixture.test.ts imports only seed, inspect and FixtureSeed). pass one: File does not exist at the parent, so everything in it is introduced; `export const fixtureOwner` is referenced only inside fixture.ts (lines 31, 36) and the only importer of ./fixture, fixture.test.ts, imports just `{ inspect, seed, type FixtureSeed }`, so no importer and it is not an entry point."
+      "note": "pass two: fixtureOwner is exported by the new fixture.ts but no file in the repository imports it (fixture.test.ts imports only seed, inspect and FixtureSeed). pass one: File does not exist at the parent, so everything in it is introduced; `export const fixtureOwner` is referenced only inside fixture.ts (lines 31, 36) and the only importer of ./fixture, fixture.test.ts, imports just `{ inspect, seed, type FixtureSeed }`, so no importer and it is not an entry point. pass two: fixture.ts does not exist at parent 899bfb6 and no earlier corpus diff from hraness/oompa exists; `export const fixtureOwner` is referenced only inside fixture.ts (lines 31, 36), the sole importer of ./fixture is fixture.test.ts importing `{ inspect, seed, type FixtureSeed }`, package.json bin/exports point at src/cli.ts and src/index.ts, and a Convex validator is not a function registration, so it has no importer and is not an entry point."
     },
     {
       "rule": "dead-export",
@@ -162,7 +162,7 @@
       "id": null,
       "pass1": "missed",
       "pass2": "missed",
-      "note": "pass two: fixtureSeed is exported by the new fixture.ts but no file in the repository imports it (fixture.test.ts imports only seed, inspect and FixtureSeed). pass one: New file at this commit; `export const fixtureSeed` (the validator, distinct from the type FixtureSeed the test imports) is used only in-file at line 249 and has no importer anywhere in the repository; package.json bin/exports and the acceptance script never name it."
+      "note": "pass two: fixtureSeed is exported by the new fixture.ts but no file in the repository imports it (fixture.test.ts imports only seed, inspect and FixtureSeed). pass one: New file at this commit; `export const fixtureSeed` (the validator, distinct from the type FixtureSeed the test imports) is used only in-file at line 249 and has no importer anywhere in the repository; package.json bin/exports and the acceptance script never name it. pass two: New file at the commit; `export const fixtureSeed` (the validator, distinct from the type FixtureSeed the test imports) is used only in-file at lines 37 and 249, a repository-wide grep at the sha finds no other file naming it, and it is not an entry point (only seed/inspect are Convex function registrations)."
     },
     {
       "rule": "dead-export",
@@ -171,7 +171,7 @@
       "id": null,
       "pass1": "missed",
       "pass2": "missed",
-      "note": "pass two: FixtureOwner is exported by the new fixture.ts but no file in the repository imports it (fixture.test.ts imports only seed, inspect and FixtureSeed). pass one: New file at this commit; `export type FixtureOwner` appears only in fixture.ts (its own line plus in-file signatures at 60, 67, 70, 75, 86, 123, 176, 221) and fixture.test.ts imports only inspect, seed and FixtureSeed, so no importer exists."
+      "note": "pass two: FixtureOwner is exported by the new fixture.ts but no file in the repository imports it (fixture.test.ts imports only seed, inspect and FixtureSeed). pass one: New file at this commit; `export type FixtureOwner` appears only in fixture.ts (its own line plus in-file signatures at 60, 67, 70, 75, 86, 123, 176, 221) and fixture.test.ts imports only inspect, seed and FixtureSeed, so no importer exists. pass two: New file at the commit; `export type FixtureOwner` appears only in fixture.ts (its declaration plus in-file signatures at lines 60, 67, 70, 75, 86, 123, 176, 221) and no other file in the repository imports it at the sha, so it is an exported symbol with no importer and not an entry point."
     },
     {
       "rule": "dead-export",
@@ -180,7 +180,7 @@
       "id": null,
       "pass1": "missed",
       "pass2": "missed",
-      "note": "pass two: FixtureInspection is exported by the new fixture.ts but no file in the repository imports it (fixture.test.ts imports only seed, inspect and FixtureSeed). pass one: New file at this commit; `export type FixtureInspection` has exactly one occurrence in the whole repository at the sha, its own declaration, so there is no importer and it is not an entry point (only the Convex handlers seed/inspect are registered by the test)."
+      "note": "pass one: pass two: FixtureInspection is exported by the new fixture.ts but no file in the repository imports it (fixture.test.ts imports only seed, inspect and FixtureSeed). pass one: New file at this commit; `export type FixtureInspection` has exactly one occurrence in the whole repository at the sha, its own declaration, so there is no importer and it is not an entry point (only the Convex handlers seed/inspect are registered by the test). pass two: exported type FixtureInspection has no importer anywhere in the repository, is not an entry point, and is not even used in its own file"
     }
   ]
 }

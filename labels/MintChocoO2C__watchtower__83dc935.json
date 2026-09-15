@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "swallowed-error",
@@ -18,7 +18,7 @@
       "id": "b95f88ca48d05d9a",
       "pass1": "true",
       "pass2": "true",
-      "note": "re-judged 2026-09-15 under the corrected swallowed-error definition (floating promises are form 3), previously false-positive/false-positive; pass one: `refreshStatus();` in the visibilitychange handler calls `async function refreshStatus` (line 1244) with the promise discarded: no await, no handler, no void marker (form 3). pass two: `if (!document.hidden && Date.now() - lastStatusAt > STATUS_INTERVAL_MS) refreshStatus();` in the visibilitychange listener; refreshStatus is `async function` (line 1244) and the call is bare - no await, no handler, no void - so the returned promise's rejection is discarded."
+      "note": "pass one: re-judged 2026-09-15 under the corrected swallowed-error definition (floating promises are form 3), previously false-positive/false-positive; pass one: `refreshStatus();` in the visibilitychange handler calls `async function refreshStatus` (line 1244) with the promise discarded: no await, no handler, no void marker (form 3). pass two: `if (!document.hidden && Date.now() - lastStatusAt > STATUS_INTERVAL_MS) refreshStatus();` in the visibilitychange listener; refreshStatus is `async function` (line 1244) and the call is bare - no await, no handler, no void - so the returned promise's rejection is discarded. pass two: refreshStatus() is async and its promise is discarded in the visibilitychange listener with no await, .then/.catch, binding or void (floating promise); new line text"
     }
   ]
 }

@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "html-injection",
@@ -18,7 +18,7 @@
       "id": "931bb3a7550ae06d",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: d.innerHTML joins static markup with IDE.ground.label() (a fixed VERDICT constant) and esc()-escaped phrases, so nothing unescaped is interpolated. pass two: html.join() holds only static literals plus esc()-escaped values (IDE.render.esc escapes & < > \" '), so nothing unescaped is interpolated into innerHTML."
+      "note": "pass one: d.innerHTML joins static markup with IDE.ground.label() (a fixed VERDICT constant) and esc()-escaped phrases, so nothing unescaped is interpolated. pass two: html is built from esc()'d phrase() output plus IDE.ground.label(kind), a constant string from the VERDICT table keyed by a literal kind; no unescaped dynamic data reaches innerHTML"
     },
     {
       "rule": "swallowed-error",

@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "leftover-debug",
@@ -18,7 +18,7 @@
       "id": "2309f3e60e804dc5",
       "pass1": "true",
       "pass2": "true",
-      "note": ""
+      "note": "console.log success trace added in a Next.js API route while debugging admin delivery; the module's error logging is console.error"
     }
   ]
 }

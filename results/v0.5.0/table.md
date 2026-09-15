@@ -1,16 +1,16 @@
-Locrin v0.5.0, 217 of 217 diffs ran. Left out of the numbers: 0 unlabelled, 1 without an agreed and confirmed label, 0 not applicable, 1324 pre-existing and 0 duplicate. 6 of 21 rules and 6 of 34 pairs reached n=5 and are scored.
+Locrin v0.5.0, 217 of 217 diffs ran. Left out of the numbers: 0 unlabelled, 10 without an agreed and confirmed label, 0 not applicable, 1324 pre-existing and 0 duplicate. 6 of 21 rules and 5 of 34 pairs reached n=5 and are scored.
 
 | Rule | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Excluded | Not applicable | Pre-existing | Duplicate | Note |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `leftover-debug` | on | 43% (below line) | 100% | 12 | 16 | 0 | 0 | 0 | 0 | 127 | 0 |  |
+| `leftover-debug` | on | 24% (below line) | 100% | 5 | 16 | 0 | 0 | 7 | 0 | 127 | 0 |  |
 | `leftover-commented-code` | on | 0% (below line) |  | 0 | 5 | 0 | 0 | 0 | 0 | 39 | 0 |  |
 | `leftover-agent-marker` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 39 | 0 | n<5, not scored |
-| `unused-import` | on | 100% | 33% | 1 | 0 | 2 | 0 | 0 | 0 | 51 | 0 | n<5, not scored |
+| `unused-import` | on | 100% | 25% | 1 | 0 | 3 | 0 | 0 | 0 | 51 | 0 | n<5, not scored |
 | `unreachable` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |
-| `dead-export` | on | 95% | 74% | 35 | 2 | 12 | 0 | 0 | 0 | 729 | 0 |  |
+| `dead-export` | on | 94% | 74% | 34 | 2 | 12 | 0 | 1 | 0 | 729 | 0 |  |
 | `dead-file` | off | 0% (below line) |  | 0 | 16 | 0 | 0 | 0 | 0 | 62 | 0 |  |
 | `boundary-violation` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | not benchmarked: needs per-repository config |
-| `swallowed-error` | off | 92% | 92% | 11 | 1 | 1 | 0 | 1 | 0 | 138 | 0 |  |
+| `swallowed-error` | off | 92% | 100% | 11 | 1 | 0 | 0 | 2 | 0 | 138 | 0 |  |
 | `test-no-assert` | on | 0% |  | 0 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | n<5, not scored |
 | `test-newly-skipped` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |
 | `secret-exposed` | locked |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |
@@ -26,7 +26,7 @@ Locrin v0.5.0, 217 of 217 diffs ran. Left out of the numbers: 0 unlabelled, 1 wi
 
 | Pair | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Excluded | Not applicable | Pre-existing | Duplicate | Note |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `dead-export@javascript` | on | 50% | 33% | 2 | 2 | 4 | 0 | 0 | 0 | 133 | 0 | n<5, not scored |
+| `dead-export@javascript` | on | 33% | 20% | 1 | 2 | 4 | 0 | 1 | 0 | 133 | 0 | n<5, not scored |
 | `dead-export@tsx` | on | 100% | 100% | 3 | 0 | 0 | 0 | 0 | 0 | 75 | 0 | n<5, not scored |
 | `dead-export@typescript` | on | 100% | 79% | 30 | 0 | 8 | 0 | 0 | 0 | 521 | 0 |  |
 | `dead-file@javascript` | off | 0% (below line) |  | 0 | 11 | 0 | 0 | 0 | 0 | 42 | 0 |  |
@@ -47,16 +47,16 @@ Locrin v0.5.0, 217 of 217 diffs ran. Left out of the numbers: 0 unlabelled, 1 wi
 | `leftover-debug@javascript` | on | 0% (below line) |  | 0 | 16 | 0 | 0 | 0 | 0 | 15 | 0 |  |
 | `leftover-debug@php` | opt-in |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | n<5, not scored |
 | `leftover-debug@tsx` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 5 | 0 | n<5, not scored |
-| `leftover-debug@typescript` | on | 100% | 100% | 11 | 0 | 0 | 0 | 0 | 0 | 106 | 0 |  |
+| `leftover-debug@typescript` | on | 100% | 100% | 4 | 0 | 0 | 0 | 7 | 0 | 106 | 0 | n<5, not scored |
 | `supabase-service-role-in-client@typescript` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 | n<5, not scored |
-| `swallowed-error@javascript` | off | 91% | 91% | 10 | 1 | 1 | 0 | 1 | 0 | 105 | 0 |  |
+| `swallowed-error@javascript` | off | 91% | 100% | 10 | 1 | 0 | 0 | 2 | 0 | 105 | 0 |  |
 | `swallowed-error@tsx` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 24 | 0 | n<5, not scored |
 | `swallowed-error@typescript` | off | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 9 | 0 | n<5, not scored |
 | `test-no-assert@javascript` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 7 | 0 | n<5, not scored |
 | `test-no-assert@typescript` | on | 0% |  | 0 | 2 | 0 | 0 | 0 | 0 | 5 | 0 | n<5, not scored |
 | `unused-import@javascript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 47 | 0 | n<5, not scored |
 | `unused-import@php` | opt-in |  | 0% | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |
-| `unused-import@python` | opt-in |  | 0% | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |
+| `unused-import@python` | opt-in |  | 0% | 0 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |
 | `unused-import@typescript` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 | n<5, not scored |
 | `weak-crypto@tsx` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 | n<5, not scored |
 | `weak-crypto@typescript` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 3 | 0 | n<5, not scored |

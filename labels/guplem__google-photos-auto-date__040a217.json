@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "swallowed-error",
@@ -18,7 +18,7 @@
       "id": "4eb12ad576e946bb",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "re-judged 2026-09-15 under the corrected swallowed-error definition (three forms; a log-only catch is true only when a caller reads the result); pass one: catch at 144 sits inside async copyReport() (Promise<void>); its only caller is line 107 `reportButton.addEventListener('click', () => void copyReport())`, which discards the result behind a void marker and reads nothing, and the catch is a documented fallback step (JSDoc says the clipboard gets a deadline and two fallbacks) falling through to copyThroughSelection/downloadReport/setMessage. pass two: The catch sits in async copyReport(), whose only caller is the click listener at line 107 `() => void copyReport()`, which discards the Promise<void> result, so no caller reads it; the catch also does more than log, falling through to documented fallbacks (copyThroughSelection, downloadReport, console message) described in the function's JSDoc as intentional."
+      "note": "pass one: re-judged 2026-09-15 under the corrected swallowed-error definition (three forms; a log-only catch is true only when a caller reads the result); pass one: catch at 144 sits inside async copyReport() (Promise<void>); its only caller is line 107 `reportButton.addEventListener('click', () => void copyReport())`, which discards the result behind a void marker and reads nothing, and the catch is a documented fallback step (JSDoc says the clipboard gets a deadline and two fallbacks) falling through to copyThroughSelection/downloadReport/setMessage. pass two: The catch sits in async copyReport(), whose only caller is the click listener at line 107 `() => void copyReport()`, which discards the Promise<void> result, so no caller reads it; the catch also does more than log, falling through to documented fallbacks (copyThroughSelection, downloadReport, console message) described in the function's JSDoc as intentional. pass two: log-only catch in copyReport(), whose result nobody reads (called as `void copyReport()` from the click handler); the code after the catch acts on the failure by falling back to a selection copy, then a download, then a panel message"
     }
   ]
 }

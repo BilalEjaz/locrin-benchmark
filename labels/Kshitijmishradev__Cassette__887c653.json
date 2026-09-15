@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "swallowed-error",
@@ -17,8 +17,8 @@
       "line": 359,
       "id": null,
       "pass1": "missed",
-      "pass2": "missed",
-      "note": "pass one: New Payload(): the JSON.parse catch (bindingless `catch { display = value.trim() }`) neither rethrows, logs, returns an error value nor is documented as intentional. pass two: `try { display = JSON.stringify(...) } catch { display = value.trim() }` in the new Payload component: the catch only assigns a fallback to a local, it does not rethrow, log, return a value, nor carry an intentional-swallow comment; the parent App.jsx has no Payload and no catch past line 40, and the earlier-by-id diff 62d6da4 did not introduce it (its parent a634f00 already held it)."
+      "pass2": "false-positive",
+      "note": "pass one: New Payload(): the JSON.parse catch (bindingless `catch { display = value.trim() }`) neither rethrows, logs, returns an error value nor is documented as intentional. pass two: `try { display = JSON.stringify(...) } catch { display = value.trim() }` in the new Payload component: the catch only assigns a fallback to a local, it does not rethrow, log, return a value, nor carry an intentional-swallow comment; the parent App.jsx has no Payload and no catch past line 40, and the earlier-by-id diff 62d6da4 did not introduce it (its parent a634f00 already held it). pass two: At 887c653 line 359 in Payload the catch is `catch { display = value.trim() }`, which assigns a fallback value the function then renders, so it is neither an empty catch nor a log-only catch and the definition is not met."
     }
   ]
 }

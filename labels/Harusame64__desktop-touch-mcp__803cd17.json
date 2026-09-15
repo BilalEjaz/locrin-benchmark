@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "leftover-commented-code",
@@ -18,7 +18,7 @@
       "id": "6b6e27dee2975d68",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: The comment is prose explaining the new classify arms, not disabled code. pass two: The comment is prose explaining why the OQ8 classify arms exist, not disabled code."
+      "note": "pass one: The comment is prose explaining the new classify arms, not disabled code. pass two: Line 937 opens a prose comment block explaining the OQ8 classify arms (backticked identifiers in prose), not disabled code."
     }
   ]
 }

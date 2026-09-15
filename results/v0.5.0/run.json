@@ -4,7 +4,7 @@
   "ran": 217,
   "findings": 123,
   "unlabelled": 0,
-  "excluded": 1,
+  "excluded": 10,
   "not_applicable": 0,
   "preexisting": 1324,
   "duplicates": 0,
@@ -9296,10 +9296,10 @@
   },
   "inputs": {
     "corpus": "sha256:7512da5001ee66532656cf1e6a3b50f090eed1010e48b172ecf3491c67e481bc",
-    "labels": "sha256:ea511d8c2ada4bd4936c7a0512839cfa528409ba09bb6136ef07f8af60161ce8",
+    "labels": "sha256:53acb77da59999f9a3f462576553bb135e276f2d0fe878da7020ed36b1ab5b22",
     "bench": "sha256:891477427d39f138165e0d96af1edac1c16a39eaf213d21c1eb522c98e209728"
   },
-  "harness": "912fac8b126f976411a3bb71fefc5635bf644920",
-  "started": "2026-09-15T08:03:10+00:00",
-  "finished": "2026-09-15T08:20:37+00:00"
+  "harness": "cff81af20240d75487a97642e45ccf2c667226d0",
+  "started": "2026-09-15T17:05:38+00:00",
+  "finished": "2026-09-15T17:45:10+00:00"
 }

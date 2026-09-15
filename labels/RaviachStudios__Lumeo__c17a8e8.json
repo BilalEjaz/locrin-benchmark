@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "dead-file",
@@ -18,7 +18,7 @@
       "id": "873c9bc7081ef800",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: functions/package.json names index.js as main, so it is the Firebase Functions entry point. pass two: functions/index.js is the Cloud Functions entry point named by main in functions/package.json and by the functions source in firebase.json."
+      "note": "pass one: functions/package.json names index.js as main, so it is the Firebase Functions entry point. pass two: functions/index.js is an entry point: functions/package.json names it as main and firebase.json lists the functions/ source for deploy; its exports are Cloud Function triggers"
     }
   ]
 }

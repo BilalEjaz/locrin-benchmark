@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "dead-export",
@@ -63,7 +63,7 @@
       "id": "3fed26cba40d4e13",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: fit() here is the text-fitting helper imported from layout.js, not Jasmine's focused test; the line is itself an expect() inside an it() full of assertions. pass two: Line 143 is an expect(...) assertion calling the layout helper fit(); it is not a test case (the engine read fit( as a focused test)."
+      "note": "pass one: fit() here is the text-fitting helper imported from layout.js, not Jasmine's focused test; the line is itself an expect() inside an it() full of assertions. pass two: line 143 is an expect(...).toBe(...) call inside the it('truncates names...') test at line 142, whose body holds five expect assertions; no test body without an assertion exists here"
     },
     {
       "rule": "test-no-assert",
@@ -72,7 +72,7 @@
       "id": "187cfaae8996fe44",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: Same: expect(fit('a-very-long-name', 8)) is an assertion, not a test case without one. pass two: Same: expect(fit('a-very-long-name', 8)).toBe(...) is an assertion inside an it() that has five of them, not a test body."
+      "note": "pass one: Same: expect(fit('a-very-long-name', 8)) is an assertion, not a test case without one. pass two: line 144 is an expect(fit(...)).toBe(...) assertion inside the same it block at line 142, which has five expect calls; not a test body and not assertion-free"
     }
   ]
 }

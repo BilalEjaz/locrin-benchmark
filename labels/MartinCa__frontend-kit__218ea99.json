@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "dead-file",
@@ -18,7 +18,7 @@
       "id": "15ceba24bad3845e",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: The test entry point test/eslint-config.test.mjs names this fixture by file name and lints it, so the file is used. pass two: The test entry point test/eslint-config.test.mjs names this lint fixture by file name, so it is not a dead file."
+      "note": "pass one: The test entry point test/eslint-config.test.mjs names this fixture by file name and lints it, so the file is used. pass two: test fixture named by test/eslint-config.test.mjs (lintFixture) and linted through the real config by the test runner; the file is consumed at runtime, not dead"
     },
     {
       "rule": "dead-file",
@@ -27,7 +27,7 @@
       "id": "6cd974c2e65f0c2f",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: The test entry point test/eslint-config.test.mjs names this fixture by file name and lints it, so the file is used. pass two: The test entry point test/eslint-config.test.mjs names this lint fixture by file name, so it is not a dead file."
+      "note": "pass one: The test entry point test/eslint-config.test.mjs names this fixture by file name and lints it, so the file is used. pass two: test fixture named by test/eslint-config.test.mjs (lintFixture) and linted through the real config by the test runner; the file is consumed at runtime, not dead"
     }
   ]
 }

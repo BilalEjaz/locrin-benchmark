@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "dead-file",
@@ -18,7 +18,7 @@
       "id": "f67beedde8e18807",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: test/run.mjs discovers and imports every `*-test.mjs` beside it, so `npm test` names this file; it is not unimported. pass two: test/run.mjs discovers and imports every *-test.mjs beside it, and npm test runs it."
+      "note": "pass one: test/run.mjs discovers and imports every `*-test.mjs` beside it, so `npm test` names this file; it is not unimported. pass two: test/run.mjs discovers and imports every *-test.mjs beside it (readdirSync filter), and npm test runs run.mjs, so the file has an importer"
     },
     {
       "rule": "leftover-commented-code",
@@ -27,7 +27,7 @@
       "id": "85851e040c3438b9",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: A section banner comment explaining the compare-and-set and the records-first ordering: prose, not disabled code. pass two: A section-header comment explaining the locked compare-and-set, not disabled code."
+      "note": "pass one: A section banner comment explaining the compare-and-set and the records-first ordering: prose, not disabled code. pass two: prose section heading comment (THE COMPARE-AND-SET, one locked section), not disabled code"
     },
     {
       "rule": "leftover-debug",
@@ -36,7 +36,7 @@
       "id": "0f2b3168509322e8",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: Result output of a runnable test script on its main path, not a debug print left behind."
+      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
     },
     {
       "rule": "leftover-debug",
@@ -45,7 +45,7 @@
       "id": "53382d1d8f5cb0a8",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: Result output of a runnable test script on its main path, not a debug print left behind."
+      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
     },
     {
       "rule": "leftover-debug",
@@ -54,7 +54,7 @@
       "id": "9aa1d1fc23aad5a8",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: Result output of a runnable test script on its main path, not a debug print left behind."
+      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
     },
     {
       "rule": "leftover-debug",
@@ -63,7 +63,7 @@
       "id": "fe44896a2df33542",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: Result output of a runnable test script on its main path, not a debug print left behind."
+      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
     },
     {
       "rule": "dead-export",
@@ -72,7 +72,7 @@
       "id": null,
       "pass1": "missed",
       "pass2": "missed",
-      "note": "pass one: WAIT_MS is exported from the new lock.mjs and no file in the repository imports it (used only inside lock.mjs). pass two: WAIT_MS is exported by the new lock.mjs but used only inside that file; no file in the repository imports it and lock.mjs is not an entry point."
+      "note": "pass one: WAIT_MS is exported from the new lock.mjs and no file in the repository imports it (used only inside lock.mjs). pass two: WAIT_MS: exported from the new src/lib/lock.mjs and no file imports it by name; the only other importer of the module (test/concurrency-test.mjs dynamic namespace import) accesses only STALE_MS, acquireLock and withLock; lock.mjs is not an entry point (package.json bin names src/bin/router.mjs only); used only inside the module as a default"
     },
     {
       "rule": "dead-export",
@@ -81,7 +81,7 @@
       "id": null,
       "pass1": "missed",
       "pass2": "missed",
-      "note": "pass one: GUARD_STALE_MS is exported from the new lock.mjs and no file in the repository imports it. pass two: GUARD_STALE_MS is exported by the new lock.mjs but used only inside that file; no file in the repository imports it and lock.mjs is not an entry point."
+      "note": "pass one: GUARD_STALE_MS is exported from the new lock.mjs and no file in the repository imports it. pass two: GUARD_STALE_MS: exported from the new src/lib/lock.mjs and no file imports it by name; the only other importer of the module (test/concurrency-test.mjs dynamic namespace import) accesses only STALE_MS, acquireLock and withLock; lock.mjs is not an entry point (package.json bin names src/bin/router.mjs only); used only inside the module"
     },
     {
       "rule": "dead-export",
@@ -90,7 +90,7 @@
       "id": null,
       "pass1": "missed",
       "pass2": "missed",
-      "note": "pass one: lockPath is exported from the new lock.mjs and no file in the repository imports it. pass two: lockPath is exported by the new lock.mjs but used only inside that file; no file in the repository imports it and lock.mjs is not an entry point."
+      "note": "pass one: lockPath is exported from the new lock.mjs and no file in the repository imports it. pass two: lockPath: exported from the new src/lib/lock.mjs and no file imports it by name; the only other importer of the module (test/concurrency-test.mjs dynamic namespace import) accesses only STALE_MS, acquireLock and withLock; lock.mjs is not an entry point (package.json bin names src/bin/router.mjs only); used only inside the module"
     },
     {
       "rule": "dead-export",
@@ -99,7 +99,7 @@
       "id": null,
       "pass1": "missed",
       "pass2": "missed",
-      "note": "pass one: holdsLock is exported from the new lock.mjs and no file in the repository imports it. pass two: holdsLock is exported by the new lock.mjs but used only inside that file; no file in the repository imports it and lock.mjs is not an entry point."
+      "note": "pass one: holdsLock is exported from the new lock.mjs and no file in the repository imports it. pass two: holdsLock: exported from the new src/lib/lock.mjs and no file imports it by name; the only other importer of the module (test/concurrency-test.mjs dynamic namespace import) accesses only STALE_MS, acquireLock and withLock; lock.mjs is not an entry point (package.json bin names src/bin/router.mjs only); called only by writeStateFile inside the module"
     }
   ]
 }

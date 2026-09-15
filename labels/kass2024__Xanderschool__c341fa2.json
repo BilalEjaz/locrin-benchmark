@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "unused-import",
@@ -18,7 +18,7 @@
       "id": null,
       "pass1": "missed",
       "pass2": "missed",
-      "note": "pass one: The change deleted lockCorrectSpecialCriteriaEntries(), the only user of SecondaryTimetableCriteria, leaving this import with no remaining use in the file. pass two: The diff deleted the sole use `$criteria = new SecondaryTimetableCriteria();` (parent line 1571), leaving `use App\\Services\\Timetable\\SecondaryTimetableCriteria;` with no remaining reference in the file, which LABELLING.md counts as introduced; earlier-by-id diffs 21334d4 and b80e5d0 still have the import used."
+      "note": "pass one: The change deleted lockCorrectSpecialCriteriaEntries(), the only user of SecondaryTimetableCriteria, leaving this import with no remaining use in the file. pass two: The change removed the only use of SecondaryTimetableCriteria (new SecondaryTimetableCriteria() at parent line 1571), so this use statement's binding is unused in the file after the change; the parent used it, so the diff introduced it."
     }
   ]
 }

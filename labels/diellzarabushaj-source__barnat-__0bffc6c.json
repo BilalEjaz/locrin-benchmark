@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "injection-sink",
@@ -18,7 +18,7 @@
       "id": "084afb38d5aa9d1c",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: new Function() evaluates the repo's own antibiotiket-solids-data.js read from a constant path in a test harness; no user-controlled input reaches the sink. pass two: new Function evaluates a hard-coded repository file read by the test itself; no user-controlled input reaches the sink."
+      "note": "pass one: new Function() evaluates the repo's own antibiotiket-solids-data.js read from a constant path in a test harness; no user-controlled input reaches the sink. pass two: new Function evaluates a repository data file the test itself reads from disk; no user-controlled input reaches the sink"
     },
     {
       "rule": "leftover-debug",
@@ -27,7 +27,7 @@
       "id": "039224a30e566307",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: The file is a standalone node gate script run from package.json test; this console.log is its main-path pass report, not a leftover debug print. pass two: Final summary print on the main path of a standalone node gate script, not a debug leftover."
+      "note": "pass one: The file is a standalone node gate script run from package.json test; this console.log is its main-path pass report, not a leftover debug print. pass two: console.log is the gate script's pass message on its main path, not a debug print"
     },
     {
       "rule": "swallowed-error",
@@ -36,7 +36,7 @@
       "id": "c7c9011eb39bd321",
       "pass1": "true",
       "pass2": "true",
-      "note": ""
+      "note": "empty catch with no comment in the new saveSolid; the parent had no saveSolid"
     }
   ]
 }

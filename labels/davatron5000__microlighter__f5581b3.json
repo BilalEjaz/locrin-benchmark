@@ -6,10 +6,10 @@
     "date": "2026-09-14"
   },
   "pass2": {
-    "by": "opus-blind",
+    "by": "fable",
     "date": "2026-09-15"
   },
-  "pass2_by": "opus-blind",
+  "pass2_by": "fable",
   "entries": [
     {
       "rule": "html-injection",
@@ -18,7 +18,7 @@
       "id": "aa877d96b1de24f1",
       "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: innerHTML is assigned a joined array of static string literals inside page.evaluate; no interpolation and no user-controlled input. pass two: root.innerHTML is assigned a join of two hardcoded string literals with no interpolation and no user-controlled input."
+      "note": "pass one: innerHTML is assigned a joined array of static string literals inside page.evaluate; no interpolation and no user-controlled input. pass two: innerHTML is assigned two constant string literals joined with join(''); no interpolation of any value, so nothing unescaped reaches the sink"
     }
   ]
 }
