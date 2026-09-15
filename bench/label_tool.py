@@ -29,11 +29,25 @@ def new(diff_id: str, findings: list[Finding], locrin_version: str, out_root: Pa
     return Path(out_root) / f"{diff_id}.json"
 
 
-def confirm(diff_id: str, root: Path, by: str, date: str) -> None:
+def confirm(diff_id: str, root: Path, by: str | None, date: str, force: bool = False) -> None:
+    """Stamp pass two on the label file, under the name the merge folded in.
+
+    `pass2.by` says whose verdicts these are, so it must be the pass `merge` recorded in `pass2_by`:
+    without `--by` that name is taken, and another name is refused rather than written over it, since
+    the two name different labellers and only one of them made the pass. `--force` is for a file whose
+    recorded name is wrong.
+    """
     lf = load_label_file(Path(root) / f"{diff_id}.json")
     unfilled = [e for e in lf.entries if e.pass1 == "?" or e.pass2 == "?"]
     if unfilled:
         raise LabelError(f"{diff_id}: {len(unfilled)} unfilled entries; fill pass1 and pass2 before confirming")
+    if by is None:
+        if not lf.pass2_by:
+            raise LabelError(f"{diff_id}: no pass two name in the file; pass --by to say who made pass two")
+        by = lf.pass2_by
+    elif lf.pass2_by and lf.pass2_by != by and not force:
+        raise LabelError(f"{diff_id}: the merge folded in pass two by {lf.pass2_by}, not {by}; "
+                         "confirm under that name, or pass --force to record another")
     lf.pass2 = {"by": by, "date": date}
     save_label_file(root, lf)
 
@@ -221,8 +235,9 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--dry-run", action="store_true", help="print what the merge would change and write nothing")
     c = sub.add_parser("confirm")
     c.add_argument("diff")
-    c.add_argument("--by", required=True)
+    c.add_argument("--by", help="who made pass two (default: the name the merge recorded)")
     c.add_argument("--labels", default="labels")
+    c.add_argument("--force", action="store_true", help="record a name other than the one the merge folded in")
     s = sub.add_parser("status")
     s.add_argument("--labels", default="labels")
     a = p.parse_args(argv)
@@ -242,7 +257,7 @@ def main(argv: list[str] | None = None) -> int:
                   f"{counts['missed_both']} missed in both passes, {counts['missed_pass_one_only']} missed by pass one "
                   f"only, {counts['missed_pass_two_only']} missed by pass two only, {counts['notes_joined']} notes joined")
         elif a.cmd == "confirm":
-            confirm(a.diff, Path(a.labels), a.by, today)
+            confirm(a.diff, Path(a.labels), a.by, today, force=a.force)
             print(f"{a.diff}: pass two recorded")
         else:
             status(Path(a.labels))

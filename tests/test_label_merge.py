@@ -153,6 +153,14 @@ def test_merge_refuses_a_pass_two_entry_without_an_id_that_is_not_missed(tmp_pat
         merge(DIFF, pass2_file(tmp_path, [p2(), p2(line=9, id=None, pass2="true")]), root)
 
 
+def test_merge_refuses_a_missed_entry_pass_two_wrote_twice(tmp_path):
+    # Two entries on one construct would fold into one, so the second verdict would vanish unremarked.
+    root = label(tmp_path, [entry()])
+    path = pass2_file(tmp_path, [p2(), p2(line=9, id=None, pass2="missed"), p2(line=9, id=None, pass2="missed")])
+    with pytest.raises(LabelError, match="twice"):
+        merge(DIFF, path, root)
+
+
 def test_merge_refuses_a_pass_two_missed_verdict_on_a_reported_finding(tmp_path):
     root = label(tmp_path, [entry()])
     with pytest.raises(LabelError, match="missed"):

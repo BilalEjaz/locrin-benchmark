@@ -442,6 +442,14 @@ def test_accept_skips_a_commit_whose_tree_cannot_be_read_for_links(capsys):
     assert "symbolic link" in capsys.readouterr().err
 
 
+def test_accept_skips_a_commit_whose_tree_response_holds_no_tree(capsys):
+    # An unreadable tree rules nothing out, so it is a skip like a truncated one, never a quiet pass.
+    gh = FakeGitHub({f"repos/{REPO}/git/trees/{SHA}": {"sha": SHA, "message": "Not Found"}})
+    assert accept(gh, first_item(), seen_repos={}) is None
+    assert not [c for c in gh.calls if "/contents/" in c]
+    assert "symbolic link" in capsys.readouterr().err
+
+
 def test_accept_skips_paths_that_collide_when_case_is_ignored_on_one_side():
     files = [{"filename": "src/Util.ts", "status": "added"}, {"filename": "src/util.ts", "status": "modified"}]
     gh = FakeGitHub({f"repos/{REPO}/commits/{SHA}": commit_with(files)})

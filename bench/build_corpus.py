@@ -302,12 +302,13 @@ def _symlink_problem(gh, repo: str, sha: str, names) -> str | None:
     A tree entry with mode 120000 is a symbolic link: git checks it out as a link where the platform
     has them and as a text file holding the target path where it does not, so the engine would read
     different bytes on each platform and materialise refuses such a commit. Read once, before any file
-    is downloaded. A truncated tree cannot rule the links out, so that commit is skipped too.
+    is downloaded. A tree that is truncated or comes back without a listing cannot rule the links out,
+    so those commits are skipped too: an unreadable tree is an answer we do not have, not a no.
     """
     doc = gh.get(f"repos/{repo}/git/trees/{sha}", {"recursive": "1"})
     tree = doc.get("tree") if isinstance(doc, dict) else None
     if not isinstance(tree, list):
-        return None
+        return f"the tree at {sha[:7]} cannot be read, so a symbolic link among the changed files cannot be ruled out"
     if doc.get("truncated"):
         return f"the tree at {sha[:7]} is truncated, so a symbolic link among the changed files cannot be ruled out"
     wanted = set(names)
