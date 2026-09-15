@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -109,7 +110,11 @@ def test_fixture_corpus_scores_exactly(tmp_path, home):
 
     table = (results / "table.md").read_text(encoding="utf-8")
     lines = table.splitlines()
-    assert lines[0] == f"Locrin v{version}, 10 of 10 diffs ran. Left out of the numbers: 0 unlabelled, 0 without an agreed and confirmed label, 0 not applicable, 1 pre-existing and 0 duplicate."
+    head = f"Locrin v{version}, 10 of 10 diffs ran. Left out of the numbers: 0 unlabelled, 0 without an agreed and confirmed label, 0 not applicable, 1 pre-existing and 0 duplicate. "
+    assert lines[0].startswith(head)
+    # Ten diffs put no rule and no pair at n, and the heading says so over the totals this engine reports,
+    # which are the rules this Locrin version has rather than a number the test can pin.
+    assert re.fullmatch(r"0 of \d+ rules and 0 of \d+ pairs reached n=5 and are scored\.", lines[0][len(head):])
     for row in RULE_ROWS:
         assert row in lines, row
     pair_head = lines.index("| Pair | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Excluded | Not applicable | Pre-existing | Duplicate | Note |")

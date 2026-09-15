@@ -371,8 +371,13 @@ def render_markdown(per_rule: list[Score], per_pair: list[Score], version: str, 
     # With ran, the heading says how many diffs were actually scored, so a table with failures never looks complete.
     diffs = f"{corpus_size} diffs" if ran is None else f"{ran} of {corpus_size} diffs ran"
     # The heading always says how many findings and missed entries the numbers leave out, and why.
+    # It also says how many rules and pairs reached n, because the table is read against that count and the
+    # heading is the one place it stays true when a rerun rewrites the table. Counted before the rules the
+    # benchmark never scores are listed below: those can never reach n.
+    rules_n, pairs_n = sum(s.scored for s in per_rule), sum(s.scored for s in per_pair)
     lines = [f"Locrin {version}, {diffs}. Left out of the numbers: {unlabelled} unlabelled, {excluded} without an agreed "
-             f"and confirmed label, {not_applicable} not applicable, {preexisting} pre-existing and {duplicates} duplicate.", ""]
+             f"and confirmed label, {not_applicable} not applicable, {preexisting} pre-existing and {duplicates} duplicate. "
+             f"{rules_n} of {len(per_rule)} rules and {pairs_n} of {len(per_pair)} pairs reached n={MIN_N} and are scored.", ""]
     # The rules the benchmark never scores are always listed, with the reason, even when no diff ran.
     listed = {s.key for s in per_rule}
     per_rule = per_rule + [Score(rule, 0, 0, 0, None, None, False, f"not benchmarked: {reason}")
