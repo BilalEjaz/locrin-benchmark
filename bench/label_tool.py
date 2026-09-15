@@ -116,13 +116,18 @@ def merge(diff_id: str, pass2_path: Path, root: Path, dry_run: bool = False) -> 
     id, equal keys in order. A missed entry both passes wrote becomes one entry with `missed` in both;
     one only pass one wrote keeps `missed` with pass two `?`, for pass two to look at that construct;
     one only pass two wrote is appended with pass one `?`. One pass's `missed` is never copied into the
-    other: that would record an agreement that never happened. Nothing already recorded is cleared; the
-    merge writes `?` only into a slot that is `?`, so a verdict a hand recorded for a missed entry pass
-    two did not write survives a re-merge of the same pass-two file. Notes that differ are joined. Returns the counts, and with dry_run writes nothing.
+    other: that would record an agreement that never happened. A pass-two verdict already in the file is
+    kept only when the pass-two file names the labeller the file records in `pass2_by`, so a re-merge of
+    the same pass-two file keeps a verdict a hand recorded for a missed entry that pass did not write.
+    Under any other name, `pass2_by` absent included, the file is a replacement pass (LABELLING.md owes
+    one by a second model): it owns every pass-two slot, and a missed entry it did not write goes back to
+    `?`, because the labeller it names judged no construct it did not write and must not be stamped on
+    the pass before it. Notes that differ are joined. Returns the counts, and with dry_run writes nothing.
     """
     path = Path(root) / f"{diff_id}.json"
     lf = load_label_file(path)
     by, p2_reported, p2_missed = _pass2_entries(diff_id, Path(pass2_path))
+    same_pass = by == lf.pass2_by
     free = {k: list(v) for k, v in p2_reported.items()}
     counts = {"reported": 0, "missed_both": 0, "missed_pass_one_only": 0, "missed_pass_two_only": 0, "notes_joined": 0}
     out: list[Entry] = []
@@ -147,11 +152,12 @@ def merge(diff_id: str, pass2_path: Path, root: Path, dry_run: bool = False) -> 
             counts["missed_both" if e.pass1 == "missed" else "missed_pass_two_only"] += 1
             out.append(replace(e, pass2="missed", note=note))
         else:
-            # Pass two did not write this entry, so the merge leaves its slot open. It writes `?` only
-            # into a slot that is already `?`: a verdict in the file is a labeller's work, and a re-merge
-            # of the same pass-two file would otherwise throw away what a hand recorded there.
+            # Pass two did not write this entry, so the merge leaves its slot open. A verdict already
+            # there is kept only for the labeller the file records: a re-merge of the same pass-two file
+            # would otherwise throw away what a hand recorded, and a merge under another name would put
+            # that name on a verdict it never gave.
             counts["missed_pass_one_only"] += 1
-            out.append(e)
+            out.append(e if same_pass else replace(e, pass2="?"))
     left = sorted(k for k, queue in free.items() if queue)
     if left:
         rule, file, line, ident = left[0]
