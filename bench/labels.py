@@ -68,6 +68,10 @@ class LabelFile:
     # stamps pass2 with a name and a date, none of the file's entries count, so a merge alone can
     # never publish numbers pass two has not signed off.
     pass2_by: str = ""
+    # The locrin version the verdicts in this file were written for, when `label.py carry` brought them
+    # over from that version's file. Metadata only: the file counts as labels for the version `locrin`
+    # names, and `carried_from` says where its verdicts came from.
+    carried_from: str = ""
 
 
 def _entry(name: str, i: int, raw: object) -> Entry:
@@ -119,8 +123,12 @@ def load_label_file(path: Path) -> LabelFile:
     by = raw.get("pass2_by", "")
     if not isinstance(by, str):
         raise LabelError(f"{path.name}: pass2_by must be a string")
+    carried = raw.get("carried_from", "")
+    if not isinstance(carried, str):
+        raise LabelError(f"{path.name}: carried_from must be a string")
     return LabelFile(diff=raw["diff"], locrin=raw.get("locrin", ""), pass1=_pass(path.name, "pass1", raw.get("pass1")),
-                     pass2=_pass(path.name, "pass2", raw.get("pass2")), entries=entries, pass2_by=by)
+                     pass2=_pass(path.name, "pass2", raw.get("pass2")), entries=entries, pass2_by=by,
+                     carried_from=carried)
 
 
 def load_labels(root: Path) -> dict[str, LabelFile]:
@@ -139,7 +147,10 @@ def disagreements(labels: dict[str, LabelFile]) -> list[tuple[str, Entry]]:
 
 def save_label_file(root: Path, lf: LabelFile) -> None:
     raw = {
-        "diff": lf.diff, "locrin": lf.locrin, "pass1": lf.pass1, "pass2": lf.pass2,
+        "diff": lf.diff, "locrin": lf.locrin,
+        # Only written for a file `carry` wrote, so the key never appears in a file labelled from scratch.
+        **({"carried_from": lf.carried_from} if lf.carried_from else {}),
+        "pass1": lf.pass1, "pass2": lf.pass2,
         # Only written once a merge has recorded it, so the key never appears in a file no merge touched.
         **({"pass2_by": lf.pass2_by} if lf.pass2_by else {}),
         "entries": [{"rule": e.rule, "file": e.file, "line": e.line, "id": e.id, "pass1": e.pass1, "pass2": e.pass2, "note": e.note} for e in lf.entries],
