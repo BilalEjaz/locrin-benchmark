@@ -1,13 +1,14 @@
 {
   "diff": "diellzarabushaj-source__barnat-__d107e78",
-  "locrin": "v0.5.0",
+  "locrin": "v0.6.0",
+  "carried_from": "v0.5.0",
   "pass1": {
     "by": "opus",
-    "date": "2026-09-14"
+    "date": "2026-09-16"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-09-15"
+    "date": "2026-09-16"
   },
   "pass2_by": "fable",
   "entries": [
@@ -19,15 +20,6 @@
       "pass1": "false-positive",
       "pass2": "false-positive",
       "note": "pass one: package.json's \"test\" script names the file (node tests/registry-list-view-v2-test.js), so an entry point does reference it. pass two: package.json's test script runs node tests/registry-list-view-v2-test.js, so an entry point names it"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "tests/registry-list-view-v2-test.js",
-      "line": 85,
-      "id": "c21c0788f5a211bd",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: Main-path pass report of a standalone node gate script, not a leftover debug print. pass two: console.log is the gate script's pass message on its main path, not a debug print"
     },
     {
       "rule": "swallowed-error",

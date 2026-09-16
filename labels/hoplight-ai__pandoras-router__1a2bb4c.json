@@ -1,13 +1,14 @@
 {
   "diff": "hoplight-ai__pandoras-router__1a2bb4c",
-  "locrin": "v0.5.0",
+  "locrin": "v0.6.0",
+  "carried_from": "v0.5.0",
   "pass1": {
     "by": "opus",
-    "date": "2026-09-14"
+    "date": "2026-09-16"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-09-15"
+    "date": "2026-09-16"
   },
   "pass2_by": "fable",
   "entries": [
@@ -19,51 +20,6 @@
       "pass1": "false-positive",
       "pass2": "false-positive",
       "note": "pass one: test/run.mjs discovers and imports every `*-test.mjs` beside it, so `npm test` names this file; it is not unimported. pass two: test/run.mjs discovers and imports every *-test.mjs beside it (readdirSync filter), and npm test runs run.mjs, so the file has an importer"
-    },
-    {
-      "rule": "leftover-commented-code",
-      "file": "test/gate-matrix-test.mjs",
-      "line": 2,
-      "id": "aee109f352e07060",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: The header block is prose (a usage line and an explanation of why the test exists), not code that was disabled. pass two: prose header comment describing the file purpose, not disabled code"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "test/gate-matrix-test.mjs",
-      "line": 287,
-      "id": "40bf417bf5363c9c",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "test/gate-matrix-test.mjs",
-      "line": 288,
-      "id": "e71e77965ab8bdce",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "test/gate-matrix-test.mjs",
-      "line": 289,
-      "id": "89a9be1052bc3276",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "test/gate-matrix-test.mjs",
-      "line": 290,
-      "id": "270f76b4b443f70b",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
     }
   ]
 }

@@ -1,13 +1,14 @@
 {
   "diff": "k-kinzal__ztd-query-php__d2bf147",
-  "locrin": "v0.5.0",
+  "locrin": "v0.6.0",
+  "carried_from": "v0.5.0",
   "pass1": {
     "by": "opus",
-    "date": "2026-09-14"
+    "date": "2026-09-16"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-09-15"
+    "date": "2026-09-16"
   },
   "pass2_by": "fable",
   "entries": []

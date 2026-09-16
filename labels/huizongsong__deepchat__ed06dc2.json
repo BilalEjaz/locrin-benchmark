@@ -1,79 +1,17 @@
 {
   "diff": "huizongsong__deepchat__ed06dc2",
-  "locrin": "v0.5.0",
+  "locrin": "v0.6.0",
+  "carried_from": "v0.5.0",
   "pass1": {
     "by": "opus",
-    "date": "2026-09-14"
+    "date": "2026-09-16"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-09-15"
+    "date": "2026-09-16"
   },
   "pass2_by": "fable",
   "entries": [
-    {
-      "rule": "leftover-debug",
-      "file": "src/main/presenter/threadPresenter/index.ts",
-      "line": 2769,
-      "id": "c50497ea6959c485",
-      "pass1": "true",
-      "pass2": "false-positive",
-      "note": "console.log is this module's established logging (39 tagged [ThreadPresenter] console.log calls, no logger import); this is a status line in that convention, not a leftover debug print"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "src/main/presenter/threadPresenter/index.ts",
-      "line": 2775,
-      "id": "8d0cc1e3aee0fbdb",
-      "pass1": "true",
-      "pass2": "false-positive",
-      "note": "console.log is this module's established logging (39 tagged [ThreadPresenter] console.log calls, no logger import); this is a status line in that convention, not a leftover debug print"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "src/main/presenter/threadPresenter/index.ts",
-      "line": 2778,
-      "id": "2d09ff05295004d1",
-      "pass1": "true",
-      "pass2": "false-positive",
-      "note": "console.log is this module's established logging (39 tagged [ThreadPresenter] console.log calls, no logger import); this is a status line in that convention, not a leftover debug print"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "src/main/presenter/threadPresenter/index.ts",
-      "line": 2815,
-      "id": "a547d68aaa615f14",
-      "pass1": "true",
-      "pass2": "true",
-      "note": "header of a verification-only block (2807-2819) that fetches all MCP servers solely to print the config; debug inspection with no functional effect"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "src/main/presenter/threadPresenter/index.ts",
-      "line": 2818,
-      "id": "24c1f1b87a800fb7",
-      "pass1": "true",
-      "pass2": "true",
-      "note": "dumps serverConfig.autoApprove fetched for no other purpose than printing it; debug inspection of state, not the module's operational logging"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "src/main/presenter/threadPresenter/index.ts",
-      "line": 2961,
-      "id": "0d5f5420ef31c638",
-      "pass1": "true",
-      "pass2": "false-positive",
-      "note": "console.log is this module's established logging (39 tagged [ThreadPresenter] console.log calls, no logger import); this is a status line in that convention, not a leftover debug print"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "src/main/presenter/threadPresenter/index.ts",
-      "line": 2975,
-      "id": "7e08a50d072dcbbf",
-      "pass1": "true",
-      "pass2": "false-positive",
-      "note": "console.log is this module's established logging (39 tagged [ThreadPresenter] console.log calls, no logger import); this is a status line in that convention, not a leftover debug print"
-    },
     {
       "rule": "swallowed-error",
       "file": "src/main/presenter/threadPresenter/index.ts",

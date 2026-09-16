@@ -1,13 +1,14 @@
 {
   "diff": "diellzarabushaj-source__barnat-__0bffc6c",
-  "locrin": "v0.5.0",
+  "locrin": "v0.6.0",
+  "carried_from": "v0.5.0",
   "pass1": {
     "by": "opus",
-    "date": "2026-09-14"
+    "date": "2026-09-16"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-09-15"
+    "date": "2026-09-16"
   },
   "pass2_by": "fable",
   "entries": [
@@ -19,15 +20,6 @@
       "pass1": "false-positive",
       "pass2": "false-positive",
       "note": "pass one: new Function() evaluates the repo's own antibiotiket-solids-data.js read from a constant path in a test harness; no user-controlled input reaches the sink. pass two: new Function evaluates a repository data file the test itself reads from disk; no user-controlled input reaches the sink"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "tests/antibiotics-page-ui-contract-test.js",
-      "line": 213,
-      "id": "039224a30e566307",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: The file is a standalone node gate script run from package.json test; this console.log is its main-path pass report, not a leftover debug print. pass two: console.log is the gate script's pass message on its main path, not a debug print"
     },
     {
       "rule": "swallowed-error",
