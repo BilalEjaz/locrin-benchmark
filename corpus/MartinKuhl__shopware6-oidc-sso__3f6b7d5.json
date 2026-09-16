@@ -1,0 +1,14 @@
+{
+  "id": "MartinKuhl__shopware6-oidc-sso__3f6b7d5",
+  "source": "git",
+  "repo": "MartinKuhl/shopware6-oidc-sso",
+  "sha": "3f6b7d5817e8f1d58da43ab146ab4a258b8c9754",
+  "parent": "058489e1c680c8fa707edb2e155707948c9bdc4e",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/MartinKuhl/shopware6-oidc-sso/commit/3f6b7d5817e8f1d58da43ab146ab4a258b8c9754",
+  "files": [
+    "src/Service/Provisioning/AdminProvisioningService.php",
+    "src/Service/Provisioning/CustomerProvisioningService.php"
+  ]
+}

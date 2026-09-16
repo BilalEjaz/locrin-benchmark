@@ -1,0 +1,13 @@
+{
+  "id": "sparkfun-labs__lfown__211c826",
+  "source": "git",
+  "repo": "sparkfun-labs/lfown",
+  "sha": "211c8265c484ecd70297b3ec114456244169d5e5",
+  "parent": "adaf6a3e307543ca6fe7f132f932211eab48e80b",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/sparkfun-labs/lfown/commit/211c8265c484ecd70297b3ec114456244169d5e5",
+  "files": [
+    "src/mcp.mjs"
+  ]
+}

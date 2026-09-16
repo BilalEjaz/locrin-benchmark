@@ -1,0 +1,13 @@
+{
+  "id": "MintChocoO2C__watchtower__83dc935",
+  "source": "git",
+  "repo": "MintChocoO2C/watchtower",
+  "sha": "83dc935a4fff50d982dd377f8f71b917282ec185",
+  "parent": "3a3fea34f85271a724eb8b91030931d72ec060f1",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/MintChocoO2C/watchtower/commit/83dc935a4fff50d982dd377f8f71b917282ec185",
+  "files": [
+    "Shared (Extension)/Resources/room.js"
+  ]
+}

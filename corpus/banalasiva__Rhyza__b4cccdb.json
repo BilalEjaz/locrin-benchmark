@@ -1,0 +1,13 @@
+{
+  "id": "banalasiva__Rhyza__b4cccdb",
+  "source": "git",
+  "repo": "banalasiva/Rhyza",
+  "sha": "b4cccdb00c17800af2c17df8d0bc950d02fce7f2",
+  "parent": "a76ef3d46ce8c6d44cceea12f833c77b5472d1cd",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/banalasiva/Rhyza/commit/b4cccdb00c17800af2c17df8d0bc950d02fce7f2",
+  "files": [
+    "web/src/app/seeds/[id]/page.tsx"
+  ]
+}

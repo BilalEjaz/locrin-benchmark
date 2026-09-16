@@ -1,0 +1,13 @@
+{
+  "id": "OpenCoven__chat__5d7567d",
+  "source": "git",
+  "repo": "OpenCoven/chat",
+  "sha": "5d7567de951390f42c24b8e92ef55eb73bbe6040",
+  "parent": "110b98b3ade90a10372efd433acdd9b5662369b4",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/OpenCoven/chat/commit/5d7567de951390f42c24b8e92ef55eb73bbe6040",
+  "files": [
+    "src/phase1-conformance-lock.test.ts"
+  ]
+}

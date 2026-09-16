@@ -1,0 +1,21 @@
+{
+  "id": "CEOUBB__CEOUBB__88fd88d",
+  "source": "git",
+  "repo": "CEOUBB/CEOUBB",
+  "sha": "88fd88deeac6cde1c175f3b4e4d64b5169f1b091",
+  "parent": "415678259bd5d88199fba9f4da428a543db19455",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/CEOUBB/CEOUBB/commit/88fd88deeac6cde1c175f3b4e4d64b5169f1b091",
+  "files": [
+    "app/LoadingScreen.tsx",
+    "app/portal-shell.tsx",
+    "app/views/CommunicationsCenter.tsx",
+    "app/views/TeacherCoursesView.tsx",
+    "app/views/ViewSkeletons.tsx",
+    "app/views/classroom/GradeHistoryDialog.tsx",
+    "app/views/classroom/InteropSection.tsx",
+    "app/views/classroom/QuizViews.tsx",
+    "app/views/classroom/SubmissionReviewTray.tsx"
+  ]
+}

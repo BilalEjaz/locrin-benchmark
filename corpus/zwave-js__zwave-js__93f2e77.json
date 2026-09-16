@@ -1,0 +1,13 @@
+{
+  "id": "zwave-js__zwave-js__93f2e77",
+  "source": "git",
+  "repo": "zwave-js/zwave-js",
+  "sha": "93f2e77570fae3680a4754a6e623fab67733cfe3",
+  "parent": "d6e29f247acde14312e0f907d6f1adb2a44ea545",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/zwave-js/zwave-js/commit/93f2e77570fae3680a4754a6e623fab67733cfe3",
+  "files": [
+    "packages/cc/src/cc/MultiChannelCC.ts"
+  ]
+}

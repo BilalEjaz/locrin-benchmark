@@ -1,0 +1,16 @@
+{
+  "id": "Zereker__investment-os__dd42c40",
+  "source": "git",
+  "repo": "Zereker/investment-os",
+  "sha": "dd42c4093fd7caaeddcba3c788fade58eb5e75ef",
+  "parent": "4e6b6aacf19e43c3c80444c1047649a69f14419b",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/Zereker/investment-os/commit/dd42c4093fd7caaeddcba3c788fade58eb5e75ef",
+  "files": [
+    "evals/run.py",
+    "skills/investment-os/scripts/alert_pointer_check.py",
+    "skills/investment-os/scripts/monthly_execution.py",
+    "tests/test_eval_integrity.py"
+  ]
+}

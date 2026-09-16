@@ -1,0 +1,14 @@
+{
+  "id": "Stahl-G__briefloop__22c414a",
+  "source": "git",
+  "repo": "Stahl-G/briefloop",
+  "sha": "22c414ac4799969772895f4ebef051536616c3f5",
+  "parent": "b535a86e8a269e3ee024a0b362f2aadbc519f0f8",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/Stahl-G/briefloop/commit/22c414ac4799969772895f4ebef051536616c3f5",
+  "files": [
+    "src/briefloop/backends/opencode_server.py",
+    "tests/test_opencode_server_stdin.py"
+  ]
+}

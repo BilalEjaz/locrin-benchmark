@@ -1,0 +1,22 @@
+{
+  "id": "thayronarrais__lunar-cjdropshipping__26ba18e",
+  "source": "git",
+  "repo": "thayronarrais/lunar-cjdropshipping",
+  "sha": "26ba18e86d60ab2eb980189421d36188d8223ba7",
+  "parent": "d5d3960956faf83e1d0ad5bd67e955c6485cfa29",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/thayronarrais/lunar-cjdropshipping/commit/26ba18e86d60ab2eb980189421d36188d8223ba7",
+  "files": [
+    "database/migrations/2026_09_15_000000_add_freight_filter_to_cj_tables.php",
+    "lang/en/admin.php",
+    "lang/pt_BR/admin.php",
+    "src/Enums/CandidateStatus.php",
+    "src/Filament/Resources/CandidateResource.php",
+    "src/Filament/Resources/ImportRuleResource.php",
+    "src/Models/Candidate.php",
+    "src/Models/ImportRule.php",
+    "tests/Filament/CandidateResourceTest.php",
+    "tests/Filament/ImportRuleResourceTest.php"
+  ]
+}

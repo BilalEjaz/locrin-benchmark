@@ -1,0 +1,18 @@
+{
+  "id": "atendwa__laravel-reporting__c76922b",
+  "source": "git",
+  "repo": "atendwa/laravel-reporting",
+  "sha": "c76922b0c836055e115691d9aaa1de308d801483",
+  "parent": "b2619a1513b62f834d60c4208ebfd7d1ca6c5e4a",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/atendwa/laravel-reporting/commit/c76922b0c836055e115691d9aaa1de308d801483",
+  "files": [
+    "src/Concerns/HasPluginPrefixedTableName.php",
+    "src/Concerns/ModelFactoryHelpers.php",
+    "src/Models/Report.php",
+    "src/Models/ReportHistory.php",
+    "src/Models/ReportSchedule.php",
+    "src/Models/ReportingSchedule.php"
+  ]
+}

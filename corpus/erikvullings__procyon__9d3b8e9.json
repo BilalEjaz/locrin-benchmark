@@ -1,0 +1,14 @@
+{
+  "id": "erikvullings__procyon__9d3b8e9",
+  "source": "git",
+  "repo": "erikvullings/procyon",
+  "sha": "9d3b8e95084560e581b4db39423abb98cf5b16db",
+  "parent": "a7bcddb5a251c663eb1f5f7bbc15a0611db1b53e",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/erikvullings/procyon/commit/9d3b8e95084560e581b4db39423abb98cf5b16db",
+  "files": [
+    "frontend/src/features/operations/operation-confirmation-dialog.test.ts",
+    "frontend/src/features/operations/operation-confirmation-dialog.ts"
+  ]
+}

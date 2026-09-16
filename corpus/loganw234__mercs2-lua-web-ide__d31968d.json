@@ -1,0 +1,20 @@
+{
+  "id": "loganw234__mercs2-lua-web-ide__d31968d",
+  "source": "git",
+  "repo": "loganw234/mercs2-lua-web-ide",
+  "sha": "d31968dbf3d2565b53d9a71d39e743eb6fb54ad7",
+  "parent": "0b20ed5cd70add242ccee3a3346d61e20ebf1106",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/loganw234/mercs2-lua-web-ide/commit/d31968dbf3d2565b53d9a71d39e743eb6fb54ad7",
+  "files": [
+    "src/app/40_console.js",
+    "src/app/60_ui.js",
+    "src/app/82_assist.js",
+    "src/app/84_map.js",
+    "src/app/85_ground.js",
+    "src/app/86_agent.js",
+    "src/lib/ess-bridge.js",
+    "tools/vendor/smoke.js"
+  ]
+}

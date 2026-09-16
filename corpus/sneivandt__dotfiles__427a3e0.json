@@ -1,0 +1,16 @@
+{
+  "id": "sneivandt__dotfiles__427a3e0",
+  "source": "git",
+  "repo": "sneivandt/dotfiles",
+  "sha": "427a3e04ac6ed554e275c89023c2863a959b03a8",
+  "parent": "1e8d75d09c73a7c7b815abdfceb531e3b481e980",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/sneivandt/dotfiles/commit/427a3e04ac6ed554e275c89023c2863a959b03a8",
+  "files": [
+    ".github/workflows/scripts/linux/test-fullscreen-waybar.py",
+    ".github/workflows/scripts/linux/test-workspaces.py",
+    "symlinks/config/hypr/scripts/fullscreen-waybar.py",
+    "symlinks/config/hypr/scripts/workspaces.py"
+  ]
+}

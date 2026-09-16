@@ -1,0 +1,17 @@
+{
+  "id": "gasyoun__Systema-Sanscriticum__ab27148",
+  "source": "git",
+  "repo": "gasyoun/Systema-Sanscriticum",
+  "sha": "ab271488d2f0e27b6aa849db7d7e9f92dc19fe43",
+  "parent": "29902716e5ea793ca363f3bf5ec57d6383284294",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/gasyoun/Systema-Sanscriticum/commit/ab271488d2f0e27b6aa849db7d7e9f92dc19fe43",
+  "files": [
+    "app/Console/Commands/SentinelBreakerAlarm.php",
+    "app/Services/Telegram/MadelineSyncBreaker.php",
+    "app/Services/Telegram/MadelineSyncPhase.php",
+    "config/services.php",
+    "tests/Feature/MadelineSyncBreakerTest.php"
+  ]
+}

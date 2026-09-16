@@ -1,0 +1,24 @@
+{
+  "diff": "guplem__google-photos-auto-date__cb1a2ff",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/dateEdits/dateEditPlan.js",
+      "line": 76,
+      "id": "b8daca802f8d6590",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "MAX_PLAUSIBLE_SHIFT_MINUTES is exported but used only inside dateEditPlan.js; no importer anywhere at the commit"
+    }
+  ]
+}

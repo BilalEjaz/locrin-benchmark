@@ -1,0 +1,32 @@
+{
+  "id": "Harusame64__desktop-touch-mcp__803cd17",
+  "source": "git",
+  "repo": "Harusame64/desktop-touch-mcp",
+  "sha": "803cd17a6dd4a33e1edcf771156311d2301196dd",
+  "parent": "69fe390a8fc23f9723946d57f005f81823c60765",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Harusame64/desktop-touch-mcp/commit/803cd17a6dd4a33e1edcf771156311d2301196dd",
+  "files": [
+    "eslint-rules/no-suggest-in-failwith-context.mjs",
+    "eslint.config.mjs",
+    "src/engine/background-channel-resolver.ts",
+    "src/stub-tool-catalog.ts",
+    "src/tools/_errors.ts",
+    "src/tools/browser.ts",
+    "src/tools/clipboard.ts",
+    "src/tools/keyboard.ts",
+    "src/tools/mouse.ts",
+    "src/tools/terminal.ts",
+    "tests/unit/classify-cascade-order-invariant.test.ts",
+    "tests/unit/eslint-no-suggest-in-failwith-context.test.ts",
+    "tests/unit/foreground-flash-keypress-classify.test.ts",
+    "tests/unit/issue-211-classify-branch-producer-pin.test.ts",
+    "tests/unit/issue-386-exit-mode-sentinel.test.ts",
+    "tests/unit/key-locker-errors-classify.test.ts",
+    "tests/unit/keyboard-input-serialization.test.ts",
+    "tests/unit/oq8-failwith-suggest-routing.test.ts",
+    "tests/unit/phase7-f3-spawn-failed-typed-code.test.ts",
+    "tests/unit/reachable-bounds.test.ts"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "i365dev__free4chat__6ff0932",
+  "source": "git",
+  "repo": "i365dev/free4chat",
+  "sha": "6ff0932f6faed7dfea28e0cae91f15a45c4b9da1",
+  "parent": "91dcf8dd4ad17971f709cb851dfc189bd3bed9d8",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/i365dev/free4chat/commit/6ff0932f6faed7dfea28e0cae91f15a45c4b9da1",
+  "files": [
+    "app/src/common/roomApp.test.ts",
+    "app/src/common/roomApp.ts",
+    "app/src/components/RoomContent.test.tsx"
+  ]
+}

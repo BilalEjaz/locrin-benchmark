@@ -1,0 +1,13 @@
+{
+  "id": "Shieldforce__checkout-payment__d0b2a53",
+  "source": "git",
+  "repo": "Shieldforce/checkout-payment",
+  "sha": "d0b2a530cc6bcf4a73ca7cf4f97f0e2c2fe7332e",
+  "parent": "31d91676972ae0e21525e8f8b17c49c8fd915321",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/Shieldforce/checkout-payment/commit/d0b2a530cc6bcf4a73ca7cf4f97f0e2c2fe7332e",
+  "files": [
+    "src/Services/Permissions/CanPageTrait.php"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "medstudy-cz__quiz_proforientationgit__e9130c3",
+  "source": "git",
+  "repo": "medstudy-cz/quiz_proforientationgit",
+  "sha": "e9130c3332e761301e2327395eda73f2664d5295",
+  "parent": "6bc314d3962947164f3b9d0cf4413b7ea04638dc",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/medstudy-cz/quiz_proforientationgit/commit/e9130c3332e761301e2327395eda73f2664d5295",
+  "files": [
+    "app/api/sendEmail/route.ts",
+    "dictionaries/promptsDictionary.ts",
+    "integrations/email.ts",
+    "utils/buildReportPrompt.ts"
+  ]
+}

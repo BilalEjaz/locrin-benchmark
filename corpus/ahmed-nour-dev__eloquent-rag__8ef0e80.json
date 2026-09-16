@@ -1,0 +1,15 @@
+{
+  "id": "ahmed-nour-dev__eloquent-rag__8ef0e80",
+  "source": "git",
+  "repo": "ahmed-nour-dev/eloquent-rag",
+  "sha": "8ef0e8012cacf210e28f3587ded2d19af7080da6",
+  "parent": "4ad72cfb0264937bdf286d00c2c38a702a24fe17",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/ahmed-nour-dev/eloquent-rag/commit/8ef0e8012cacf210e28f3587ded2d19af7080da6",
+  "files": [
+    "src/RagSearch.php",
+    "tests/Integration/MariaDb/MariaDbAcceptanceTest.php",
+    "tests/Integration/Postgres/PostgresAcceptanceTest.php"
+  ]
+}

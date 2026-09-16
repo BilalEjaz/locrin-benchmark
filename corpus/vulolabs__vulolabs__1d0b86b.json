@@ -1,0 +1,17 @@
+{
+  "id": "vulolabs__vulolabs__1d0b86b",
+  "source": "git",
+  "repo": "vulolabs/vulolabs",
+  "sha": "1d0b86bef3fba0d0be66e028d4ab355341c72c43",
+  "parent": "d41b3a3878d84019cbc550d159934da48b0aff13",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/vulolabs/vulolabs/commit/1d0b86bef3fba0d0be66e028d4ab355341c72c43",
+  "files": [
+    "plugins/vulopilot/classes/Services/AiCreditsConnection.php",
+    "plugins/vulopilot/classes/Services/SiteTelemetryReporter.php",
+    "plugins/vulopilot/classes/Services/VuloCloudConnection.php",
+    "plugins/vulopilot/classes/VuloPilot.php",
+    "plugins/vulopilot/config.php"
+  ]
+}

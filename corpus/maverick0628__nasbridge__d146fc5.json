@@ -1,0 +1,13 @@
+{
+  "id": "maverick0628__nasbridge__d146fc5",
+  "source": "git",
+  "repo": "maverick0628/nasbridge",
+  "sha": "d146fc54dcbe2efd996225c738faf967a1365d5f",
+  "parent": "85616b2bba6792a9a49e73eae4831f73b709a5d9",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/maverick0628/nasbridge/commit/d146fc54dcbe2efd996225c738faf967a1365d5f",
+  "files": [
+    "src/index.ts"
+  ]
+}

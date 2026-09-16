@@ -1,0 +1,2296 @@
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import {
+  appendFileSync,
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
+import { devNull } from 'node:os';
+import { delimiter, dirname, isAbsolute, relative, resolve } from 'node:path';
+
+import { afterEach, describe, expect, test } from 'vitest';
+
+import * as phase1ConformanceLock from '../scripts/phase1-conformance-lock.mjs';
+
+const {
+  assertCleanPhase1Checkouts,
+  assertPhase1CheckoutHeads,
+  createGitEnvironment,
+  hasPrivateDirectoryMode,
+  phase1ConformanceTestOnly,
+  readPhase1ConformanceLock,
+} = phase1ConformanceLock;
+
+const projectRoot = resolve(import.meta.dirname, '..');
+const expectedGitNullDevice = process.platform === 'win32' ? 'NUL' : devNull;
+const scratchRoots: string[] = [];
+const gitIntegrationTestTimeout = 60_000;
+const gitTestCommandTimeout = 45_000;
+const gitTestMaxBuffer = 16 * 1024 * 1024;
+const repositoryKeys = ['chat', 'sdk', 'cave', 'coven'] as const;
+const hiddenIndexStates = [
+  ['assume-unchanged', '--assume-unchanged'],
+  ['skip-worktree', '--skip-worktree'],
+] as const;
+type RepositoryKey = (typeof repositoryKeys)[number];
+type CheckoutRoots = {
+  chatRoot: string;
+  sdkRoot: string;
+  caveRoot: string;
+  covenRoot: string;
+};
+
+function supportsFileSymlinks() {
+  const scratchParent = resolve(projectRoot, 'test-results', 'vitest', 'phase1-conformance');
+  mkdirSync(scratchParent, { recursive: true });
+  const probeRoot = mkdtempSync(resolve(scratchParent, 'symlink-probe-'));
+
+  try {
+    const targetPath = resolve(probeRoot, 'target');
+    writeFileSync(targetPath, 'target\n');
+    symlinkSync(targetPath, resolve(probeRoot, 'link'), 'file');
+    return true;
+  } catch (error) {
+    if (
+      error !== null &&
+      typeof error === 'object' &&
+      'code' in error &&
+      ['EACCES', 'ENOSYS', 'EPERM', 'UNKNOWN'].includes(String(error.code))
+    ) {
+      return false;
+    }
+
+    throw error;
+  } finally {
+    rmSync(probeRoot, { force: true, recursive: true });
+  }
+}
+
+const fileSymlinksSupported = supportsFileSymlinks();
+const committedHarnessAuthority = JSON.parse(
+  readFileSync(resolve(projectRoot, 'phase1-conformance.lock.json'), 'utf8'),
+).harnessAuthority;
+const expectedBehaviorAuthority = {
+  revision: '110b98b3ade90a10372efd433acdd9b5662369b4',
+  tree: '92c0d415993a7005bf68f145e9ccabecbabdc150',
+  files: [
+    {
+      path: 'scripts/phase1-conformance.mjs',
+      blob: '6e8af2f30c90e6cfc32010a40941449f36a20c31',
+      sha256: 'ca9f25bb730d335a060c99be4ce67d38a9b8900eca2242fb5591f462fb23173c',
+    },
+    {
+      path: 'scripts/phase1-conformance-lock.mjs',
+      blob: '4191787c4a31a49f0b29c5ecd59b9964be156af5',
+      sha256: 'f89b5a181eee23cbd1012926378b49bb54cca78011c428a4c8cc82586ee7739d',
+    },
+    {
+      path: 'scripts/phase1-schema-v2-evidence.mjs',
+      blob: '023c87e5055472b4be2e0914d97e14109b1d86ad',
+      sha256: '0aede2ab3abd76fabf5ac61d64d2dbaaffa497c8647b82236403de16a47751c8',
+    },
+    {
+      path: 'scripts/phase1-schema-v2-producer.mjs',
+      blob: '72f4f1ab36246ee87e3a77082fc9ccff5c1908b6',
+      sha256: '6052d8c8d52141693b142122fe03c60a5d4ed003b180058ae600f73f46f177cd',
+    },
+    {
+      path: 'scripts/unix-producer-supervisor.sh',
+      blob: '0a27a5be4d2eb4981d35d7e3c178424c851697c5',
+      sha256: 'b73036415744c80ed27d5667f255ceea149096ca517b47c93a154299802206ff',
+    },
+    {
+      path: 'scripts/windows-job-supervisor.cs',
+      blob: 'ba1a5f7de9104d85b98c05602722601e6cbb0cef',
+      sha256: 'a74c3cece7bdf16e3ef020107c0684d3ab254fca5e8ae8508e884549bcfbf8f4',
+    },
+    {
+      path: 'scripts/unix-producer-command.sh',
+      blob: '2c1a3e5f8ca96d801d900f5df3886fb3b0d3601b',
+      sha256: 'ce9ec2ff00947f3ec0db53f144c99d34bc27de6085062d00dccff7c934c2e3c8',
+    },
+    {
+      path: 'scripts/contract-canary.mjs',
+      blob: 'f4c72220cd200dba09aa9aeea05cd905b7cec435',
+      sha256: 'a4c2fe0a5eb6a5ff4653de5374c34c0fb46907c6806a5d23b86d8b37206ef958',
+    },
+    {
+      path: '.github/workflows/client-v1-conformance.yml',
+      blob: 'b16f004f42b12ff217d3c103655519b847651671',
+      sha256: '23cda23b20f74f5dbc541c00398b6f209857177953d0b9efc00197f27e9f0813',
+    },
+    {
+      path: 'scripts/process-owned-artifact-root.mjs',
+      blob: '72363bad5b70f5c8fa040707415218ef32fb9863',
+      sha256: '426c2c8e36dc3bffddb35a565c07a60998b010660f6248ebc4264d9c4b502624',
+    },
+  ],
+} as const;
+
+const expectedEntries = {
+  chat: {
+    repository: 'OpenCoven/chat',
+    revision: '636f7da96fa178c2c14648f84137091b15a1cb8a',
+  },
+  sdk: {
+    repository: 'OpenCoven/sdk',
+    revision: '77d825d17809cfec2fad4acb9b1526b3c4752f9d',
+  },
+  cave: {
+    repository: 'OpenCoven/coven-cave',
+    revision: '8a06421a705c2d7891c3f44cc580c569f6cbe2c1',
+  },
+  coven: {
+    repository: 'OpenCoven/coven',
+    revision: '8c3735f374d6bc95e5b6fd107f7e7308fa26a2f8',
+  },
+  harness: {
+    repository: 'OpenCoven/chat',
+    revision: expectedBehaviorAuthority.revision,
+  },
+  harnessAuthority: committedHarnessAuthority,
+  chatAuthority: {
+    tree: '8e20adb1d55f17fb5b5a833bad6c9535d41c98ce',
+    files: [
+      {
+        path: 'src-tauri/Cargo.toml',
+        blob: '50bb635ce23e25fd6b460e0cacc247b2eee947c7',
+        sha256: 'c1971ef226315e6ec57cfd6c11d91f4fdd1c77ae80a1c537b62960c837d825de',
+      },
+      {
+        path: 'src-tauri/Cargo.lock',
+        blob: '77f6ae3bd7c439228bea4e37a149dcd8536538ec',
+        sha256: 'af0805758f12cc36c92e21e195a5b33313062db9ca3fcc3b298332c25d22acc7',
+      },
+      {
+        path: 'src-tauri/src/bin/phase1-native-rpc.rs',
+        blob: '0fbf0dcd1d2f1a49a556a9319b3121990cf53946',
+        sha256: 'a479704ea719138967f4828707bca04fb2a3de7fd2d2d2b9c7282831ec4bdf09',
+      },
+      {
+        path: 'src-tauri/src/conformance.rs',
+        blob: '8271a0c39c5e213067c96e08e154faa95b340f03',
+        sha256: 'dac67fb376e2c80aa1a562720ec300c772c1d68146370b4b403d54b8ecd83896',
+      },
+      {
+        path: 'src-tauri/src/coven.rs',
+        blob: 'b904e5eeded97aa624140b56c5141daebea772b2',
+        sha256: '09ca4871fc95d818cb642764ceaba3b1a8d6adba62e7552e69f0d0ac47662ff6',
+      },
+      {
+        path: 'src-tauri/src/keyring.rs',
+        blob: 'a33c68672b87a5cfa39cba37d4629619408309a4',
+        sha256: '3d9215c4ba388d9180c43dea573fc839e6bfd6a214876cff7f836c9d7ad50c52',
+      },
+      {
+        path: 'src-tauri/src/lib.rs',
+        blob: '48c048a4b8830ddcf7a09b0b30dc9f4d2723b203',
+        sha256: 'd25bf49f3b41ea3ad9a6f8da49f8a01397aa340e943f029926b97945fec78314',
+      },
+    ],
+  },
+  tools: {
+    windowsSupervisor: {
+      source: {
+        repository: 'OpenCoven/chat',
+        revision: '9612dc81e330952bbd9d357e862944e43dffa58c',
+        path: 'tools/phase1-process-supervisor/src/main.rs',
+        blob: '6a95b4db7612ed0a502e91c4c21a7df5cbfe9021',
+        sha256: 'fa4c4759c0b01ce7f9bbd662ed3073b0aeed42dc7da0001026703482a5b9708a',
+        manifestSha256: '3d3964b144599835006248fcc40eee0437b06c268a180a373c15fea44bf4bf8b',
+        lockSha256: 'e31803e60e80d9d0a68cf043786cb1f516b425c185465785216aa5b05dd6fa88',
+        configSha256: '79d370b49837a1c4ec84231eb7fa13422e5e18a569c2b2eebf97ab3ec333d49c',
+      },
+      toolchain: {
+        homebrewCoreRevision: 'cd168d1fdc26f12e4ad64f358ff2dbec61ab7a57',
+        packageVersion: 'mingw-w64 14.0.0_3',
+        bottleLayerSha256: '0d68ab737a8bbc8c63ac6ac7acc0695e2887c1169df9a4423f1180090079b1d5',
+        linkerVersion: '2.47.20260726',
+      },
+      artifact: {
+        target: 'x86_64-pc-windows-gnu',
+        buildInvocation:
+          'cd tools/phase1-process-supervisor && SOURCE_DATE_EPOCH=0 cargo build --target x86_64-pc-windows-gnu --release --locked',
+        fileName: 'phase1-process-supervisor.exe',
+        fleetPath: 'C:\\OpenCoven\\conformance\\phase1-process-supervisor.exe',
+        size: 333824,
+        sha256: '372b3e8b5b860e0759da8fa10ddfb6ec338e26d83616254c816a456ae2e1b7c5',
+      },
+    },
+  },
+  release: {
+    sdkManifest: {
+      version: '0.0.1',
+      sha256: 'd641097ebafd36b41292c70e1db332a270ffb1dc151f495b12218941fe1488ca',
+    },
+    sdkArtifacts: [
+      {
+        packageName: '@opencoven/sdk-core',
+        releaseFile: 'tarballs/core/opencoven-sdk-core-0.0.1.tgz',
+        vendorFile: 'sdk-core-0.0.1.tgz',
+        size: 33308,
+        sha256: '5f41291d303cf25e5ff4a3c40d0169f025f7e218da8637fc905935524b5e4e2b',
+      },
+      {
+        packageName: '@opencoven/cave-client',
+        releaseFile: 'tarballs/cave/opencoven-cave-client-0.0.1.tgz',
+        vendorFile: 'cave-client-0.0.1.tgz',
+        size: 83218,
+        sha256: 'c4e44fb49a589ba26a2056f1308c31a7b86dec6d1e96506572e7a25b27b5fa0f',
+      },
+      {
+        packageName: '@opencoven/coven-client',
+        releaseFile: 'tarballs/coven/opencoven-coven-client-0.0.1.tgz',
+        vendorFile: 'coven-client-0.0.1.tgz',
+        size: 42960,
+        sha256: 'e2d4d27c05b51eb1eb5d34d15134b73d4e2c416d72c32de18ace9a908d51c14a',
+      },
+      {
+        packageName: '@opencoven/sdk',
+        releaseFile: 'tarballs/sdk/opencoven-sdk-0.0.1.tgz',
+        vendorFile: 'sdk-0.0.1.tgz',
+        size: 16025,
+        sha256: '5318c4c6d511f0bcda42e4fd88168f549fc3ea74a516d7a4b2004e1c5023c4b4',
+      },
+    ],
+    caveVersion: '0.4.3',
+    covenVersion: '0.1.0',
+    consumerLock: {
+      path: 'pnpm-lock.yaml',
+      size: 56222,
+      sha256: '5c9d0bd1d9438006970d9d7dc86186beb578c0eaff597f59a8277b94187d191d',
+    },
+    caveArtifacts: {
+      assertionEngine: {
+        path: 'scripts/client-v1-conformance.mjs',
+        size: 150592,
+        sha256: '3e18320712aafb5208e5eddb66b1916208b5b208aec8a5d79a8d900c7909cc92',
+      },
+      contractFixture: {
+        path: 'src/lib/server/client-v1/contract-fixture.json',
+        size: 18280,
+        sha256: '0c03baea9c21f0985df41eef3c5ae5223497b9081c665b53ddecab36598f5ede',
+      },
+      hpkeVectors: {
+        path: 'src/lib/server/client-v1/hpke-bound-v1-vectors.json',
+        size: 4041,
+        sha256: 'f806967291de12175277b6b24ac3c7bba912ae760fd8227fb21b1a4d5f5e6797',
+      },
+    },
+  },
+  evidence: {
+    repository: 'OpenCoven/sdk',
+    revision: '4736bf2e0d5b16272d79ecf7784c75f376b39b94',
+    contract: {
+      path: 'scripts/conformance-contract.mjs',
+      sha256: '50b1012b3c4c22f518c1a611fb5210a5675ee976a9b194b502f6125bc48f5111',
+    },
+    schema: {
+      path: 'conformance/client-v1-cross-repository-evidence.schema.json',
+      sha256: 'ca338cdbb33c46a97fe8430d95e04f6b30a2db453a7fff2184b335e33ea4f790',
+    },
+    assertionRegistry: {
+      path: 'conformance/client-v1-cross-repository-assertions.json',
+      sha256: 'fb56d7cadaf194126fd9a7f090d8af600c04f7161cab1e2ebb3419df49fbcbe0',
+    },
+  },
+} as const;
+
+function gitTest(name: string, operation: () => void) {
+  test(name, operation, gitIntegrationTestTimeout);
+}
+
+afterEach(() => {
+  while (scratchRoots.length > 0) {
+    const scratchRoot = scratchRoots.pop();
+
+    if (scratchRoot !== undefined) {
+      rmSync(scratchRoot, { force: true, recursive: true });
+    }
+  }
+});
+
+function runGit(args: string[], cwd: string, input?: string) {
+  return execFileSync('git', args, {
+    cwd,
+    encoding: 'utf8',
+    env: createTestGitEnvironment(),
+    input,
+    maxBuffer: gitTestMaxBuffer,
+    stdio: 'pipe',
+    timeout: gitTestCommandTimeout,
+    killSignal: 'SIGKILL',
+  }).trim();
+}
+
+function readLocalExcludePath(repositoryRoot: string) {
+  return runGit(
+    ['rev-parse', '--path-format=absolute', '--git-path', 'info/exclude'],
+    repositoryRoot,
+  );
+}
+
+function readLocalAttributesPath(repositoryRoot: string) {
+  return runGit(
+    ['rev-parse', '--path-format=absolute', '--git-path', 'info/attributes'],
+    repositoryRoot,
+  );
+}
+
+function runGitWithHostConfiguration(args: string[], cwd: string) {
+  const environment: NodeJS.ProcessEnv = {};
+
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!key.toUpperCase().startsWith('GIT_') && value !== undefined) {
+      environment[key] = value;
+    }
+  }
+
+  environment.GIT_TERMINAL_PROMPT = '0';
+  return execFileSync('git', args, {
+    cwd,
+    encoding: 'utf8',
+    env: environment,
+    maxBuffer: gitTestMaxBuffer,
+    stdio: 'pipe',
+    timeout: gitTestCommandTimeout,
+    killSignal: 'SIGKILL',
+  }).trim();
+}
+
+function createTestGitEnvironment() {
+  const environment: NodeJS.ProcessEnv = {};
+
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!key.toUpperCase().startsWith('GIT_') && value !== undefined) {
+      environment[key] = value;
+    }
+  }
+
+  environment.GIT_ATTR_NOSYSTEM = '1';
+  environment.GIT_CONFIG_GLOBAL = devNull;
+  environment.GIT_CONFIG_NOSYSTEM = '1';
+  environment.GIT_NO_REPLACE_OBJECTS = '1';
+  environment.GIT_TERMINAL_PROMPT = '0';
+  return environment;
+}
+
+function createHostileGlobalGitConfig(source: 'HOME' | 'XDG_CONFIG_HOME', ignoredName: string) {
+  const hostileRoot = createScratchRoot(`hostile-${source.toLowerCase()}`);
+  const homeRoot = resolve(hostileRoot, 'home');
+  const xdgRoot = resolve(hostileRoot, 'xdg');
+  const excludesPath = resolve(hostileRoot, 'global-excludes');
+  const configPath =
+    source === 'HOME' ? resolve(homeRoot, '.gitconfig') : resolve(xdgRoot, 'git', 'config');
+
+  mkdirSync(dirname(configPath), { recursive: true });
+  writeFileSync(excludesPath, `${ignoredName}\n`);
+  runGit(['config', '--file', configPath, 'core.excludesFile', excludesPath], projectRoot);
+
+  return {
+    configPath,
+    environment: {
+      HOME: homeRoot,
+      XDG_CONFIG_HOME: xdgRoot,
+    },
+    excludesPath,
+  };
+}
+
+function configureHostileCleanFilter(repositoryRoot: string, markerPath: string) {
+  const filterPath = resolve(createScratchRoot('hostile-filter'), 'filter.mjs');
+  writeFileSync(
+    filterPath,
+    `#!/usr/bin/env node
+import { appendFileSync } from 'node:fs';
+appendFileSync(${JSON.stringify(markerPath)}, 'executed\\n');
+process.stdin.on('end', () => process.stdout.write('chat baseline\\n'));
+process.stdin.resume();
+`,
+  );
+  chmodSync(filterPath, 0o755);
+  runGit(
+    [
+      'config',
+      '--local',
+      'filter.hostile.clean',
+      `${JSON.stringify(process.execPath)} ${JSON.stringify(filterPath)}`,
+    ],
+    repositoryRoot,
+  );
+}
+
+function lockChatAtHead(fixture: ReturnType<typeof createCheckoutFixture>, revision: string) {
+  return {
+    ...fixture.lock,
+    chat: {
+      repository: expectedEntries.chat.repository,
+      revision,
+    },
+  };
+}
+
+function withTemporaryProcessEnv<T>(
+  updates: Record<string, string | undefined>,
+  operation: () => T,
+) {
+  const originalEntries = Object.entries(process.env);
+
+  try {
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+
+    return operation();
+  } finally {
+    for (const key of Object.keys(process.env)) {
+      delete process.env[key];
+    }
+    for (const [key, value] of originalEntries) {
+      process.env[key] = value;
+    }
+  }
+}
+
+function createScratchRoot(prefix: string) {
+  const scratchParent = resolve(projectRoot, 'test-results', 'vitest', 'phase1-conformance');
+  mkdirSync(scratchParent, { recursive: true });
+  const scratchRoot = mkdtempSync(resolve(scratchParent, `${prefix}-`));
+  scratchRoots.push(scratchRoot);
+  return scratchRoot;
+}
+
+function writeLock(lockData: unknown) {
+  const lockPath = resolve(createScratchRoot('lock'), 'phase1-conformance.lock.json');
+  writeFileSync(lockPath, `${JSON.stringify(lockData, null, 2)}\n`);
+  return lockPath;
+}
+
+function createCheckoutFixture() {
+  const root = createScratchRoot('checkouts');
+  const roots = {} as CheckoutRoots;
+  const revisions = {} as Record<RepositoryKey, string>;
+
+  for (const key of repositoryKeys) {
+    const repositoryRoot = resolve(root, key);
+    mkdirSync(repositoryRoot, { recursive: true });
+    runGit(['init', '--initial-branch=main'], repositoryRoot);
+    const hooksPath = resolve(repositoryRoot, '.git', 'fixture-hooks');
+    mkdirSync(hooksPath, { recursive: true });
+    runGit(['config', '--local', 'commit.gpgSign', 'false'], repositoryRoot);
+    runGit(['config', '--local', 'core.hooksPath', hooksPath], repositoryRoot);
+    runGit(['config', 'user.name', 'OpenCoven Test'], repositoryRoot);
+    runGit(['config', 'user.email', 'opencoven-test@example.com'], repositoryRoot);
+    writeFileSync(resolve(repositoryRoot, 'tracked.txt'), `${key} baseline\n`);
+    runGit(['add', 'tracked.txt'], repositoryRoot);
+    runGit(['commit', '-m', `${key} baseline`], repositoryRoot);
+    roots[`${key}Root`] = repositoryRoot;
+    revisions[key] = runGit(['rev-parse', 'HEAD'], repositoryRoot);
+  }
+
+  return {
+    roots,
+    revisions,
+    lock: {
+      version: 1,
+      ...Object.fromEntries(
+        repositoryKeys.map((key) => [
+          key,
+          {
+            repository: expectedEntries[key].repository,
+            revision: revisions[key],
+          },
+        ]),
+      ),
+    },
+  };
+}
+
+describe('Phase 1 conformance lock', () => {
+  test('reads the immutable reviewed revisions into an exact normalized lock', () => {
+    const lock = readPhase1ConformanceLock();
+    expect(lock).toEqual({
+      path: resolve(projectRoot, 'phase1-conformance.lock.json'),
+      version: 5,
+      ...expectedEntries,
+    });
+    expect(committedHarnessAuthority).toMatchObject({
+      revision: expectedEntries.harness.revision,
+      tree: expectedBehaviorAuthority.tree,
+    });
+  });
+
+  test('pins the behavior commit and each changed governed Git object', () => {
+    for (const expected of expectedBehaviorAuthority.files) {
+      expect(
+        committedHarnessAuthority.files.find(
+          (file: { path: string }) => file.path === expected.path,
+        ),
+      ).toEqual(expected);
+    }
+  });
+
+  gitTest('binds the production Chat authority to the pinned Git objects', () => {
+    const lock = readPhase1ConformanceLock();
+
+    expect(runGit(['rev-parse', `${lock.chat.revision}^{tree}`], projectRoot)).toBe(
+      lock.chatAuthority.tree,
+    );
+    for (const file of lock.chatAuthority.files) {
+      const object = `${lock.chat.revision}:${file.path}`;
+      expect(runGit(['rev-parse', object], projectRoot)).toBe(file.blob);
+      const bytes = execFileSync('git', ['cat-file', 'blob', object], {
+        cwd: projectRoot,
+        env: createTestGitEnvironment(),
+        maxBuffer: gitTestMaxBuffer,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: gitTestCommandTimeout,
+        killSignal: 'SIGKILL',
+      });
+      expect(createHash('sha256').update(bytes).digest('hex')).toBe(file.sha256);
+    }
+  });
+
+  test('keeps the Windows supervisor source reachable from the frozen harness checkout', () => {
+    expect(() =>
+      runGit(
+        [
+          'merge-base',
+          '--is-ancestor',
+          expectedEntries.tools.windowsSupervisor.source.revision,
+          expectedEntries.harness.revision,
+        ],
+        projectRoot,
+      ),
+    ).not.toThrow();
+  });
+
+  test('rejects an unexpected repository', () => {
+    const lockPath = writeLock({
+      version: 5,
+      ...expectedEntries,
+      sdk: {
+        ...expectedEntries.sdk,
+        repository: 'OpenCoven/not-sdk',
+      },
+    });
+
+    expect(() => readPhase1ConformanceLock(lockPath)).toThrow(
+      'phase1-conformance.lock.json sdk.repository must be OpenCoven/sdk.',
+    );
+  });
+
+  test.each([
+    [
+      'missing top-level key',
+      {
+        version: 5,
+        chat: expectedEntries.chat,
+        sdk: expectedEntries.sdk,
+        cave: expectedEntries.cave,
+      },
+      'must contain exactly version, chat, sdk, cave, coven, harness, chatAuthority, harnessAuthority, tools, release, and evidence',
+    ],
+    [
+      'extra top-level key',
+      { version: 5, ...expectedEntries, extra: true },
+      'must contain exactly version, chat, sdk, cave, coven, harness, chatAuthority, harnessAuthority, tools, release, and evidence',
+    ],
+    [
+      'missing entry key',
+      {
+        version: 5,
+        ...expectedEntries,
+        chat: { repository: expectedEntries.chat.repository },
+      },
+      'chat entry must contain exactly repository and revision',
+    ],
+    [
+      'extra entry key',
+      {
+        version: 5,
+        ...expectedEntries,
+        chat: { ...expectedEntries.chat, branch: 'main' },
+      },
+      'chat entry must contain exactly repository and revision',
+    ],
+  ])('rejects a %s', (_label, lockData, expectedMessage) => {
+    expect(() => readPhase1ConformanceLock(writeLock(lockData))).toThrow(expectedMessage);
+  });
+
+  test.each([
+    ['uppercase', expectedEntries.chat.revision.toUpperCase()],
+    ['short', expectedEntries.chat.revision.slice(0, -1)],
+  ])('rejects a %s revision', (_label, revision) => {
+    const lockPath = writeLock({
+      version: 5,
+      ...expectedEntries,
+      chat: { ...expectedEntries.chat, revision },
+    });
+
+    expect(() => readPhase1ConformanceLock(lockPath)).toThrow(
+      'chat.revision must be a lowercase immutable 40-character commit SHA.',
+    );
+  });
+
+  test('rejects SDK artifacts outside the canonical package order', () => {
+    const lockPath = writeLock({
+      version: 5,
+      ...expectedEntries,
+      release: {
+        ...expectedEntries.release,
+        sdkArtifacts: [
+          expectedEntries.release.sdkArtifacts[1],
+          expectedEntries.release.sdkArtifacts[0],
+          ...expectedEntries.release.sdkArtifacts.slice(2),
+        ],
+      },
+    });
+
+    expect(() => readPhase1ConformanceLock(lockPath)).toThrow(/canonical package order/);
+  });
+
+  test('binds the SDK manifest digest to the canonical package metadata', () => {
+    const lockPath = writeLock({
+      version: 5,
+      ...expectedEntries,
+      release: {
+        ...expectedEntries.release,
+        sdkArtifacts: expectedEntries.release.sdkArtifacts.map((artifact, index) =>
+          index === 0 ? { ...artifact, size: artifact.size + 1 } : artifact,
+        ),
+      },
+    });
+
+    expect(() => readPhase1ConformanceLock(lockPath)).toThrow(/manifest digest/);
+  });
+
+  test('requires the canonical production Chat authority file order', () => {
+    const lockPath = writeLock({
+      version: 5,
+      ...expectedEntries,
+      chatAuthority: {
+        ...expectedEntries.chatAuthority,
+        files: [
+          expectedEntries.chatAuthority.files[1],
+          expectedEntries.chatAuthority.files[0],
+          ...expectedEntries.chatAuthority.files.slice(2),
+        ],
+      },
+    });
+
+    expect(() => readPhase1ConformanceLock(lockPath)).toThrow(/Chat authority file order/);
+  });
+
+  test('requires canonical executing harness and production delta authority order', () => {
+    for (const property of ['files', 'productionDeltas'] as const) {
+      const entries = expectedEntries.harnessAuthority[property];
+      const lockPath = writeLock({
+        version: 5,
+        ...expectedEntries,
+        harnessAuthority: {
+          ...expectedEntries.harnessAuthority,
+          [property]: [entries[1], entries[0], ...entries.slice(2)],
+        },
+      });
+
+      expect(() => readPhase1ConformanceLock(lockPath)).toThrow(/canonical file order/);
+    }
+  });
+
+  test('rejects missing and non-path lock inputs explicitly', () => {
+    expect(() => readPhase1ConformanceLock(null as never)).toThrow(
+      'Phase 1 conformance lock path must be a non-empty path string.',
+    );
+    expect(() =>
+      readPhase1ConformanceLock(resolve(projectRoot, 'missing-phase1-lock.json')),
+    ).toThrow('Phase 1 conformance lock does not exist.');
+  });
+});
+
+describe('Phase 1 checkout verification', () => {
+  test('budgets large frozen checkout verification without removing the deadline', () => {
+    expect(phase1ConformanceTestOnly.verificationLimits).toEqual({
+      repositoryDeadlineMs: 30_000,
+      trackedEntryLimit: 100_000,
+      trackedPathByteLimit: 16 * 1024 * 1024,
+    });
+  });
+
+  gitTest('verifies the pinned Chat harness checkout with the hardened paths', () => {
+    const fixture = createCheckoutFixture();
+    const harnessRoot = resolve(createScratchRoot('harness-checkout'), 'chat');
+    runGit(['clone', fixture.roots.sdkRoot, harnessRoot], projectRoot);
+    const harnessRevision = runGit(['rev-parse', 'HEAD'], harnessRoot);
+    const harnessLock = {
+      ...fixture.lock,
+      harness: {
+        repository: 'OpenCoven/chat',
+        revision: harnessRevision,
+      },
+    };
+    const roots = {
+      ...fixture.roots,
+      chatHarnessRoot: harnessRoot,
+    };
+
+    expect(assertCleanPhase1Checkouts(roots)).toHaveProperty('harness');
+    expect(assertPhase1CheckoutHeads(harnessLock, roots)).toHaveProperty(
+      'harness',
+      harnessRevision,
+    );
+
+    writeFileSync(resolve(harnessRoot, 'tracked.txt'), 'dirty harness\n');
+    expect(() => assertCleanPhase1Checkouts(roots)).toThrow(/harness checkout is dirty/);
+  });
+
+  test('sanitizes inherited Git variables case-insensitively for verifier children', () => {
+    const environment = createGitEnvironment({
+      PATH: process.env.PATH,
+      HOME: '/safe-home',
+      GIT_DIR: '/hostile/git-dir',
+      Git_Work_Tree: '/hostile/work-tree',
+      git_index_file: '/hostile/index',
+    });
+
+    expect(environment.PATH).toBe(process.env.PATH);
+    expect(environment.HOME).toBe('/safe-home');
+    expect(environment).not.toHaveProperty('GIT_DIR');
+    expect(environment).not.toHaveProperty('Git_Work_Tree');
+    expect(environment).not.toHaveProperty('git_index_file');
+    expect(environment.GIT_ALLOW_PROTOCOL).toBe('');
+    expect(environment.GIT_ASKPASS).toBe(expectedGitNullDevice);
+    expect(environment.GIT_ATTR_NOSYSTEM).toBe('1');
+    expect(environment.GIT_ATTR_SOURCE).toBe('HEAD');
+    expect(environment.GIT_CONFIG_GLOBAL).toBe(expectedGitNullDevice);
+    expect(environment.GIT_CONFIG_NOSYSTEM).toBe('1');
+    expect(environment.GIT_NO_LAZY_FETCH).toBe('1');
+    expect(environment.GIT_NO_REPLACE_OBJECTS).toBe('1');
+    expect(environment.GIT_OPTIONAL_LOCKS).toBe('0');
+    expect(environment.GIT_SSH).toBe(expectedGitNullDevice);
+    expect(environment.GIT_SSH_COMMAND).toBe(expectedGitNullDevice);
+    expect(environment.GIT_TERMINAL_PROMPT).toBe('0');
+    expect(environment.SSH_ASKPASS).toBe(expectedGitNullDevice);
+  });
+
+  test('does not interpret Windows directory mode bits as POSIX permissions', () => {
+    expect(hasPrivateDirectoryMode(0o777, 'win32')).toBe(true);
+    expect(hasPrivateDirectoryMode(0o700, 'linux')).toBe(true);
+    expect(hasPrivateDirectoryMode(0o777, 'linux')).toBe(false);
+  });
+
+  gitTest('accepts four clean checkouts at their locked revisions', () => {
+    const fixture = createCheckoutFixture();
+
+    expect(assertCleanPhase1Checkouts(fixture.roots)).toEqual({
+      chat: { staged: 0, unstaged: 0, untracked: 0 },
+      sdk: { staged: 0, unstaged: 0, untracked: 0 },
+      cave: { staged: 0, unstaged: 0, untracked: 0 },
+      coven: { staged: 0, unstaged: 0, untracked: 0 },
+    });
+    expect(assertPhase1CheckoutHeads(fixture.lock, fixture.roots)).toEqual(fixture.revisions);
+  });
+
+  gitTest('does not refresh the index or execute local hooks during verification', () => {
+    const fixture = createCheckoutFixture();
+    const repositoryRoot = fixture.roots.chatRoot;
+    const hooksPath = runGit(['config', '--local', '--get', 'core.hooksPath'], repositoryRoot);
+    const markerPath = resolve(createScratchRoot('post-index-change-canary'), 'hook-ran');
+    const hookPath = resolve(hooksPath, 'post-index-change');
+    writeFileSync(
+      hookPath,
+      `#!/usr/bin/env node
+import { appendFileSync } from 'node:fs';
+appendFileSync(${JSON.stringify(markerPath)}, 'executed\\n');
+`,
+    );
+    chmodSync(hookPath, 0o755);
+
+    const trackedPath = resolve(repositoryRoot, 'tracked.txt');
+    const originalContent = readFileSync(trackedPath);
+    writeFileSync(trackedPath, originalContent);
+    const touchedTime = new Date(Date.now() + 2_000);
+    utimesSync(trackedPath, touchedTime, touchedTime);
+
+    expect(assertCleanPhase1Checkouts(fixture.roots).chat).toEqual({
+      staged: 0,
+      unstaged: 0,
+      untracked: 0,
+    });
+    expect(existsSync(markerPath)).toBe(false);
+    expect(assertPhase1CheckoutHeads(fixture.lock, fixture.roots).chat).toBe(
+      fixture.revisions.chat,
+    );
+    expect(existsSync(markerPath)).toBe(false);
+  });
+
+  test.skipIf(process.platform === 'win32')(
+    'fails safely instead of lazily fetching a missing promised attribute blob',
+    () => {
+      const fixture = createCheckoutFixture();
+      const repositoryRoot = fixture.roots.chatRoot;
+      writeFileSync(resolve(repositoryRoot, '.gitattributes'), 'tracked.txt text\n');
+      runGit(['add', '.gitattributes'], repositoryRoot);
+      runGit(['commit', '-m', 'add promised attribute fixture'], repositoryRoot);
+      const lock = lockChatAtHead(fixture, runGit(['rev-parse', 'HEAD'], repositoryRoot));
+      const missingBlob = runGit(['rev-parse', 'HEAD:.gitattributes'], repositoryRoot);
+      const objectPath = resolve(
+        repositoryRoot,
+        '.git',
+        'objects',
+        missingBlob.slice(0, 2),
+        missingBlob.slice(2),
+      );
+      expect(existsSync(objectPath)).toBe(true);
+
+      const hostileRoot = createScratchRoot('promisor-upload-pack');
+      const markerPath = resolve(hostileRoot, 'upload-pack-ran');
+      const uploadPackPath = resolve(hostileRoot, 'upload-pack');
+      writeFileSync(
+        uploadPackPath,
+        `#!/usr/bin/env node
+import { appendFileSync } from 'node:fs';
+appendFileSync(${JSON.stringify(markerPath)}, 'executed\\n');
+process.exit(1);
+`,
+      );
+      chmodSync(uploadPackPath, 0o755);
+      runGit(['config', '--local', 'remote.origin.url', fixture.roots.sdkRoot], repositoryRoot);
+      runGit(['config', '--local', 'remote.origin.promisor', 'true'], repositoryRoot);
+      runGit(
+        ['config', '--local', 'remote.origin.partialclonefilter', 'blob:none'],
+        repositoryRoot,
+      );
+      runGit(['config', '--local', 'remote.origin.uploadpack', uploadPackPath], repositoryRoot);
+      rmSync(objectPath);
+
+      for (const verify of [
+        () => assertCleanPhase1Checkouts(fixture.roots),
+        () => assertPhase1CheckoutHeads(lock, fixture.roots),
+      ]) {
+        expect(verify).toThrow('chat checkout is not a readable Git checkout.');
+        expect(existsSync(markerPath)).toBe(false);
+      }
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  test.skipIf(process.platform === 'win32')(
+    'SIGKILLs and reaps a hung Git child that ignores SIGTERM',
+    () => {
+      const fixture = createCheckoutFixture();
+      const fakeBin = createScratchRoot('hung-git');
+      const fakeGitPath = resolve(fakeBin, 'git');
+      const childPidPath = resolve(fakeBin, 'git.pid');
+      const secretDiagnostic = 'do-not-leak-hung-git-details';
+      writeFileSync(
+        fakeGitPath,
+        `#!/usr/bin/env node
+import { writeFileSync } from 'node:fs';
+writeFileSync(${JSON.stringify(childPidPath)}, String(process.pid));
+process.on('SIGTERM', () => {});
+process.stderr.write(${JSON.stringify(secretDiagnostic)});
+setTimeout(() => process.exit(86), 60_000);
+setInterval(() => {}, 1_000);
+`,
+      );
+      chmodSync(fakeGitPath, 0o755);
+
+      const startedAt = Date.now();
+      let message = '';
+
+      withTemporaryProcessEnv(
+        {
+          PATH: `${fakeBin}${delimiter}${process.env.PATH ?? ''}`,
+        },
+        () => {
+          try {
+            assertCleanPhase1Checkouts(fixture.roots);
+          } catch (error) {
+            message = error instanceof Error ? error.message : String(error);
+          }
+        },
+      );
+
+      const childPid = Number.parseInt(readFileSync(childPidPath, 'utf8'), 10);
+      expect(Date.now() - startedAt).toBeLessThan(40_000);
+      expect(Number.isSafeInteger(childPid)).toBe(true);
+      let survivingCommand = '';
+      try {
+        survivingCommand = execFileSync('ps', ['-o', 'command=', '-p', String(childPid)], {
+          encoding: 'utf8',
+        });
+      } catch {
+        // The exact child PID no longer exists.
+      }
+      expect(survivingCommand).not.toContain(fakeGitPath);
+      expect(message).toBe('chat checkout verification timed out.');
+      expect(message).not.toContain(secretDiagnostic);
+      expect(message).not.toContain(fakeGitPath);
+      expect(message).not.toContain(fixture.roots.chatRoot);
+    },
+    50_000,
+  );
+
+  gitTest('isolates fixture commits from inherited signing and hooks', () => {
+    const fixture = createCheckoutFixture();
+
+    for (const key of repositoryKeys) {
+      const repositoryRoot = fixture.roots[`${key}Root`];
+      const hooksPath = runGit(['config', '--local', '--get', 'core.hooksPath'], repositoryRoot);
+
+      expect(runGit(['config', '--local', '--get', 'commit.gpgSign'], repositoryRoot)).toBe(
+        'false',
+      );
+      expect(isAbsolute(hooksPath)).toBe(true);
+      expect(relative(repositoryRoot, hooksPath).startsWith('..')).toBe(false);
+      expect(readdirSync(hooksPath)).toEqual([]);
+    }
+  });
+
+  gitTest('creates isolated fixture commits despite hostile command-scope Git config', () => {
+    const hostileRoot = createScratchRoot('hostile-git-config');
+    const hostileHooksPath = resolve(hostileRoot, 'hooks');
+    const hostileHookMarker = resolve(hostileRoot, 'hook-ran');
+    mkdirSync(hostileHooksPath);
+    const hostileHookPath = resolve(hostileHooksPath, 'pre-commit');
+    writeFileSync(hostileHookPath, `#!/bin/sh\ntouch '${hostileHookMarker}'\nexit 1\n`);
+    chmodSync(hostileHookPath, 0o755);
+
+    const fixture = withTemporaryProcessEnv(
+      {
+        GIT_CONFIG_COUNT: '2',
+        GIT_CONFIG_KEY_0: 'commit.gpgSign',
+        GIT_CONFIG_VALUE_0: 'true',
+        GIT_CONFIG_KEY_1: 'core.hooksPath',
+        GIT_CONFIG_VALUE_1: hostileHooksPath,
+      },
+      () => createCheckoutFixture(),
+    );
+
+    expect(existsSync(hostileHookMarker)).toBe(false);
+    for (const key of repositoryKeys) {
+      const repositoryRoot = fixture.roots[`${key}Root`];
+      const hooksPath = runGit(['config', '--local', '--get', 'core.hooksPath'], repositoryRoot);
+
+      expect(runGit(['config', '--local', '--get', 'commit.gpgSign'], repositoryRoot)).toBe(
+        'false',
+      );
+      expect(isAbsolute(hooksPath)).toBe(true);
+      expect(relative(repositoryRoot, hooksPath).startsWith('..')).toBe(false);
+      expect(readdirSync(hooksPath)).toEqual([]);
+    }
+  });
+
+  gitTest('does not let GIT_DIR and GIT_WORK_TREE redirect clean-checkout verification', () => {
+    const fixture = createCheckoutFixture();
+    appendFileSync(resolve(fixture.roots.chatRoot, 'tracked.txt'), 'private dirty content\n');
+
+    withTemporaryProcessEnv(
+      {
+        GIT_DIR: resolve(fixture.roots.sdkRoot, '.git'),
+        GIT_WORK_TREE: fixture.roots.sdkRoot,
+      },
+      () => {
+        expect(() => assertCleanPhase1Checkouts(fixture.roots)).toThrow(
+          'chat checkout is dirty (1 unstaged change).',
+        );
+      },
+    );
+  });
+
+  gitTest('does not let GIT_DIR and GIT_WORK_TREE redirect HEAD verification', () => {
+    const fixture = createCheckoutFixture();
+    const redirectedLock = {
+      ...fixture.lock,
+      ...Object.fromEntries(
+        repositoryKeys.map((key) => [
+          key,
+          {
+            repository: expectedEntries[key].repository,
+            revision: fixture.revisions.sdk,
+          },
+        ]),
+      ),
+    };
+
+    withTemporaryProcessEnv(
+      {
+        GIT_DIR: resolve(fixture.roots.sdkRoot, '.git'),
+        GIT_WORK_TREE: fixture.roots.sdkRoot,
+      },
+      () => {
+        expect(() => assertPhase1CheckoutHeads(redirectedLock, fixture.roots)).toThrow(
+          `chat checkout HEAD ${fixture.revisions.chat} does not match expected ${fixture.revisions.sdk}.`,
+        );
+      },
+    );
+  });
+
+  test.each(['normal', 'linked'] as const)(
+    'pins the supplied %s worktree despite a local core.worktree redirect',
+    (checkoutKind) => {
+      const fixture = createCheckoutFixture();
+      let repositoryRoot = fixture.roots.chatRoot;
+
+      if (checkoutKind === 'linked') {
+        const linkedParent = createScratchRoot('linked-worktree');
+        repositoryRoot = resolve(linkedParent, 'chat-linked');
+        runGit(
+          ['worktree', 'add', '--detach', repositoryRoot, fixture.revisions.chat],
+          fixture.roots.chatRoot,
+        );
+      }
+
+      const alternateRoot = resolve(createScratchRoot('alternate-worktree'), 'clean');
+      mkdirSync(alternateRoot);
+      writeFileSync(resolve(alternateRoot, 'tracked.txt'), 'chat baseline\n');
+
+      if (checkoutKind === 'linked') {
+        runGit(['config', '--local', 'extensions.worktreeConfig', 'true'], fixture.roots.chatRoot);
+        runGit(['config', '--worktree', 'core.worktree', alternateRoot], repositoryRoot);
+      } else {
+        runGit(['config', '--local', 'core.worktree', alternateRoot], repositoryRoot);
+      }
+
+      appendFileSync(resolve(repositoryRoot, 'tracked.txt'), 'private supplied-root content\n');
+      const roots = {
+        ...fixture.roots,
+        chatRoot: repositoryRoot,
+      };
+
+      expect(runGit(['status', '--porcelain=v1'], repositoryRoot)).toBe('');
+      expect(runGit(['rev-parse', 'HEAD'], repositoryRoot)).toBe(fixture.revisions.chat);
+
+      const messages = [
+        () => assertCleanPhase1Checkouts(roots),
+        () => assertPhase1CheckoutHeads(fixture.lock, roots),
+      ].map((verify) => {
+        try {
+          verify();
+          return '';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      });
+
+      expect(messages).toEqual([
+        'chat checkout is dirty (1 unstaged change).',
+        'chat checkout is dirty (1 unstaged change).',
+      ]);
+      expect(messages.join('\n')).not.toContain('tracked.txt');
+      expect(messages.join('\n')).not.toContain('private supplied-root content');
+      expect(messages.join('\n')).not.toContain(alternateRoot);
+      expect(messages.join('\n')).not.toContain(repositoryRoot);
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  gitTest('allows comment-only local exclude metadata', () => {
+    const fixture = createCheckoutFixture();
+    const excludePath = readLocalExcludePath(fixture.roots.chatRoot);
+    writeFileSync(excludePath, '# local comments are allowed\n\n   \n# another comment\n');
+
+    expect(assertCleanPhase1Checkouts(fixture.roots)).toEqual({
+      chat: { staged: 0, unstaged: 0, untracked: 0 },
+      sdk: { staged: 0, unstaged: 0, untracked: 0 },
+      cave: { staged: 0, unstaged: 0, untracked: 0 },
+      coven: { staged: 0, unstaged: 0, untracked: 0 },
+    });
+    expect(assertPhase1CheckoutHeads(fixture.lock, fixture.roots)).toEqual(fixture.revisions);
+  });
+
+  test.each(['normal', 'linked'] as const)(
+    'rejects active local exclude rules in a %s worktree on both verification paths',
+    (checkoutKind) => {
+      const fixture = createCheckoutFixture();
+      let repositoryRoot = fixture.roots.chatRoot;
+
+      if (checkoutKind === 'linked') {
+        const linkedParent = createScratchRoot('linked-exclude-worktree');
+        repositoryRoot = resolve(linkedParent, 'chat-linked');
+        runGit(
+          ['worktree', 'add', '--detach', repositoryRoot, fixture.revisions.chat],
+          fixture.roots.chatRoot,
+        );
+      }
+
+      const roots = {
+        ...fixture.roots,
+        chatRoot: repositoryRoot,
+      };
+      const excludePath = readLocalExcludePath(repositoryRoot);
+      const ignoredName = `do-not-leak-${checkoutKind}-exclude.txt`;
+      writeFileSync(excludePath, `${ignoredName}\n`);
+      writeFileSync(resolve(repositoryRoot, ignoredName), 'private excluded content\n');
+
+      expect(runGit(['status', '--porcelain=v1', '--untracked-files=all'], repositoryRoot)).toBe(
+        '',
+      );
+
+      const messages = [
+        () => assertCleanPhase1Checkouts(roots),
+        () => assertPhase1CheckoutHeads(fixture.lock, roots),
+      ].map((verify) => {
+        try {
+          verify();
+          return '';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      });
+
+      expect(messages).toEqual([
+        'chat checkout has 1 local exclude rule.',
+        'chat checkout has 1 local exclude rule.',
+      ]);
+      expect(messages.join('\n')).not.toContain(ignoredName);
+      expect(messages.join('\n')).not.toContain('private excluded content');
+      expect(messages.join('\n')).not.toContain(excludePath);
+      expect(messages.join('\n')).not.toContain(repositoryRoot);
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  gitTest('counts escaped and leading-space comment markers as local exclude rules', () => {
+    const fixture = createCheckoutFixture();
+    const excludePath = readLocalExcludePath(fixture.roots.chatRoot);
+    writeFileSync(
+      excludePath,
+      '# actual comment\n\\#escaped-secret-pattern\n #leading-space-secret-pattern\n\n',
+    );
+
+    for (const verify of [
+      () => assertCleanPhase1Checkouts(fixture.roots),
+      () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+    ]) {
+      let message = '';
+      try {
+        verify();
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(message).toBe('chat checkout has 2 local exclude rules.');
+      expect(message).not.toContain('escaped-secret-pattern');
+      expect(message).not.toContain('leading-space-secret-pattern');
+      expect(message).not.toContain(excludePath);
+    }
+  });
+
+  gitTest('bounds local exclude diagnostics without disclosing rules', () => {
+    const fixture = createCheckoutFixture();
+    const excludePath = readLocalExcludePath(fixture.roots.chatRoot);
+    const secretRules = Array.from(
+      { length: 101 },
+      (_, index) => `do-not-leak-local-exclude-${index}`,
+    );
+    writeFileSync(excludePath, `${secretRules.join('\n')}\n`);
+
+    for (const verify of [
+      () => assertCleanPhase1Checkouts(fixture.roots),
+      () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+    ]) {
+      let message = '';
+      try {
+        verify();
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(message).toBe('chat checkout has 100+ local exclude rules.');
+      expect(message).not.toContain(secretRules[0]);
+      expect(message).not.toContain(secretRules.at(-1));
+      expect(message).not.toContain(excludePath);
+    }
+  });
+
+  test.each(
+    process.platform === 'win32'
+      ? (['directory'] as const)
+      : (['symlink', 'directory', 'unreadable'] as const),
+  )(
+    'rejects %s local exclude metadata with a fixed safe diagnostic',
+    (metadataState) => {
+      const fixture = createCheckoutFixture();
+      const excludePath = readLocalExcludePath(fixture.roots.chatRoot);
+      const secretTarget = resolve(createScratchRoot('unsafe-exclude'), 'secret-target');
+      rmSync(excludePath, { force: true });
+
+      if (metadataState === 'symlink') {
+        writeFileSync(secretTarget, 'do-not-leak-symlink-rule\n');
+        symlinkSync(secretTarget, excludePath);
+      } else if (metadataState === 'directory') {
+        mkdirSync(excludePath);
+      } else {
+        writeFileSync(excludePath, 'do-not-leak-unreadable-rule\n');
+        chmodSync(excludePath, 0o000);
+      }
+
+      for (const verify of [
+        () => assertCleanPhase1Checkouts(fixture.roots),
+        () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+      ]) {
+        let message = '';
+        try {
+          verify();
+        } catch (error) {
+          message = error instanceof Error ? error.message : String(error);
+        }
+
+        expect(message).toBe('chat checkout has unsafe local exclude metadata.');
+        expect(message).not.toContain('do-not-leak');
+        expect(message).not.toContain(excludePath);
+        expect(message).not.toContain(secretTarget);
+      }
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  test.each([
+    ['exclude', readLocalExcludePath],
+    ['attribute', readLocalAttributesPath],
+  ] as const)(
+    'rejects oversized local %s metadata on both verification paths',
+    (metadataKind, readMetadataPath) => {
+      const fixture = createCheckoutFixture();
+      const metadataPath = readMetadataPath(fixture.roots.chatRoot);
+      writeFileSync(metadataPath, `#${'x'.repeat(64 * 1024)}`);
+
+      for (const verify of [
+        () => assertCleanPhase1Checkouts(fixture.roots),
+        () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+      ]) {
+        let message = '';
+        try {
+          verify();
+        } catch (error) {
+          message = error instanceof Error ? error.message : String(error);
+        }
+
+        expect(message).toBe(`chat checkout has unsafe local ${metadataKind} metadata.`);
+        expect(message).not.toContain(metadataPath);
+      }
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  gitTest('allows comment-only local attribute metadata', () => {
+    const fixture = createCheckoutFixture();
+    const attributesPath = readLocalAttributesPath(fixture.roots.chatRoot);
+    writeFileSync(attributesPath, '# local comments are allowed\n\n\t \n# another comment\n');
+
+    expect(assertCleanPhase1Checkouts(fixture.roots)).toEqual({
+      chat: { staged: 0, unstaged: 0, untracked: 0 },
+      sdk: { staged: 0, unstaged: 0, untracked: 0 },
+      cave: { staged: 0, unstaged: 0, untracked: 0 },
+      coven: { staged: 0, unstaged: 0, untracked: 0 },
+    });
+    expect(assertPhase1CheckoutHeads(fixture.lock, fixture.roots)).toEqual(fixture.revisions);
+  });
+
+  test.each(['normal', 'linked'] as const)(
+    'rejects active local attribute rules in a %s worktree on both verification paths',
+    (checkoutKind) => {
+      const fixture = createCheckoutFixture();
+      let repositoryRoot = fixture.roots.chatRoot;
+
+      if (checkoutKind === 'linked') {
+        const linkedParent = createScratchRoot('linked-attributes-worktree');
+        repositoryRoot = resolve(linkedParent, 'chat-linked');
+        runGit(
+          ['worktree', 'add', '--detach', repositoryRoot, fixture.revisions.chat],
+          fixture.roots.chatRoot,
+        );
+      }
+
+      const roots = {
+        ...fixture.roots,
+        chatRoot: repositoryRoot,
+      };
+      const attributesPath = readLocalAttributesPath(repositoryRoot);
+      const markerPath = resolve(
+        createScratchRoot(`local-${checkoutKind}-attribute-filter`),
+        'filter-executed',
+      );
+      const secretRule = 'tracked.txt filter=hostile';
+      writeFileSync(attributesPath, `${secretRule}\n`);
+      configureHostileCleanFilter(repositoryRoot, markerPath);
+      appendFileSync(resolve(repositoryRoot, 'tracked.txt'), 'private changed content\n');
+
+      for (const verify of [
+        () => assertCleanPhase1Checkouts(roots),
+        () => assertPhase1CheckoutHeads(fixture.lock, roots),
+      ]) {
+        let message = '';
+        try {
+          verify();
+        } catch (error) {
+          message = error instanceof Error ? error.message : String(error);
+        }
+
+        expect(message).toBe('chat checkout has 1 local attribute rule.');
+        expect(message).not.toContain(secretRule);
+        expect(message).not.toContain(attributesPath);
+        expect(message).not.toContain(repositoryRoot);
+        expect(existsSync(markerPath)).toBe(false);
+      }
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  gitTest('bounds local attribute diagnostics without disclosing rules', () => {
+    const fixture = createCheckoutFixture();
+    const attributesPath = readLocalAttributesPath(fixture.roots.chatRoot);
+    const secretRules = Array.from(
+      { length: 101 },
+      (_, index) => `tracked.txt do-not-leak-local-attribute-${index}=set`,
+    );
+    writeFileSync(attributesPath, `${secretRules.join('\n')}\n`);
+
+    for (const verify of [
+      () => assertCleanPhase1Checkouts(fixture.roots),
+      () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+    ]) {
+      let message = '';
+      try {
+        verify();
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(message).toBe('chat checkout has 100+ local attribute rules.');
+      expect(message).not.toContain(secretRules[0]);
+      expect(message).not.toContain(secretRules.at(-1));
+      expect(message).not.toContain(attributesPath);
+    }
+  });
+
+  test.each(
+    process.platform === 'win32'
+      ? (['directory'] as const)
+      : (['symlink', 'directory', 'unreadable'] as const),
+  )(
+    'rejects %s local attribute metadata with a fixed safe diagnostic',
+    (metadataState) => {
+      const fixture = createCheckoutFixture();
+      const attributesPath = readLocalAttributesPath(fixture.roots.chatRoot);
+      const secretTarget = resolve(createScratchRoot('unsafe-attributes'), 'secret-target');
+      rmSync(attributesPath, { force: true });
+
+      if (metadataState === 'symlink') {
+        writeFileSync(secretTarget, 'tracked.txt do-not-leak-symlink=set\n');
+        symlinkSync(secretTarget, attributesPath);
+      } else if (metadataState === 'directory') {
+        mkdirSync(attributesPath);
+      } else {
+        writeFileSync(attributesPath, 'tracked.txt do-not-leak-unreadable=set\n');
+        chmodSync(attributesPath, 0o000);
+      }
+
+      for (const verify of [
+        () => assertCleanPhase1Checkouts(fixture.roots),
+        () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+      ]) {
+        let message = '';
+        try {
+          verify();
+        } catch (error) {
+          message = error instanceof Error ? error.message : String(error);
+        }
+
+        expect(message).toBe('chat checkout has unsafe local attribute metadata.');
+        expect(message).not.toContain('do-not-leak');
+        expect(message).not.toContain(attributesPath);
+        expect(message).not.toContain(secretTarget);
+      }
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  gitTest('allows committed gitignore rules', () => {
+    const fixture = createCheckoutFixture();
+    const ignoredName = 'committed-ignore-canary.txt';
+    writeFileSync(resolve(fixture.roots.chatRoot, '.gitignore'), `${ignoredName}\n`);
+    runGit(['add', '.gitignore'], fixture.roots.chatRoot);
+    runGit(['commit', '-m', 'add reviewed ignore rule'], fixture.roots.chatRoot);
+    const lockedRevision = runGit(['rev-parse', 'HEAD'], fixture.roots.chatRoot);
+    const lock = {
+      ...fixture.lock,
+      chat: {
+        repository: expectedEntries.chat.repository,
+        revision: lockedRevision,
+      },
+    };
+    const revisions = {
+      ...fixture.revisions,
+      chat: lockedRevision,
+    };
+    writeFileSync(resolve(fixture.roots.chatRoot, ignoredName), 'reviewed ignored content\n');
+
+    expect(assertCleanPhase1Checkouts(fixture.roots)).toEqual({
+      chat: { staged: 0, unstaged: 0, untracked: 0 },
+      sdk: { staged: 0, unstaged: 0, untracked: 0 },
+      cave: { staged: 0, unstaged: 0, untracked: 0 },
+      coven: { staged: 0, unstaged: 0, untracked: 0 },
+    });
+    expect(assertPhase1CheckoutHeads(lock, fixture.roots)).toEqual(revisions);
+  });
+
+  gitTest('does not let command-scope Git config hide untracked files', () => {
+    const fixture = createCheckoutFixture();
+    const ignoredName = 'hidden-by-hostile-config.txt';
+    const excludesPath = resolve(createScratchRoot('hostile-excludes'), 'global-excludes');
+    writeFileSync(excludesPath, `${ignoredName}\n`);
+    writeFileSync(resolve(fixture.roots.chatRoot, ignoredName), 'private untracked content\n');
+
+    withTemporaryProcessEnv(
+      {
+        GIT_CONFIG_COUNT: '1',
+        GIT_CONFIG_KEY_0: 'core.excludesFile',
+        GIT_CONFIG_VALUE_0: excludesPath,
+      },
+      () => {
+        expect(() => assertCleanPhase1Checkouts(fixture.roots)).toThrow(
+          'chat checkout is dirty (1 untracked item).',
+        );
+      },
+    );
+  });
+
+  test.each(['HOME', 'XDG_CONFIG_HOME'] as const)(
+    'does not let hostile %s global Git config hide untracked files',
+    (source) => {
+      const fixture = createCheckoutFixture();
+      const ignoredName = `hidden-by-${source.toLowerCase()}.txt`;
+      const hostileConfig = createHostileGlobalGitConfig(source, ignoredName);
+      const repositoryRoot = fixture.roots.chatRoot;
+      writeFileSync(resolve(repositoryRoot, ignoredName), 'private global-config content\n');
+
+      withTemporaryProcessEnv(hostileConfig.environment, () => {
+        expect(
+          runGitWithHostConfiguration(
+            ['status', '--porcelain=v1', '--untracked-files=all'],
+            repositoryRoot,
+          ),
+        ).toBe('');
+
+        let message = '';
+        try {
+          assertCleanPhase1Checkouts(fixture.roots);
+        } catch (error) {
+          message = error instanceof Error ? error.message : String(error);
+        }
+
+        expect(message).toBe('chat checkout is dirty (1 untracked item).');
+        expect(message).not.toContain(ignoredName);
+        expect(message).not.toContain('private global-config content');
+        expect(message).not.toContain(hostileConfig.configPath);
+        expect(message).not.toContain(hostileConfig.excludesPath);
+        expect(message).not.toContain(repositoryRoot);
+        expect(() => assertPhase1CheckoutHeads(fixture.lock, fixture.roots)).toThrow(
+          'chat checkout is dirty (1 untracked item).',
+        );
+      });
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  gitTest('does not let local Git config hide untracked files', () => {
+    const fixture = createCheckoutFixture();
+    const ignoredName = 'hidden-by-local-config.txt';
+    const hostileRoot = createScratchRoot('hostile-local-config');
+    const excludesPath = resolve(hostileRoot, 'local-excludes');
+    const repositoryRoot = fixture.roots.chatRoot;
+    writeFileSync(excludesPath, `${ignoredName}\n`);
+    runGit(['config', '--local', 'core.excludesFile', excludesPath], repositoryRoot);
+    writeFileSync(resolve(repositoryRoot, ignoredName), 'private local-config content\n');
+
+    expect(
+      runGitWithHostConfiguration(
+        ['status', '--porcelain=v1', '--untracked-files=all'],
+        repositoryRoot,
+      ),
+    ).toBe('');
+
+    let message = '';
+    try {
+      assertCleanPhase1Checkouts(fixture.roots);
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+
+    expect(message).toBe('chat checkout is dirty (1 untracked item).');
+    expect(message).not.toContain(ignoredName);
+    expect(message).not.toContain('private local-config content');
+    expect(message).not.toContain(excludesPath);
+    expect(message).not.toContain(repositoryRoot);
+  });
+
+  gitTest('forces default stat checks despite local core.checkStat=minimal', () => {
+    const fixture = createCheckoutFixture();
+    const repositoryRoot = fixture.roots.chatRoot;
+    const trackedPath = resolve(repositoryRoot, 'tracked.txt');
+    const stableTime = new Date(Date.now() - 120_000);
+    stableTime.setMilliseconds(0);
+    utimesSync(trackedPath, stableTime, stableTime);
+    runGit(['update-index', '--refresh'], repositoryRoot);
+
+    const originalContent = readFileSync(trackedPath, 'utf8');
+    const changedContent = originalContent.replace('chat', 'CHAT');
+    const indexedMtime = statSync(trackedPath).mtime;
+    expect(Buffer.byteLength(changedContent)).toBe(Buffer.byteLength(originalContent));
+
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1_100);
+    writeFileSync(trackedPath, changedContent);
+    utimesSync(trackedPath, indexedMtime, indexedMtime);
+    runGit(['config', '--local', 'core.checkStat', 'minimal'], repositoryRoot);
+    runGit(['config', '--local', 'core.trustctime', 'false'], repositoryRoot);
+
+    expect(runGitWithHostConfiguration(['status', '--porcelain=v1'], repositoryRoot)).toBe('');
+
+    for (const verify of [
+      () => assertCleanPhase1Checkouts(fixture.roots),
+      () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+    ]) {
+      let message = '';
+      try {
+        verify();
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(message).toBe('chat checkout is dirty (1 unstaged change).');
+      expect(message).not.toContain('tracked.txt');
+      expect(message).not.toContain(changedContent);
+      expect(message).not.toContain(repositoryRoot);
+    }
+
+    expect(runGit(['config', '--local', '--get', 'core.checkStat'], repositoryRoot)).toBe(
+      'minimal',
+    );
+    expect(runGit(['config', '--local', '--get', 'core.trustctime'], repositoryRoot)).toBe('false');
+  });
+
+  test.skipIf(!fileSymlinksSupported)(
+    'forces symlink checks despite local core.symlinks=false',
+    () => {
+      const fixture = createCheckoutFixture();
+      const repositoryRoot = fixture.roots.chatRoot;
+      const trackedPath = resolve(repositoryRoot, 'tracked.txt');
+      const linkTarget = 'symlink-target.txt';
+      rmSync(trackedPath);
+      symlinkSync(linkTarget, trackedPath, 'file');
+      runGit(['add', 'tracked.txt'], repositoryRoot);
+      runGit(['commit', '-m', 'track symlink fixture'], repositoryRoot);
+      const lock = lockChatAtHead(fixture, runGit(['rev-parse', 'HEAD'], repositoryRoot));
+
+      rmSync(trackedPath);
+      writeFileSync(trackedPath, linkTarget);
+      runGit(['config', '--local', 'core.symlinks', 'false'], repositoryRoot);
+
+      expect(runGitWithHostConfiguration(['status', '--porcelain=v1'], repositoryRoot)).toBe('');
+
+      for (const verify of [
+        () => assertCleanPhase1Checkouts(fixture.roots),
+        () => assertPhase1CheckoutHeads(lock, fixture.roots),
+      ]) {
+        let message = '';
+        try {
+          verify();
+        } catch (error) {
+          message = error instanceof Error ? error.message : String(error);
+        }
+
+        expect(message).toBe('chat checkout is dirty (1 unstaged change).');
+        expect(message).not.toContain('tracked.txt');
+        expect(message).not.toContain(linkTarget);
+        expect(message).not.toContain(repositoryRoot);
+      }
+
+      expect(runGit(['config', '--local', '--get', 'core.symlinks'], repositoryRoot)).toBe('false');
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  gitTest('rejects an initialized submodule even when local ignore=all hides dirtiness', () => {
+    const fixture = createCheckoutFixture();
+    const repositoryRoot = fixture.roots.chatRoot;
+    const submoduleName = 'dirty-fixture';
+    const submodulePath = 'vendor/dirty-fixture';
+    runGit(
+      [
+        '-c',
+        'protocol.file.allow=always',
+        'submodule',
+        'add',
+        '--name',
+        submoduleName,
+        fixture.roots.sdkRoot,
+        submodulePath,
+      ],
+      repositoryRoot,
+    );
+    runGit(['commit', '-m', 'add initialized submodule fixture'], repositoryRoot);
+    const lock = lockChatAtHead(fixture, runGit(['rev-parse', 'HEAD'], repositoryRoot));
+    const initializedSubmoduleRoot = resolve(repositoryRoot, submodulePath);
+    appendFileSync(
+      resolve(initializedSubmoduleRoot, 'tracked.txt'),
+      'private dirty submodule content\n',
+    );
+    runGit(['config', '--local', `submodule.${submoduleName}.ignore`, 'all'], repositoryRoot);
+
+    expect(runGitWithHostConfiguration(['status', '--porcelain=v1'], repositoryRoot)).toBe('');
+
+    for (const verify of [
+      () => assertCleanPhase1Checkouts(fixture.roots),
+      () => assertPhase1CheckoutHeads(lock, fixture.roots),
+    ]) {
+      let message = '';
+      try {
+        verify();
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(message).toBe('chat checkout has 1 submodule entry.');
+      expect(message).not.toContain(submoduleName);
+      expect(message).not.toContain(submodulePath);
+      expect(message).not.toContain('private dirty submodule content');
+      expect(message).not.toContain(repositoryRoot);
+    }
+
+    expect(
+      runGit(['config', '--local', '--get', `submodule.${submoduleName}.ignore`], repositoryRoot),
+    ).toBe('all');
+  });
+
+  gitTest('rejects a clean committed submodule on both verification paths', () => {
+    const fixture = createCheckoutFixture();
+    const repositoryRoot = fixture.roots.chatRoot;
+    const submodulePath = 'vendor/clean-fixture';
+    runGit(
+      [
+        '-c',
+        'protocol.file.allow=always',
+        'submodule',
+        'add',
+        '--name',
+        'clean-fixture',
+        fixture.roots.sdkRoot,
+        submodulePath,
+      ],
+      repositoryRoot,
+    );
+    runGit(['commit', '-m', 'add clean submodule fixture'], repositoryRoot);
+    const lock = lockChatAtHead(fixture, runGit(['rev-parse', 'HEAD'], repositoryRoot));
+
+    expect(runGit(['status', '--porcelain=v1'], repositoryRoot)).toBe('');
+
+    for (const verify of [
+      () => assertCleanPhase1Checkouts(fixture.roots),
+      () => assertPhase1CheckoutHeads(lock, fixture.roots),
+    ]) {
+      let message = '';
+      try {
+        verify();
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(message).toBe('chat checkout has 1 submodule entry.');
+      expect(message).not.toContain('clean-fixture');
+      expect(message).not.toContain(submodulePath);
+      expect(message).not.toContain(repositoryRoot);
+    }
+  });
+
+  gitTest('bounds submodule diagnostics without disclosing index paths', () => {
+    const fixture = createCheckoutFixture();
+    const repositoryRoot = fixture.roots.chatRoot;
+    const secretPaths = Array.from({ length: 101 }, (_, index) => `do-not-leak-submodule-${index}`);
+    const indexInput = secretPaths
+      .map((path) => `160000 ${fixture.revisions.sdk}\t${path}`)
+      .join('\n');
+    runGit(['update-index', '--index-info'], repositoryRoot, `${indexInput}\n`);
+
+    for (const verify of [
+      () => assertCleanPhase1Checkouts(fixture.roots),
+      () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+    ]) {
+      let message = '';
+      try {
+        verify();
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(message).toBe('chat checkout has 100+ submodule entries.');
+      expect(message).not.toContain(secretPaths[0]);
+      expect(message).not.toContain(secretPaths.at(-1));
+      expect(message).not.toContain(repositoryRoot);
+    }
+  });
+
+  test.each([
+    ['entry count', { trackedEntryLimit: 0 }],
+    ['path bytes', { trackedPathByteLimit: 0 }],
+  ] as const)(
+    'rejects tracked %s over the configured internal test limit',
+    (_limitKind, limits) => {
+      expect(phase1ConformanceTestOnly).toBeDefined();
+      const fixture = createCheckoutFixture();
+
+      for (const verify of [
+        () =>
+          phase1ConformanceTestOnly.assertCleanPhase1Checkouts(fixture.roots, {
+            limits,
+          }),
+        () =>
+          phase1ConformanceTestOnly.assertPhase1CheckoutHeads(fixture.lock, fixture.roots, {
+            limits,
+          }),
+      ]) {
+        expect(verify).toThrow('chat checkout exceeds tracked path limits.');
+      }
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  test.skipIf(process.platform === 'win32')(
+    'shares one shrinking deadline across all Git commands for a repository',
+    () => {
+      expect(phase1ConformanceTestOnly).toBeDefined();
+      const fixture = createCheckoutFixture();
+      const fakeBin = createScratchRoot('deadline-git');
+      const fakeGitPath = resolve(fakeBin, 'git');
+      const invocationMarker = resolve(fakeBin, 'invocations');
+      const originalPath = process.env.PATH ?? '';
+      writeFileSync(
+        fakeGitPath,
+        `#!/bin/sh
+printf 'invoked\\n' >> ${JSON.stringify(invocationMarker)}
+sleep 0.5
+PATH=${JSON.stringify(originalPath)} exec git "$@"
+`,
+      );
+      chmodSync(fakeGitPath, 0o755);
+      const startedAt = Date.now();
+
+      withTemporaryProcessEnv(
+        {
+          PATH: `${fakeBin}${delimiter}${originalPath}`,
+        },
+        () => {
+          expect(() =>
+            phase1ConformanceTestOnly.assertCleanPhase1Checkouts(fixture.roots, {
+              limits: { repositoryDeadlineMs: 5_000 },
+            }),
+          ).toThrow('chat checkout verification timed out.');
+        },
+      );
+
+      expect(Date.now() - startedAt).toBeLessThan(7_500);
+      expect(
+        readFileSync(invocationMarker, 'utf8').split('\n').filter(Boolean).length,
+      ).toBeGreaterThan(1);
+      expect(
+        readdirSync(projectRoot).filter((entry) => entry.startsWith('.phase1-conformance-hooks-')),
+      ).toEqual([]);
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  gitTest('creates isolated fixture commits despite hostile HOME and XDG global config', () => {
+    const ignoredName = 'tracked.txt';
+    const hostileHome = createHostileGlobalGitConfig('HOME', ignoredName);
+    const hostileXdg = createHostileGlobalGitConfig('XDG_CONFIG_HOME', ignoredName);
+
+    const fixture = withTemporaryProcessEnv(
+      {
+        HOME: hostileHome.environment.HOME,
+        XDG_CONFIG_HOME: hostileXdg.environment.XDG_CONFIG_HOME,
+      },
+      () => createCheckoutFixture(),
+    );
+
+    for (const key of repositoryKeys) {
+      const repositoryRoot = fixture.roots[`${key}Root`];
+      expect(runGit(['status', '--porcelain=v1'], repositoryRoot)).toBe('');
+      expect(runGit(['rev-parse', 'HEAD'], repositoryRoot)).toBe(fixture.revisions[key]);
+    }
+  });
+
+  gitTest('ignores hostile global attributes without executing a local filter command', () => {
+    const fixture = createCheckoutFixture();
+    const repositoryRoot = fixture.roots.chatRoot;
+    const hostileRoot = createScratchRoot('hostile-global-attributes');
+    const homeRoot = resolve(hostileRoot, 'home');
+    const configPath = resolve(homeRoot, '.gitconfig');
+    const attributesPath = resolve(hostileRoot, 'global-attributes');
+    const markerPath = resolve(hostileRoot, 'filter-executed');
+    mkdirSync(homeRoot);
+    writeFileSync(attributesPath, 'tracked.txt filter=hostile\n');
+    runGit(['config', '--file', configPath, 'core.attributesFile', attributesPath], projectRoot);
+    configureHostileCleanFilter(repositoryRoot, markerPath);
+    appendFileSync(resolve(repositoryRoot, 'tracked.txt'), 'private changed content\n');
+
+    withTemporaryProcessEnv(
+      {
+        HOME: homeRoot,
+        XDG_CONFIG_HOME: resolve(hostileRoot, 'xdg'),
+      },
+      () => {
+        expect(
+          runGitWithHostConfiguration(['diff', '--quiet', '--', 'tracked.txt'], repositoryRoot),
+        ).toBe('');
+        expect(existsSync(markerPath)).toBe(true);
+        rmSync(markerPath);
+
+        for (const verify of [
+          () => assertCleanPhase1Checkouts(fixture.roots),
+          () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+        ]) {
+          expect(verify).toThrow('chat checkout is dirty (1 unstaged change).');
+          expect(existsSync(markerPath)).toBe(false);
+        }
+      },
+    );
+  });
+
+  test.each(['committed', 'staged'] as const)(
+    'rejects a %s filter attribute before its clean command can spoof status',
+    (attributeState) => {
+      const fixture = createCheckoutFixture();
+      const repositoryRoot = fixture.roots.chatRoot;
+      const markerPath = resolve(
+        createScratchRoot(`${attributeState}-filter-canary`),
+        'filter-executed',
+      );
+      const secretPath = resolve(repositoryRoot, 'tracked.txt');
+      writeFileSync(resolve(repositoryRoot, '.gitattributes'), 'tracked.txt filter=hostile\n');
+      runGit(['add', '.gitattributes'], repositoryRoot);
+
+      let lock = fixture.lock;
+      if (attributeState === 'committed') {
+        runGit(['commit', '-m', 'add hostile filter attribute'], repositoryRoot);
+        lock = lockChatAtHead(fixture, runGit(['rev-parse', 'HEAD'], repositoryRoot));
+      }
+
+      configureHostileCleanFilter(repositoryRoot, markerPath);
+      appendFileSync(secretPath, 'private changed content\n');
+
+      if (attributeState === 'committed') {
+        expect(
+          runGitWithHostConfiguration(['diff', '--quiet', '--', 'tracked.txt'], repositoryRoot),
+        ).toBe('');
+        expect(existsSync(markerPath)).toBe(true);
+        rmSync(markerPath);
+      }
+
+      for (const verify of [
+        () => assertCleanPhase1Checkouts(fixture.roots),
+        () => assertPhase1CheckoutHeads(lock, fixture.roots),
+      ]) {
+        let message = '';
+        try {
+          verify();
+        } catch (error) {
+          message = error instanceof Error ? error.message : String(error);
+        }
+
+        expect(message).toBe('chat checkout has 1 tracked entry with an active filter attribute.');
+        expect(message).not.toContain('tracked.txt');
+        expect(message).not.toContain('hostile');
+        expect(message).not.toContain(secretPath);
+        expect(message).not.toContain(repositoryRoot);
+        expect(existsSync(markerPath)).toBe(false);
+      }
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  gitTest('ignores an uncommitted worktree filter attribute while reporting dirty files', () => {
+    const fixture = createCheckoutFixture();
+    const repositoryRoot = fixture.roots.chatRoot;
+    const markerPath = resolve(createScratchRoot('worktree-filter-canary'), 'filter-executed');
+    configureHostileCleanFilter(repositoryRoot, markerPath);
+    writeFileSync(resolve(repositoryRoot, '.gitattributes'), 'tracked.txt filter=hostile\n');
+    appendFileSync(resolve(repositoryRoot, 'tracked.txt'), 'private changed content\n');
+
+    for (const verify of [
+      () => assertCleanPhase1Checkouts(fixture.roots),
+      () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+    ]) {
+      let message = '';
+      try {
+        verify();
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(message).toBe('chat checkout is dirty (1 unstaged change, 1 untracked item).');
+      expect(message).not.toContain('tracked.txt');
+      expect(message).not.toContain('.gitattributes');
+      expect(message).not.toContain('hostile');
+      expect(message).not.toContain(repositoryRoot);
+      expect(existsSync(markerPath)).toBe(false);
+    }
+  });
+
+  gitTest('bounds active tracked-filter diagnostics without executing filter commands', () => {
+    const fixture = createCheckoutFixture();
+    const repositoryRoot = fixture.roots.chatRoot;
+    const markerPath = resolve(createScratchRoot('bounded-filter-canary'), 'filter-executed');
+    const secretNames = Array.from(
+      { length: 101 },
+      (_, index) => `do-not-leak-filtered-${index}.txt`,
+    );
+
+    for (const secretName of secretNames) {
+      writeFileSync(resolve(repositoryRoot, secretName), 'tracked filtered content\n');
+    }
+    writeFileSync(
+      resolve(repositoryRoot, '.gitattributes'),
+      'do-not-leak-filtered-*.txt filter=hostile\n',
+    );
+    runGit(['add', '.gitattributes', ...secretNames], repositoryRoot);
+    runGit(['commit', '-m', 'add bounded filter fixtures'], repositoryRoot);
+    const lockedRevision = runGit(['rev-parse', 'HEAD'], repositoryRoot);
+    const lock = lockChatAtHead(fixture, lockedRevision);
+    configureHostileCleanFilter(repositoryRoot, markerPath);
+
+    for (const verify of [
+      () => assertCleanPhase1Checkouts(fixture.roots),
+      () => assertPhase1CheckoutHeads(lock, fixture.roots),
+    ]) {
+      let message = '';
+      try {
+        verify();
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(message).toBe('chat checkout has 100+ tracked entries with active filter attributes.');
+      expect(message).not.toContain(secretNames[0]);
+      expect(message).not.toContain(secretNames.at(-1));
+      expect(message).not.toContain('hostile');
+      expect(message).not.toContain(repositoryRoot);
+      expect(existsSync(markerPath)).toBe(false);
+    }
+  });
+
+  test.skipIf(process.platform === 'win32')(
+    'forces file mode checks despite local core.fileMode=false',
+    () => {
+      const fixture = createCheckoutFixture();
+      const repositoryRoot = fixture.roots.chatRoot;
+      const trackedPath = resolve(repositoryRoot, 'tracked.txt');
+      runGit(['config', '--local', 'core.fileMode', 'false'], repositoryRoot);
+      chmodSync(trackedPath, 0o755);
+
+      expect(runGitWithHostConfiguration(['status', '--porcelain=v1'], repositoryRoot)).toBe('');
+
+      for (const verify of [
+        () => assertCleanPhase1Checkouts(fixture.roots),
+        () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+      ]) {
+        let message = '';
+        try {
+          verify();
+        } catch (error) {
+          message = error instanceof Error ? error.message : String(error);
+        }
+
+        expect(message).toBe('chat checkout is dirty (1 unstaged change).');
+        expect(message).not.toContain('tracked.txt');
+        expect(message).not.toContain(trackedPath);
+        expect(message).not.toContain(repositoryRoot);
+      }
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  test.runIf(process.platform === 'win32')(
+    'does not treat POSIX executable mode as an enforceable worktree property on Windows',
+    () => {
+      const fixture = createCheckoutFixture();
+      chmodSync(resolve(fixture.roots.chatRoot, 'tracked.txt'), 0o755);
+
+      expect(assertCleanPhase1Checkouts(fixture.roots).chat).toEqual({
+        staged: 0,
+        unstaged: 0,
+        untracked: 0,
+      });
+      expect(assertPhase1CheckoutHeads(fixture.lock, fixture.roots).chat).toBe(
+        fixture.revisions.chat,
+      );
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  gitTest('rejects an index executable-mode change on every platform', () => {
+    const fixture = createCheckoutFixture();
+    const repositoryRoot = fixture.roots.chatRoot;
+    runGit(['update-index', '--chmod=+x', 'tracked.txt'], repositoryRoot);
+
+    for (const verify of [
+      () => assertCleanPhase1Checkouts(fixture.roots),
+      () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+    ]) {
+      let message = '';
+      try {
+        verify();
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(message).toContain('chat checkout is dirty (1 staged change');
+      expect(message).not.toContain('tracked.txt');
+      expect(message).not.toContain(repositoryRoot);
+    }
+  });
+
+  test.each(repositoryKeys)(
+    'rejects replacement refs in a clean locked %s checkout on both verification paths',
+    (key) => {
+      const fixture = createCheckoutFixture();
+      const repositoryRoot = fixture.roots[`${key}Root`];
+      const originalBlob = runGit(['rev-parse', 'HEAD:tracked.txt'], repositoryRoot);
+      const replacementBlob = runGit(
+        ['hash-object', '-w', '--stdin'],
+        repositoryRoot,
+        'unreviewed replacement content\n',
+      );
+      runGit(['replace', originalBlob, replacementBlob], repositoryRoot);
+
+      expect(runGit(['rev-parse', 'HEAD'], repositoryRoot)).toBe(fixture.revisions[key]);
+      expect(runGit(['status', '--porcelain=v1'], repositoryRoot)).toBe('');
+
+      for (const verify of [
+        () => assertCleanPhase1Checkouts(fixture.roots),
+        () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+      ]) {
+        let message = '';
+        try {
+          verify();
+        } catch (error) {
+          message = error instanceof Error ? error.message : String(error);
+        }
+
+        expect(message).toBe(`${key} checkout has 1 replacement ref.`);
+        expect(message).not.toContain(originalBlob);
+        expect(message).not.toContain(replacementBlob);
+        expect(message).not.toContain('unreviewed replacement content');
+        expect(message).not.toContain(repositoryRoot);
+      }
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  gitTest('bounds replacement-ref diagnostics without disclosing ref names', () => {
+    const fixture = createCheckoutFixture();
+    const repositoryRoot = fixture.roots.chatRoot;
+    const replacementBlob = runGit(
+      ['hash-object', '-w', '--stdin'],
+      repositoryRoot,
+      'replacement object\n',
+    );
+    const updates = Array.from(
+      { length: 101 },
+      (_, index) =>
+        `update refs/replace/${(index + 1).toString(16).padStart(40, '0')} ${replacementBlob}`,
+    ).join('\n');
+    runGit(['update-ref', '--stdin'], repositoryRoot, `${updates}\n`);
+
+    for (const verify of [
+      () => assertCleanPhase1Checkouts(fixture.roots),
+      () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+    ]) {
+      expect(verify).toThrow('chat checkout has 100+ replacement refs.');
+    }
+  });
+
+  test.each(
+    repositoryKeys.flatMap((key) =>
+      hiddenIndexStates.map(([state, updateFlag]) => [key, state, updateFlag] as const),
+    ),
+  )(
+    'rejects a modified %s checkout with clean status and locked HEAD when tracked state is %s',
+    (key, _state, updateFlag) => {
+      const fixture = createCheckoutFixture();
+      const repositoryRoot = fixture.roots[`${key}Root`];
+      runGit(['update-index', updateFlag, 'tracked.txt'], repositoryRoot);
+      appendFileSync(resolve(repositoryRoot, 'tracked.txt'), 'private hidden content\n');
+
+      expect(runGit(['status', '--porcelain=v1'], repositoryRoot)).toBe('');
+      expect(runGit(['rev-parse', 'HEAD'], repositoryRoot)).toBe(fixture.revisions[key]);
+
+      for (const verify of [
+        () => assertCleanPhase1Checkouts(fixture.roots),
+        () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+      ]) {
+        let message = '';
+        try {
+          verify();
+        } catch (error) {
+          message = error instanceof Error ? error.message : String(error);
+        }
+
+        expect(message).toBe(`${key} checkout has 1 hidden index entry.`);
+        expect(message).not.toContain('tracked.txt');
+        expect(message).not.toContain('private hidden content');
+        expect(message).not.toContain(repositoryRoot);
+      }
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  gitTest('counts an unmodified path carrying both hidden index flags once', () => {
+    const fixture = createCheckoutFixture();
+    const repositoryRoot = fixture.roots.chatRoot;
+    runGit(['update-index', '--assume-unchanged', 'tracked.txt'], repositoryRoot);
+    runGit(['update-index', '--skip-worktree', 'tracked.txt'], repositoryRoot);
+
+    expect(runGit(['status', '--porcelain=v1'], repositoryRoot)).toBe('');
+    expect(runGit(['rev-parse', 'HEAD'], repositoryRoot)).toBe(fixture.revisions.chat);
+
+    for (const verify of [
+      () => assertCleanPhase1Checkouts(fixture.roots),
+      () => assertPhase1CheckoutHeads(fixture.lock, fixture.roots),
+    ]) {
+      expect(verify).toThrow('chat checkout has 1 hidden index entry.');
+    }
+  });
+
+  gitTest('bounds hidden-index diagnostics without disclosing paths', () => {
+    const fixture = createCheckoutFixture();
+    const repositoryRoot = fixture.roots.chatRoot;
+    const secretNames = Array.from(
+      { length: 101 },
+      (_, index) => `do-not-leak-hidden-index-${index}.txt`,
+    );
+
+    for (const secretName of secretNames) {
+      writeFileSync(resolve(repositoryRoot, secretName), 'private tracked content\n');
+    }
+    runGit(['add', ...secretNames], repositoryRoot);
+    runGit(['commit', '-m', 'add hidden index fixtures'], repositoryRoot);
+    const lockedRevision = runGit(['rev-parse', 'HEAD'], repositoryRoot);
+    const lock = {
+      ...fixture.lock,
+      chat: {
+        repository: expectedEntries.chat.repository,
+        revision: lockedRevision,
+      },
+    };
+
+    const hiddenPathsInput = `${secretNames.join('\0')}\0`;
+    runGit(
+      ['update-index', '--assume-unchanged', '-z', '--stdin'],
+      repositoryRoot,
+      hiddenPathsInput,
+    );
+    runGit(['update-index', '--skip-worktree', '-z', '--stdin'], repositoryRoot, hiddenPathsInput);
+
+    expect(runGit(['status', '--porcelain=v1'], repositoryRoot)).toBe('');
+
+    for (const verify of [
+      () => assertCleanPhase1Checkouts(fixture.roots),
+      () => assertPhase1CheckoutHeads(lock, fixture.roots),
+    ]) {
+      let message = '';
+      try {
+        verify();
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(message).toBe('chat checkout has 100+ hidden index entries.');
+      expect(message).not.toContain(secretNames[0]);
+      expect(message).not.toContain(secretNames.at(-1));
+      expect(message).not.toContain('private tracked content');
+      expect(message).not.toContain(repositoryRoot);
+    }
+  });
+
+  test.each([
+    ['chat', 'staged', '1 staged change'],
+    ['sdk', 'unstaged', '1 unstaged change'],
+    ['cave', 'untracked', '1 untracked item'],
+    ['coven', 'staged', '1 staged change'],
+  ] as const)(
+    'rejects a dirty %s checkout with a bounded %s count',
+    (key, state, summary) => {
+      const fixture = createCheckoutFixture();
+      const repositoryRoot = fixture.roots[`${key}Root`];
+      const secretName = `do-not-leak-${key}-${state}.txt`;
+
+      if (state === 'untracked') {
+        writeFileSync(resolve(repositoryRoot, secretName), 'private fixture content\n');
+      } else {
+        appendFileSync(resolve(repositoryRoot, 'tracked.txt'), 'private fixture content\n');
+
+        if (state === 'staged') {
+          runGit(['add', 'tracked.txt'], repositoryRoot);
+        }
+      }
+
+      let message = '';
+      try {
+        assertCleanPhase1Checkouts(fixture.roots);
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+
+      expect(message).toContain(`${key} checkout is dirty (${summary})`);
+      expect(message).not.toContain(secretName);
+      expect(message).not.toContain('private fixture content');
+      expect(message).not.toContain(repositoryRoot);
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  test.each(repositoryKeys)(
+    'rejects a %s HEAD mismatch with only label and SHAs',
+    (key) => {
+      const fixture = createCheckoutFixture();
+      const repositoryRoot = fixture.roots[`${key}Root`];
+      writeFileSync(resolve(repositoryRoot, 'second.txt'), `${key} second commit\n`);
+      runGit(['add', 'second.txt'], repositoryRoot);
+      runGit(['commit', '-m', `${key} second`], repositoryRoot);
+      const actualRevision = runGit(['rev-parse', 'HEAD'], repositoryRoot);
+
+      expect(() => assertPhase1CheckoutHeads(fixture.lock, fixture.roots)).toThrow(
+        `${key} checkout HEAD ${actualRevision} does not match expected ${fixture.revisions[key]}.`,
+      );
+    },
+    gitIntegrationTestTimeout,
+  );
+
+  gitTest('rejects missing and non-path checkout roots explicitly', () => {
+    const fixture = createCheckoutFixture();
+    const missingRoot = { ...fixture.roots, covenRoot: undefined };
+    const nonPathRoot = { ...fixture.roots, sdkRoot: 42 };
+
+    expect(() => assertCleanPhase1Checkouts(missingRoot as never)).toThrow(
+      'coven checkout root must be a non-empty path string.',
+    );
+    expect(() => assertPhase1CheckoutHeads(fixture.lock, nonPathRoot as never)).toThrow(
+      'sdk checkout root must be a non-empty path string.',
+    );
+  });
+});

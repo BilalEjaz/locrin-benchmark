@@ -1,0 +1,13 @@
+{
+  "id": "Shieldforce__checkout-payment__9a1ae90",
+  "source": "git",
+  "repo": "Shieldforce/checkout-payment",
+  "sha": "9a1ae9057bcc93ddf111438c06ad8429b035ab6c",
+  "parent": "a066cb29bf2635ab776fcc18ca9336768cb20f6a",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/Shieldforce/checkout-payment/commit/9a1ae9057bcc93ddf111438c06ad8429b035ab6c",
+  "files": [
+    "src/Services/Sicoob/Boleto/BoletoPixService.php"
+  ]
+}

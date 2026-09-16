@@ -1,0 +1,15 @@
+{
+  "id": "Impractical-Instruments__reuben__48e7f49",
+  "source": "git",
+  "repo": "Impractical-Instruments/reuben",
+  "sha": "48e7f49c4a3761a1ae31ea1df0bf7a804f447c14",
+  "parent": "a8faea40db9f381482d64ff4786a443126371461",
+  "licence": "BSD-3-Clause",
+  "language": "python",
+  "url": "https://github.com/Impractical-Instruments/reuben/commit/48e7f49c4a3761a1ae31ea1df0bf7a804f447c14",
+  "files": [
+    ".claude/skills/absorb-adrs/test_scaffold_rule.py",
+    "scripts/extract_doc_claims.py",
+    "scripts/test_extract_doc_claims.py"
+  ]
+}

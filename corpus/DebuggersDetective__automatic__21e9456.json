@@ -1,0 +1,28 @@
+{
+  "id": "DebuggersDetective__automatic__21e9456",
+  "source": "git",
+  "repo": "DebuggersDetective/automatic",
+  "sha": "21e94563426f3329334dcaa65d66a5bed695a553",
+  "parent": "fbcddb451cb4a29b617b03505f831c95b16e5e5e",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/DebuggersDetective/automatic/commit/21e94563426f3329334dcaa65d66a5bed695a553",
+  "files": [
+    "redis/_parsers/__init__.py",
+    "redis/_parsers/base.py",
+    "redis/_parsers/hiredis.py",
+    "redis/_parsers/resp3.py",
+    "redis/asyncio/client.py",
+    "redis/asyncio/connection.py",
+    "redis/client.py",
+    "redis/cluster.py",
+    "redis/connection.py",
+    "redis/utils.py",
+    "tests/test_asyncio/test_pubsub.py",
+    "tests/test_asyncio/test_search.py",
+    "tests/test_cache.py",
+    "tests/test_connection_pool.py",
+    "tests/test_pubsub.py",
+    "tests/test_search.py"
+  ]
+}

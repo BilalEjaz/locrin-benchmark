@@ -1,0 +1,13 @@
+{
+  "id": "huizongsong__deepchat__e7fdd7b",
+  "source": "git",
+  "repo": "huizongsong/deepchat",
+  "sha": "e7fdd7b0306f79575fd86d2b5769603c7168dd41",
+  "parent": "41e629e32f05e75baa3d71260556b4b76b9436b7",
+  "licence": "Apache-2.0",
+  "language": "typescript",
+  "url": "https://github.com/huizongsong/deepchat/commit/e7fdd7b0306f79575fd86d2b5769603c7168dd41",
+  "files": [
+    "src/main/presenter/threadPresenter/index.ts"
+  ]
+}

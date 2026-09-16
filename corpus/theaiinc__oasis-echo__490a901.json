@@ -1,0 +1,17 @@
+{
+  "id": "theaiinc__oasis-echo__490a901",
+  "source": "git",
+  "repo": "theaiinc/oasis-echo",
+  "sha": "490a9012850a38d500a824be51441c43a77f0cfe",
+  "parent": "fe01ac6f094c4994330c9c5122f4467e49622592",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/theaiinc/oasis-echo/commit/490a9012850a38d500a824be51441c43a77f0cfe",
+  "files": [
+    "packages/app/src/server.ts",
+    "packages/coordinator/src/funasr-bridge.py",
+    "packages/coordinator/src/funasr-bridge.test.py",
+    "packages/coordinator/src/funasr-streaming-stt.ts",
+    "packages/coordinator/src/postprocess/rules.ts"
+  ]
+}

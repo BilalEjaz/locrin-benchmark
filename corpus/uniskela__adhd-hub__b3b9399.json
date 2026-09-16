@@ -1,0 +1,17 @@
+{
+  "id": "uniskela__adhd-hub__b3b9399",
+  "source": "git",
+  "repo": "uniskela/adhd-hub",
+  "sha": "b3b939911557f9f5a3a2629188884066b281e264",
+  "parent": "a5c20b1c5078cdeb03f4ba7e96e45c5f7ab18c7b",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/uniskela/adhd-hub/commit/b3b939911557f9f5a3a2629188884066b281e264",
+  "files": [
+    "src/adhd_hub/forge/board_sync.py",
+    "src/adhd_hub/forge/facade.py",
+    "src/adhd_hub/models.py",
+    "src/adhd_hub/service.py",
+    "tests/test_wiki_forge_target.py"
+  ]
+}

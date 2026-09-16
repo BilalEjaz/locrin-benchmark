@@ -1,0 +1,15 @@
+{
+  "id": "Zen-cronic__rhode__3636795",
+  "source": "git",
+  "repo": "Zen-cronic/rhode",
+  "sha": "363679571dd484b7c322f68ea535f15a933c4c1a",
+  "parent": "b26689ce5dbb0c26596fef04c854d0409e98f9e9",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/Zen-cronic/rhode/commit/363679571dd484b7c322f68ea535f15a933c4c1a",
+  "files": [
+    "scripts/verify-cloud-workflow-receipt.mjs",
+    "scripts/verify-deployed-release.mjs",
+    "scripts/verify-judge-access-readiness.mjs"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "iwangbowen__zenith-admin__493269d",
+  "source": "git",
+  "repo": "iwangbowen/zenith-admin",
+  "sha": "493269dbc9a5e9380f0b3bde776f45ede62328d8",
+  "parent": "074230cc2c18b08cbbf0a1e6fdc1cb6dba731af4",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/iwangbowen/zenith-admin/commit/493269dbc9a5e9380f0b3bde776f45ede62328d8",
+  "files": [
+    "packages/server/src/lib/contract-route-access.test.ts",
+    "packages/server/src/lib/contract-route.ts",
+    "packages/server/src/routes/_crud.ts",
+    "packages/server/src/routes/identity/impersonation.ts",
+    "packages/server/src/routes/identity/sessions.ts",
+    "packages/shared/src/contract-access.test.ts",
+    "packages/shared/src/contracts.ts",
+    "packages/shared/src/core/contract.ts",
+    "packages/shared/src/identity/contracts/impersonation.ts",
+    "packages/shared/src/identity/contracts/sessions.ts"
+  ]
+}

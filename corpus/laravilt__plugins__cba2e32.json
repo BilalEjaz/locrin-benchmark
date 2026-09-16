@@ -1,0 +1,21 @@
+{
+  "id": "laravilt__plugins__cba2e32",
+  "source": "git",
+  "repo": "laravilt/plugins",
+  "sha": "cba2e32aa08b0c57bcd12396a4190b42ad9dcff4",
+  "parent": "91f5bbd40c457549bb694222912314dca8bfc4f1",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/laravilt/plugins/commit/cba2e32aa08b0c57bcd12396a4190b42ad9dcff4",
+  "files": [
+    "src/BasePlugin.php",
+    "src/Mcp/Tools/GenerateComponentTool.php",
+    "src/Mcp/Tools/GeneratePluginTool.php",
+    "src/Mcp/Tools/ListComponentTypesTool.php",
+    "src/Mcp/Tools/ListPluginsTool.php",
+    "src/Mcp/Tools/PluginInfoTool.php",
+    "src/Mcp/Tools/PluginStructureTool.php",
+    "src/Mcp/Tools/SearchDocsTool.php",
+    "tests/Unit/Mcp/ListComponentTypesToolTest.php"
+  ]
+}

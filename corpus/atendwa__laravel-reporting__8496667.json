@@ -1,0 +1,13 @@
+{
+  "id": "atendwa__laravel-reporting__8496667",
+  "source": "git",
+  "repo": "atendwa/laravel-reporting",
+  "sha": "8496667756bee6b1f1932d19ed72ccc472d9f26e",
+  "parent": "1c153f708721cdf6f01a414338433a5ddbe91613",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/atendwa/laravel-reporting/commit/8496667756bee6b1f1932d19ed72ccc472d9f26e",
+  "files": [
+    "src/Commands/InstallCommand.php"
+  ]
+}

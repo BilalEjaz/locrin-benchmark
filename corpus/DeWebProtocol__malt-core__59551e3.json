@@ -1,0 +1,13 @@
+{
+  "id": "DeWebProtocol__malt-core__59551e3",
+  "source": "git",
+  "repo": "DeWebProtocol/malt-core",
+  "sha": "59551e3c11d9a7436b48d3f79e15d978c66fec65",
+  "parent": "b3ca02c9871c0affeefbd1ac70ad1e27c1bea4f5",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/DeWebProtocol/malt-core/commit/59551e3c11d9a7436b48d3f79e15d978c66fec65",
+  "files": [
+    "scripts/check-writer-backends.test.mjs"
+  ]
+}

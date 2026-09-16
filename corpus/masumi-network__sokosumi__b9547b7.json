@@ -1,0 +1,14 @@
+{
+  "id": "masumi-network__sokosumi__b9547b7",
+  "source": "git",
+  "repo": "masumi-network/sokosumi",
+  "sha": "b9547b7284f67e62d943b910a03e0a1b7a426478",
+  "parent": "9408c915fce67d6858c28e3f53b82be757016ed2",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/masumi-network/sokosumi/commit/b9547b7284f67e62d943b910a03e0a1b7a426478",
+  "files": [
+    "apps/web/src/app/(app)/chat/components/transcript-viewport.test.tsx",
+    "apps/web/src/app/(app)/chat/components/transcript-viewport.tsx"
+  ]
+}

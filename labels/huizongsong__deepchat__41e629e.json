@@ -1,0 +1,33 @@
+{
+  "diff": "huizongsong__deepchat__41e629e",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "leftover-debug",
+      "file": "src/main/presenter/threadPresenter/index.ts",
+      "line": 2927,
+      "id": "c7a41b3b14cee3fa",
+      "pass1": "true",
+      "pass2": "false-positive",
+      "note": "console.log is this module's established logging (39 tagged [ThreadPresenter] console.log calls, no logger import); this is a status line in that convention, not a leftover debug print"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "src/main/presenter/threadPresenter/index.ts",
+      "line": 2944,
+      "id": "456be27ef1ea838d",
+      "pass1": "true",
+      "pass2": "false-positive",
+      "note": "console.log is this module's established logging (39 tagged [ThreadPresenter] console.log calls, no logger import); this is a status line in that convention, not a leftover debug print"
+    }
+  ]
+}

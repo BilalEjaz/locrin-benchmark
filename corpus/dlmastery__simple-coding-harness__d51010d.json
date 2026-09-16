@@ -1,0 +1,18 @@
+{
+  "id": "dlmastery__simple-coding-harness__d51010d",
+  "source": "git",
+  "repo": "dlmastery/simple-coding-harness",
+  "sha": "d51010d074005b0ab6e972d77593857a468b2f83",
+  "parent": "990a0817ba6abafc8da17b1e1eb51b8ccdaeed2d",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/dlmastery/simple-coding-harness/commit/d51010d074005b0ab6e972d77593857a468b2f83",
+  "files": [
+    "step_48_trueforge_sandbox_skills/client/__init__.py",
+    "step_48_trueforge_sandbox_skills/client/sandbox.py",
+    "step_48_trueforge_sandbox_skills/client/skills.py",
+    "step_48_trueforge_sandbox_skills/demo.py",
+    "step_48_trueforge_sandbox_skills/register_skill.py",
+    "step_48_trueforge_sandbox_skills/test_step.py"
+  ]
+}

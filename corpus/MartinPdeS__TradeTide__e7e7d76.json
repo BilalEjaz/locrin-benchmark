@@ -1,0 +1,25 @@
+{
+  "id": "MartinPdeS__TradeTide__e7e7d76",
+  "source": "git",
+  "repo": "MartinPdeS/TradeTide",
+  "sha": "e7e7d76d08547dfa926ee934131b7bdae3ec7861",
+  "parent": "6e0cd1ccd2c4bfe8516e23dfe942313ad61bacbb",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/MartinPdeS/TradeTide/commit/e7e7d76d08547dfa926ee934131b7bdae3ec7861",
+  "files": [
+    "TradeTide/__init__.py",
+    "TradeTide/_version.py",
+    "TradeTide/gui/app.js",
+    "TradeTide/gui/research.mjs",
+    "TradeTide/gui/server.py",
+    "TradeTide/performance.py",
+    "tests/test_gui.py",
+    "tests/test_performance.py",
+    "tests/test_workflow_tools.py",
+    "tools/check_gui_browser.py",
+    "tools/check_release.py",
+    "tools/release_tag.py",
+    "tools/test_gui_research.mjs"
+  ]
+}

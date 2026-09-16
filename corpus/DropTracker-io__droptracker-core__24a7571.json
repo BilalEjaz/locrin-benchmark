@@ -1,0 +1,14 @@
+{
+  "id": "DropTracker-io__droptracker-core__24a7571",
+  "source": "git",
+  "repo": "DropTracker-io/droptracker-core",
+  "sha": "24a75711c53c78765fdc719fa098cf4b704e2b3d",
+  "parent": "7987bc8542bb9e1c1136c4aa9ac9dc67662e9e78",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/DropTracker-io/droptracker-core/commit/24a75711c53c78765fdc719fa098cf4b704e2b3d",
+  "files": [
+    "lootboard/generator.py",
+    "lootboard/team_boards.py"
+  ]
+}

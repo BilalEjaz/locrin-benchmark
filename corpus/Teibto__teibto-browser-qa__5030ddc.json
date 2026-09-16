@@ -1,0 +1,15 @@
+{
+  "id": "Teibto__teibto-browser-qa__5030ddc",
+  "source": "git",
+  "repo": "Teibto/teibto-browser-qa",
+  "sha": "5030ddcf60fa4875a2cde648ff35957bd9494ae5",
+  "parent": "7563d7092c3765695933ec6fe0f3a31f44df1cd7",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/Teibto/teibto-browser-qa/commit/5030ddcf60fa4875a2cde648ff35957bd9494ae5",
+  "files": [
+    "scripts/flow-runner.py",
+    "tests/fixtures/fake_cdp.py",
+    "tests/test_flow_runner.py"
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "diff": "udzura__picoruby-cloudflare-worker-wasm__bbfc3e3",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "templates/runtime/host-bridge.js",
+      "line": 14,
+      "id": "1722900f534b0a99",
+      "pass1": "true",
+      "pass2": "false-positive",
+      "note": "pass one: HostBridgeError is exported but only constructed inside host-bridge.js itself; no file in the repository imports it, in the template or in the synced spike copy. pass two: templates/ is the shipped source copied byte-identical into spike/src by the Rakefile; HostBridgeError is the public error class of that API (thrown by decodeHostResult), not a dead symbol"
+    },
+    {
+      "rule": "dead-export",
+      "file": "templates/runtime/host-bridge.js",
+      "line": 70,
+      "id": "f3939bc7c15f654f",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: decodeHostResult is imported in the repository (spike/test/*.mjs from spike/src/host-bridge.js, the byte-identical copy the Rakefile syncs from this template). pass two: public API of the shipped template; the synced identical copy spike/src/host-bridge.js is imported for decodeHostResult by spike/test/durable-object.mjs and durable-object-workerd.mjs"
+    },
+    {
+      "rule": "dead-export",
+      "file": "templates/runtime/host-bridge.js",
+      "line": 132,
+      "id": "a70bf2daa3cdec13",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: hostErrorMessage is imported in the repository (spike/test/durable-object.mjs and runtime.mjs from the synced spike/src/host-bridge.js copy of this template). pass two: public API of the shipped template; the synced identical copy spike/src/host-bridge.js is imported for hostErrorMessage by spike/test/runtime.mjs and durable-object.mjs"
+    },
+    {
+      "rule": "dead-file",
+      "file": "templates/runtime/durable-object.js",
+      "line": 1,
+      "id": "04f1a777f5462fa5",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: spike/Rakefile's TEMPLATE_ASSETS names this file and copies it to spike/src/durable-object.js on every build, aborting if it is missing. pass two: named by spike/Rakefile TEMPLATE_ASSETS and copied to spike/src/durable-object.js on build, where spike/src/index.js imports it"
+    },
+    {
+      "rule": "dead-file",
+      "file": "templates/runtime/runtime.js",
+      "line": 1,
+      "id": "44318b37b7044aad",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: spike/Rakefile's TEMPLATE_ASSETS names this file and copies it to spike/src/runtime.js on every build, aborting if it is missing. pass two: named by spike/Rakefile TEMPLATE_ASSETS and copied to spike/src/runtime.js on build, where spike/src/index.js and the tests import it"
+    },
+    {
+      "rule": "dead-file",
+      "file": "templates/tools/generate-bindings.mjs",
+      "line": 1,
+      "id": "6751ca294ae08627",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: spike/Rakefile names this file and copies it to spike/scripts/generate-bindings.mjs, which package.json runs as a CLI entry point. pass two: CLI script named by spike/Rakefile TEMPLATE_ASSETS and copied to spike/scripts/generate-bindings.mjs, run by the package.json generate:bindings/check:bindings scripts"
+    }
+  ]
+}

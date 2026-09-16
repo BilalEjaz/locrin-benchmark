@@ -1,0 +1,14 @@
+{
+  "id": "aansensei__space-shooter__e9f6064",
+  "source": "git",
+  "repo": "aansensei/space-shooter",
+  "sha": "e9f6064c32735e69e8136447a2293b9bd377ab17",
+  "parent": "2410d3c0757f0290f2bbada40349bb4b465ed0b5",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/aansensei/space-shooter/commit/e9f6064c32735e69e8136447a2293b9bd377ab17",
+  "files": [
+    "js/render/enemy-dargruel.js",
+    "sw.js"
+  ]
+}

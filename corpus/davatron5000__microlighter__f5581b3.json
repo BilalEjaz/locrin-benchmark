@@ -1,0 +1,30 @@
+{
+  "id": "davatron5000__microlighter__f5581b3",
+  "source": "git",
+  "repo": "davatron5000/microlighter",
+  "sha": "f5581b3387ffbe971faabd554e1d70f2b0ecbbd8",
+  "parent": "00dd405d5596d1cd87be783bcfab97f13378baf5",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/davatron5000/microlighter/commit/f5581b3387ffbe971faabd554e1d70f2b0ecbbd8",
+  "files": [
+    "src/grammar-dependencies.js",
+    "src/grammars/cpp.js",
+    "src/grammars/html.js",
+    "src/grammars/markdown.js",
+    "src/grammars/objective-c.js",
+    "src/grammars/scss.js",
+    "src/grammars/svelte.js",
+    "src/grammars/tsx.js",
+    "src/grammars/typescript.js",
+    "src/grammars/vue.js",
+    "src/highlight-all.js",
+    "src/index.js",
+    "src/language-aliases.js",
+    "src/microlighter.js",
+    "test/build.spec.js",
+    "test/grammar-dependencies.spec.js",
+    "test/grammar-exhaustive.spec.pw.js",
+    "test/highlight.spec.pw.js"
+  ]
+}

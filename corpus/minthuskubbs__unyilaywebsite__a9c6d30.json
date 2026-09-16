@@ -1,0 +1,13 @@
+{
+  "id": "minthuskubbs__unyilaywebsite__a9c6d30",
+  "source": "git",
+  "repo": "minthuskubbs/unyilaywebsite",
+  "sha": "a9c6d305719922c4916eecb2f1e66e4e25c9a632",
+  "parent": "9734966d782f75277d9455b225ae87fc86334351",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/minthuskubbs/unyilaywebsite/commit/a9c6d305719922c4916eecb2f1e66e4e25c9a632",
+  "files": [
+    "resources/views/components/home/hero.blade.php"
+  ]
+}

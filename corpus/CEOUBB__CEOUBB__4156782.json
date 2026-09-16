@@ -1,0 +1,15 @@
+{
+  "id": "CEOUBB__CEOUBB__4156782",
+  "source": "git",
+  "repo": "CEOUBB/CEOUBB",
+  "sha": "415678259bd5d88199fba9f4da428a543db19455",
+  "parent": "4716c7b65d33bdeee34d125791ee9124417f4dd5",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/CEOUBB/CEOUBB/commit/415678259bd5d88199fba9f4da428a543db19455",
+  "files": [
+    "app/preview/docente/teacher-preview-panels.tsx",
+    "app/views/CoursesDashboard.tsx",
+    "lib/portal-utils.ts"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "diff": "hsuanliu112__ChainSUI__b9f6865",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "unused-import",
+      "file": "backend/tests/integration/test_llm_client.py",
+      "line": 10,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: New file imports pytest but no binding of it is used anywhere in the file. pass two: new file imports pytest and never references it (no pytest.mark, pytest.raises or fixture use anywhere in the file)"
+    },
+    {
+      "rule": "unused-import",
+      "file": "backend/app/models/__init__.py",
+      "line": 16,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "AgentDecisionRecord is imported into the package __init__ and never referenced in the file, not even in __all__ where every other model import is listed; no other file imports it from app.models pass one: This commit adds `from .agent_decision import AgentDecisionRecord` as the file's only insertion (parent 5ee0bc4 has no such import), and its single binding AgentDecisionRecord is never referenced in the file and is absent from __all__, while neither earlier corpus diff (417514f, 679da20) touches this file so neither introduced it."
+    }
+  ]
+}

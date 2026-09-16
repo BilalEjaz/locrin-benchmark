@@ -1,0 +1,13 @@
+{
+  "id": "MartinCa__frontend-kit__7e9d5c5",
+  "source": "git",
+  "repo": "MartinCa/frontend-kit",
+  "sha": "7e9d5c57afd4e281248c9b9fcec6a52be42e1a65",
+  "parent": "e69480e8ef444ac17aecdd2017d6d16ee40a518e",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/MartinCa/frontend-kit/commit/7e9d5c57afd4e281248c9b9fcec6a52be42e1a65",
+  "files": [
+    "scripts/validate-manifests.mjs"
+  ]
+}

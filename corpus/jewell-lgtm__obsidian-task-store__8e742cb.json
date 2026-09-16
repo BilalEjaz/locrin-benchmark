@@ -1,0 +1,15 @@
+{
+  "id": "jewell-lgtm__obsidian-task-store__8e742cb",
+  "source": "git",
+  "repo": "jewell-lgtm/obsidian-task-store",
+  "sha": "8e742cb07df8b16527a7fe3c8f7f425c4b39899a",
+  "parent": "bb2f3071bacdb4548965ae97d7b74157ebb0e879",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/jewell-lgtm/obsidian-task-store/commit/8e742cb07df8b16527a7fe3c8f7f425c4b39899a",
+  "files": [
+    "obsidian_task_store/cli.py",
+    "obsidian_task_store/store.py",
+    "tests/test_store.py"
+  ]
+}

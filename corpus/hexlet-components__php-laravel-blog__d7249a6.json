@@ -1,0 +1,22 @@
+{
+  "id": "hexlet-components__php-laravel-blog__d7249a6",
+  "source": "git",
+  "repo": "hexlet-components/php-laravel-blog",
+  "sha": "d7249a6194d5058254386e9aa4c7850b9a9d1b3c",
+  "parent": "174a3007fc7edf73cb7b6b194a2be0514acf0e3b",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/hexlet-components/php-laravel-blog/commit/d7249a6194d5058254386e9aa4c7850b9a9d1b3c",
+  "files": [
+    "resources/js/app.js",
+    "resources/js/bootstrap.js",
+    "resources/views/article/create.blade.php",
+    "resources/views/article/edit.blade.php",
+    "resources/views/article/form.blade.php",
+    "resources/views/article/index.blade.php",
+    "resources/views/article/show.blade.php",
+    "resources/views/layouts/app.blade.php",
+    "resources/views/page/about.blade.php",
+    "vite.config.js"
+  ]
+}

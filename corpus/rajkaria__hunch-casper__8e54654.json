@@ -1,0 +1,18 @@
+{
+  "id": "rajkaria__hunch-casper__8e54654",
+  "source": "git",
+  "repo": "rajkaria/hunch-casper",
+  "sha": "8e546542e932b72ac907546aebc0006103bc6ff4",
+  "parent": "5af32bc5777206f6a6ba83f7e4c85d0989ef2a7d",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/rajkaria/hunch-casper/commit/8e546542e932b72ac907546aebc0006103bc6ff4",
+  "files": [
+    "src/app/page.tsx",
+    "src/components/csprclick-script.tsx",
+    "src/config/csprclick.ts",
+    "src/lib/wallet-connector.ts",
+    "test/csprclick-network-config.test.ts",
+    "test/wallet-connector.test.ts"
+  ]
+}

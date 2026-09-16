@@ -1,0 +1,105 @@
+{
+  "diff": "CTJ425__stock-pnl-web__7c90742",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "sources/src/components/Charts/CandleChart.tsx",
+      "line": 18,
+      "id": "d666ad774950a90d",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "Candle is a new exported interface used only inside CandleChart.tsx with no importer in the repository."
+    },
+    {
+      "rule": "dead-export",
+      "file": "sources/src/components/Charts/CandleChart.tsx",
+      "line": 26,
+      "id": "d44654751fefac67",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "OverlayLine is a new exported interface used only inside CandleChart.tsx with no importer in the repository."
+    },
+    {
+      "rule": "dead-export",
+      "file": "sources/src/components/Charts/MultiLineChart.tsx",
+      "line": 14,
+      "id": "f27275ae7dabd1da",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "LineSeries is a new exported interface used only inside MultiLineChart.tsx with no importer in the repository."
+    },
+    {
+      "rule": "dead-export",
+      "file": "sources/src/components/StockDetail/technicalView.ts",
+      "line": 22,
+      "id": "cc6311ddc1808803",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "RANGE_BARS is exported but only used inside technicalView.ts and no file imports it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "sources/src/components/StockDetail/technicalView.ts",
+      "line": 36,
+      "id": "7ab46450e2ad60a7",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "TechnicalView is exported but only used as a return type inside technicalView.ts and no file imports it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "sources/src/services/dailyProxy.ts",
+      "line": 33,
+      "id": "d43071b78914df87",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "MIN_DAILY_SCHEMA is exported but only used inside dailyProxy.ts and no file or test imports it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "sources/src/services/reportsBucket.ts",
+      "line": 14,
+      "id": "555cb1729a1ba80d",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "REPORTS_BUCKET in reportsBucket.ts is exported but no file imports it; index.ts declares its own local constant."
+    },
+    {
+      "rule": "dead-export",
+      "file": "sources/src/utils/indicators.ts",
+      "line": 75,
+      "id": "83735ae961d6098c",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "MacdResult is exported but only used inside indicators.ts and no file imports it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "sources/src/utils/indicators.ts",
+      "line": 101,
+      "id": "576994ba912ed3e5",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "KdResult is exported but only used inside indicators.ts and no file imports it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "sources/supabase/functions/stock-report/twDaily.ts",
+      "line": 22,
+      "id": "e822e380890f41e8",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "DailyRow in twDaily.ts is exported but index.ts and the test do not import it."
+    }
+  ]
+}

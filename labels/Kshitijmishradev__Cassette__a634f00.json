@@ -1,0 +1,24 @@
+{
+  "diff": "Kshitijmishradev__Cassette__a634f00",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "swallowed-error",
+      "file": "web/src/App.jsx",
+      "line": 525,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "false-positive",
+      "note": "pass one: New prettyArgs(): the bindingless `catch { return value }` discards the parse error with no rethrow, log, error value or comment marking it intentional. pass two: The catch body of the new prettyArgs is `return value`, so the catch returns a value rather than swallowing; the definition (neither rethrows, logs, returns a value, nor documented) is not met, even though the construct itself is new (the parent 887c653 has no catch at 525). pass two: At a634f00 line 525 in prettyArgs the catch is `catch { return value }`, a catch that returns a fallback value, so the definition is not met (the construct is new in this diff, 887c653 holds no prettyArgs and only two catch sites, but that does not make it a swallowed error)."
+    }
+  ]
+}

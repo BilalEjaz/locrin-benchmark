@@ -1,0 +1,14 @@
+{
+  "id": "vermanthegreat__commercegov-authority-agent-aws__18ef3cc",
+  "source": "git",
+  "repo": "vermanthegreat/commercegov-authority-agent-aws",
+  "sha": "18ef3cc581714d0b119c6e0af390c8a11cddaa5a",
+  "parent": "2c04119a6fa4cdf818afe471125f2203a66807a7",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/vermanthegreat/commercegov-authority-agent-aws/commit/18ef3cc581714d0b119c6e0af390c8a11cddaa5a",
+  "files": [
+    "src/authority_agent/commercegov_read.py",
+    "src/authority_agent/lambda_runtime.py"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "SatoryKono__BioactivityDataAcquisition__6bcd250",
+  "source": "git",
+  "repo": "SatoryKono/BioactivityDataAcquisition",
+  "sha": "6bcd250314dd5325665ef610e353b20317bbbaf1",
+  "parent": "c3ffbb18c12bd0020a1d5db1e5afb10274e97a0c",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/SatoryKono/BioactivityDataAcquisition/commit/6bcd250314dd5325665ef610e353b20317bbbaf1",
+  "files": [
+    "scripts/ops/observability/grafana/render_nav_bus.py",
+    "tests/integration/test_dashboard_first_window_containment.py",
+    "tests/integration/test_dashboard_first_window_noscroll.py",
+    "tests/integration/test_grafana_config.py",
+    "tests/integration/test_grafana_dashboard_first_screen_contract.py",
+    "tests/integration/test_grafana_layout_and_metadata.py",
+    "tests/integration/test_grafana_overview_config.py",
+    "tests/integration/test_grafana_provenance_readability_contract.py",
+    "tests/integration/test_grafana_render_first_remediation.py",
+    "tests/unit/scripts/ops/observability/test_grafana_nav_bus.py"
+  ]
+}

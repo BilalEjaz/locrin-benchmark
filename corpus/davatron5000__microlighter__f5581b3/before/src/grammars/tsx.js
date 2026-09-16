@@ -1,0 +1,30 @@
+// Reference: Microsoft VS Code (MIT) — https://github.com/microsoft/vscode/blob/main/extensions/typescript-basics/syntaxes/TypeScriptReact.tmLanguage.json
+// TSX is TypeScript plus JSX: it reuses the TypeScript grammar's type-aware
+// constructs and layers in JavaScript's JSX tag patterns, matching how
+// TypeScript.tmLanguage.json and TypeScriptReact.tmLanguage.json relate upstream.
+export default {
+  scopeName: "source.tsx",
+  patterns: [
+    { include: "source.js#comments" },
+    { include: "source.js#strings" },
+    { include: "source.js#template" },
+    { include: "source.js#regexp" },
+    { include: "source.js#jsx-closing-tag" },
+    { include: "source.js#jsx-tag" },
+    { include: "source.ts#type-declaration" },
+    { include: "source.js#class-declaration" },
+    { include: "source.js#function-declaration" },
+    { include: "source.js#variable-declaration" },
+    { include: "source.ts#type-keywords" },
+    { include: "source.js#keywords" },
+    { include: "source.js#numbers" },
+    { include: "source.js#constants" },
+    { include: "source.ts#builtin-types" },
+    { include: "source.js#decorators" },
+    { include: "source.js#private-fields" },
+    { include: "source.js#properties" },
+    { include: "source.js#functions" },
+    { include: "source.js#built-ins" },
+    { include: "source.js#operators" }
+  ]
+};

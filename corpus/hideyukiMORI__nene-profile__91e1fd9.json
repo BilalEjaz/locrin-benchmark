@@ -1,0 +1,14 @@
+{
+  "id": "hideyukiMORI__nene-profile__91e1fd9",
+  "source": "git",
+  "repo": "hideyukiMORI/nene-profile",
+  "sha": "91e1fd903f9bd5ff83776313b275a0df8b5742bf",
+  "parent": "366e3ebfe56f0e0ec265d0204e2e70ef73a38404",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/hideyukiMORI/nene-profile/commit/91e1fd903f9bd5ff83776313b275a0df8b5742bf",
+  "files": [
+    "src/Http/RuntimeServiceProvider.php",
+    "tests/Http/AuthorizationHeaderFallbackE2ETest.php"
+  ]
+}

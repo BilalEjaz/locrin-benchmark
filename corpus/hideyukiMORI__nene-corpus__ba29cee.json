@@ -1,0 +1,13 @@
+{
+  "id": "hideyukiMORI__nene-corpus__ba29cee",
+  "source": "git",
+  "repo": "hideyukiMORI/nene-corpus",
+  "sha": "ba29cee36cbd89e4129559053b8d0b2a10668938",
+  "parent": "06a406ed49c7d3808edc2157e9b864fd5d830aab",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/hideyukiMORI/nene-corpus/commit/ba29cee36cbd89e4129559053b8d0b2a10668938",
+  "files": [
+    "tests/Install/EnvFileWriterTest.php"
+  ]
+}

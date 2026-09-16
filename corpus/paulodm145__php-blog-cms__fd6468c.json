@@ -1,0 +1,16 @@
+{
+  "id": "paulodm145__php-blog-cms__fd6468c",
+  "source": "git",
+  "repo": "paulodm145/php-blog-cms",
+  "sha": "fd6468cc86d07439a8085cb3fcf2a7d52a51a1e5",
+  "parent": "ac448b504642503e06a091733e0d63c53e8dd070",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/paulodm145/php-blog-cms/commit/fd6468cc86d07439a8085cb3fcf2a7d52a51a1e5",
+  "files": [
+    "app/Controllers/AdminPostController.php",
+    "app/Repositories/PostRepository.php",
+    "app/Views/admin/posts.php",
+    "public/assets/js/admin-table.js"
+  ]
+}

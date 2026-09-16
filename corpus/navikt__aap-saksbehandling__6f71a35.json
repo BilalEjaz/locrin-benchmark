@@ -1,0 +1,17 @@
+{
+  "id": "navikt__aap-saksbehandling__6f71a35",
+  "source": "git",
+  "repo": "navikt/aap-saksbehandling",
+  "sha": "6f71a35c6400883cba3919bcda223822600689e2",
+  "parent": "79baf8e2482cf247ebdd1dcd07b962838a7baefc",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/navikt/aap-saksbehandling/commit/6f71a35c6400883cba3919bcda223822600689e2",
+  "files": [
+    "components/behandlinger/sykdom/bekreftvurderingeroppf\u00f8lging/BekreftVurderingerOppf\u00f8lging.tsx",
+    "components/totrinnsvurdering/totrinnsvurderingform/beslutterform/TotrinnnsvurderingFelter.tsx",
+    "components/totrinnsvurdering/totrinnsvurderingform/beslutterform/TotrinnsvurderingVedtaksbrevFelter.tsx",
+    "lib/utils/api.ts",
+    "lib/utils/form.ts"
+  ]
+}

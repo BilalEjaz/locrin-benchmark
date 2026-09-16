@@ -1,0 +1,15 @@
+{
+  "id": "ZdravkoIvanovBG__Nexa__169a4f2",
+  "source": "git",
+  "repo": "ZdravkoIvanovBG/Nexa",
+  "sha": "169a4f2a2aa11f154b5bded2c38b46834915a604",
+  "parent": "cfdafb95528315a8bd37997abbfbed9ff27dab35",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/ZdravkoIvanovBG/Nexa/commit/169a4f2a2aa11f154b5bded2c38b46834915a604",
+  "files": [
+    "src/App.tsx",
+    "src/chrome/custom-layout-safety-net.tsx",
+    "tests/custom-layout-safety-net.test.ts"
+  ]
+}

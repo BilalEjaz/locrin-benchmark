@@ -1,0 +1,13 @@
+{
+  "id": "hectorgolf__hector.golf__f62baab",
+  "source": "git",
+  "repo": "hectorgolf/hector.golf",
+  "sha": "f62baab233670af84599779eced0d8ae7be21f65",
+  "parent": "869330f5fb419d1f10b399ad32ec9f7b36698f04",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/hectorgolf/hector.golf/commit/f62baab233670af84599779eced0d8ae7be21f65",
+  "files": [
+    "admin/src/lib/workflows.ts"
+  ]
+}

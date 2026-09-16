@@ -1,0 +1,33 @@
+{
+  "diff": "CEOUBB__CEOUBB__4156782",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "lib/portal-utils.ts",
+      "line": 214,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: New exported daysUntil is only used inside portal-utils.ts and no file imports it. pass two: new export daysUntil is called only inside lib/portal-utils.ts (countdown, evaluationUrgency); no file in the repository imports it and the module is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "lib/portal-utils.ts",
+      "line": 231,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: New exported type EvaluationUrgency is only used inside portal-utils.ts and no file imports it. pass two: new exported type EvaluationUrgency is used only as a return type inside lib/portal-utils.ts; no file in the repository imports it"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "hideyukiMORI__nene-corpus__cb4a806",
+  "source": "git",
+  "repo": "hideyukiMORI/nene-corpus",
+  "sha": "cb4a8064a0c535323f5ac38c96fea01d46042a0c",
+  "parent": "ba3343a9a8c9a5dfa51d45a2e9153daf82e2da50",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/hideyukiMORI/nene-corpus/commit/cb4a8064a0c535323f5ac38c96fea01d46042a0c",
+  "files": [
+    "src/Recall/PdoRecallReindexReader.php",
+    "src/Search/PdoChunkSearchGuard.php",
+    "src/Search/PdoChunkSearchRepository.php",
+    "src/Source/SourceStatus.php",
+    "tests/Recall/RecallReindexTest.php",
+    "tests/Search/PdoChunkSearchRepositoryTest.php",
+    "tests/Search/RecallChunkSearchRepositoryTest.php"
+  ]
+}

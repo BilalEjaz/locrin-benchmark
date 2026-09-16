@@ -1,0 +1,14 @@
+{
+  "id": "DeWebProtocol__malt-core__b3ca02c",
+  "source": "git",
+  "repo": "DeWebProtocol/malt-core",
+  "sha": "b3ca02c9871c0affeefbd1ac70ad1e27c1bea4f5",
+  "parent": "718250d405f8af95250ac8b7fc52a616ce0e2689",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/DeWebProtocol/malt-core/commit/b3ca02c9871c0affeefbd1ac70ad1e27c1bea4f5",
+  "files": [
+    "scripts/run-writer-wasm-smoke.mjs",
+    "scripts/run-writer-worker-smoke.mjs"
+  ]
+}

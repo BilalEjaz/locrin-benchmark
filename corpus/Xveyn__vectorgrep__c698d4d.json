@@ -1,0 +1,15 @@
+{
+  "id": "Xveyn__vectorgrep__c698d4d",
+  "source": "git",
+  "repo": "Xveyn/vectorgrep",
+  "sha": "c698d4d392148797a631b89acbe30fe45f8f0360",
+  "parent": "ec87f8a210df1850e70ff425bb19e9b4cfee9c5d",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Xveyn/vectorgrep/commit/c698d4d392148797a631b89acbe30fe45f8f0360",
+  "files": [
+    "src/db/connection.ts",
+    "src/indexing/indexer.ts",
+    "test/integration/full-index.test.ts"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "Zereker__investment-os__6fe36b4",
+  "source": "git",
+  "repo": "Zereker/investment-os",
+  "sha": "6fe36b44137fa9b6f53d33382f38f9746c186294",
+  "parent": "dd42c4093fd7caaeddcba3c788fade58eb5e75ef",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/Zereker/investment-os/commit/6fe36b44137fa9b6f53d33382f38f9746c186294",
+  "files": [
+    "evals/run.py",
+    "skills/investment-os/scripts/market_context.py"
+  ]
+}

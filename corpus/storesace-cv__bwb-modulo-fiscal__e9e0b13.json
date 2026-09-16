@@ -1,0 +1,14 @@
+{
+  "id": "storesace-cv__bwb-modulo-fiscal__e9e0b13",
+  "source": "git",
+  "repo": "storesace-cv/bwb-modulo-fiscal",
+  "sha": "e9e0b13b338a93d46a8c7ed5e45422fd09570518",
+  "parent": "6b57e564960da8fe75e597f48bc3e38d9378c5ad",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/storesace-cv/bwb-modulo-fiscal/commit/e9e0b13b338a93d46a8c7ed5e45422fd09570518",
+  "files": [
+    "compliance/scripts/verify_document_types_matrix.py",
+    "compliance/scripts/verify_provisional_matrix.py"
+  ]
+}

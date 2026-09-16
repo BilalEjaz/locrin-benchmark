@@ -1,0 +1,13 @@
+{
+  "id": "ChurchCRM__CRM__bd4b966",
+  "source": "git",
+  "repo": "ChurchCRM/CRM",
+  "sha": "bd4b9665c7d2dab093a67d1b6a633c0a63519c39",
+  "parent": "6236c4455be7ad322f886d3ef4aac2359d3b4228",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/ChurchCRM/CRM/commit/bd4b9665c7d2dab093a67d1b6a633c0a63519c39",
+  "files": [
+    "src/ChurchCRM/Slim/MvcAppFactory.php"
+  ]
+}

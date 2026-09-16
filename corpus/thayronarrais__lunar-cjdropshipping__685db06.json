@@ -1,0 +1,16 @@
+{
+  "id": "thayronarrais__lunar-cjdropshipping__685db06",
+  "source": "git",
+  "repo": "thayronarrais/lunar-cjdropshipping",
+  "sha": "685db061c48e732ea39f04cf81b48887c04c6518",
+  "parent": "26ba18e86d60ab2eb980189421d36188d8223ba7",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/thayronarrais/lunar-cjdropshipping/commit/685db061c48e732ea39f04cf81b48887c04c6518",
+  "files": [
+    "src/Actions/CheckCandidateShipping.php",
+    "src/Jobs/CheckCandidateShippingJob.php",
+    "src/Jobs/DiscoverCandidatesJob.php",
+    "tests/Feature/Discovery/CheckCandidateShippingTest.php"
+  ]
+}

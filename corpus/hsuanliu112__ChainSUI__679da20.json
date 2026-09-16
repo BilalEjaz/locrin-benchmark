@@ -1,0 +1,16 @@
+{
+  "id": "hsuanliu112__ChainSUI__679da20",
+  "source": "git",
+  "repo": "hsuanliu112/ChainSUI",
+  "sha": "679da208fe15de952ef6683d9652391ac2fc2622",
+  "parent": "23fc03126f9500ce8e2c3edf2a990907eb933045",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/hsuanliu112/ChainSUI/commit/679da208fe15de952ef6683d9652391ac2fc2622",
+  "files": [
+    "backend/app/api/v1/wallet.py",
+    "backend/app/services/payment_zklogin_service.py",
+    "backend/tests/integration/test_llm_client.py",
+    "backend/tests/integration/test_payment_coin_selection.py"
+  ]
+}

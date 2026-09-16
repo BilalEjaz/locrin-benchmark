@@ -1,0 +1,573 @@
+<?php
+
+use ChurchCRM\Authentication\AuthenticationManager;
+use ChurchCRM\dto\ChurchMetaData;
+use ChurchCRM\dto\Photo;
+use ChurchCRM\Exceptions\PhotoSizeException;
+use ChurchCRM\dto\SystemConfig;
+use ChurchCRM\dto\SystemURLs;
+use ChurchCRM\model\ChurchCRM\Family;
+use ChurchCRM\model\ChurchCRM\FamilyQuery;
+use ChurchCRM\model\ChurchCRM\Note;
+use ChurchCRM\model\ChurchCRM\Token;
+use ChurchCRM\model\ChurchCRM\TokenQuery;
+use ChurchCRM\Service\FamilyService;
+use ChurchCRM\Service\SystemService;
+use ChurchCRM\Slim\Middleware\Request\Auth\DeleteRecordRoleAuthMiddleware;
+use ChurchCRM\Slim\Middleware\Request\Auth\EditRecordsRoleAuthMiddleware;
+use ChurchCRM\Slim\Middleware\Api\FamilyMiddleware;
+use ChurchCRM\Slim\Middleware\Api\FamilyReadMiddleware;
+use ChurchCRM\Slim\SlimUtils;
+use ChurchCRM\Utils\GeoUtils;
+use Propel\Runtime\ActiveQuery\Criteria;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Exception\HttpNotFoundException;
+use Slim\Routing\RouteCollectorProxy;
+use Slim\HttpCache\Cache;
+
+// ── Low-sensitivity family read endpoints ────────────────────────────────────
+// Photo, avatar, and nav are considered non-sensitive metadata. They use
+// FamilyReadMiddleware which enforces entity existence (404 if family not
+// found) but applies the read-default baseline (canReadFamily) instead of the
+// family-scope restriction. This makes them accessible to any authenticated
+// user who has passed the isEditSelfExclusive() check in AuthMiddleware —
+// including zero-permission users, who retain read-only access to people and
+// family records under the read-default policy (#9003).
+//
+// Sensitive endpoints (full profile, geolocation, write ops, notes, timeline)
+// remain in the FamilyMiddleware group below which enforces canViewFamily()
+// per GHSA-jjcj-h3cm-p7x7.
+$app->group('/family/{familyId:[0-9]+}', function (RouteCollectorProxy $group): void {
+    /**
+     * @OA\Get(
+     *     path="/family/{familyId}/photo",
+     *     summary="Get uploaded photo for a family (binary image)",
+     *     tags={"Families"},
+     *     security={{"ApiKeyAuth":{}}},
+     *     @OA\Parameter(name="familyId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Binary image data"),
+     *     @OA\Response(response=404, description="No uploaded photo exists for this family or family not found")
+     * )
+     */
+    // Returns uploaded photo only - 404 if no uploaded photo
+    $group->get('/photo', function (Request $request, Response $response, array $args): Response {
+        /** @var \ChurchCRM\model\ChurchCRM\Family $family */
+        $family = $request->getAttribute('family');
+
+        $photo = new Photo('Family', $family->getId());
+
+        if (!$photo->hasUploadedPhoto()) {
+            throw new HttpNotFoundException($request, 'No uploaded photo exists for this family');
+        }
+
+        return SlimUtils::renderPhoto($response, $photo);
+    })->add(new Cache('public', Photo::CACHE_DURATION_SECONDS));
+
+    /**
+     * @OA\Get(
+     *     path="/family/{familyId}/avatar",
+     *     summary="Get avatar info JSON for a family (for client-side rendering)",
+     *     tags={"Families"},
+     *     security={{"ApiKeyAuth":{}}},
+     *     @OA\Parameter(name="familyId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Avatar info object (type, url, initials, color, etc.)"),
+     *     @OA\Response(response=404, description="Family not found")
+     * )
+     */
+    // Returns avatar info JSON for client-side rendering.
+    // No cache middleware - needs to reflect immediate photo upload changes.
+    $group->get('/avatar', function (Request $request, Response $response, array $args): Response {
+        /** @var \ChurchCRM\model\ChurchCRM\Family $family */
+        $family = $request->getAttribute('family');
+
+        $avatarInfo = Photo::getAvatarInfo('Family', $family->getId());
+        return SlimUtils::renderJSON($response, $avatarInfo);
+    });
+
+    /**
+     * @OA\Get(
+     *     path="/family/{familyId}/nav",
+     *     summary="Get previous and next family IDs for navigation",
+     *     tags={"Families"},
+     *     security={{"ApiKeyAuth":{}}},
+     *     @OA\Parameter(name="familyId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Navigation IDs",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="PreFamilyId", type="integer"),
+     *             @OA\Property(property="NextFamilyId", type="integer")
+     *         )
+     *     )
+     * )
+     */
+    $group->get('/nav', function (Request $request, Response $response, array $args): Response {
+        /** @var Family $family */
+        $family = $request->getAttribute('family');
+
+        $familyNav = [];
+        $familyNav['PreFamilyId'] = 0;
+        $familyNav['NextFamilyId'] = 0;
+
+        $tempFamily = FamilyQuery::create()
+            ->filterById($family->getId(), Criteria::LESS_THAN)
+            ->orderById(Criteria::DESC)->findOne();
+        if ($tempFamily) {
+            $familyNav['PreFamilyId'] = $tempFamily->getId();
+        }
+
+        $tempFamily = FamilyQuery::create()
+            ->filterById($family->getId(), Criteria::GREATER_THAN)
+            ->orderById()
+            ->findOne();
+        if ($tempFamily) {
+            $familyNav['NextFamilyId'] = $tempFamily->getId();
+        }
+
+        return SlimUtils::renderJSON($response, $familyNav);
+    });
+})->add(FamilyReadMiddleware::class);
+
+// ── Sensitive / write family endpoints ───────────────────────────────────────
+// All routes here use FamilyMiddleware (the scope-enforcing version),
+// which applies canViewFamily() and restricts EditSelf-scoped users to their own
+// family per GHSA-jjcj-h3cm-p7x7. Write routes additionally carry per-route
+// EditRecords / DeleteRecord middleware.
+$app->group('/family/{familyId:[0-9]+}', function (RouteCollectorProxy $group): void {
+    /**
+     * @OA\Post(
+     *     path="/family/{familyId}/photo",
+     *     summary="Upload a family photo from base64 data (EditRecords role required)",
+     *     tags={"Families"},
+     *     security={{"ApiKeyAuth":{}}},
+     *     @OA\Parameter(name="familyId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\RequestBody(required=true,
+     *         @OA\JsonContent(@OA\Property(property="imgBase64", type="string", description="Base64-encoded image data"))
+     *     ),
+     *     @OA\Response(response=200, description="Photo uploaded successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean"),
+     *             @OA\Property(property="hasPhoto", type="boolean")
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Failed to upload photo"),
+     *     @OA\Response(response=403, description="EditRecords role required"),
+     *     @OA\Response(response=413, description="PHP discarded the request body because it exceeded the server upload limit")
+     * )
+     */
+    $group->post('/photo', function (Request $request, Response $response): Response {
+        /** @var Family $family */
+        $family = $request->getAttribute('family');
+        $input = $request->getParsedBody();
+
+        if (empty($input) || !isset($input['imgBase64'])) {
+            // 413 only when PHP genuinely threw the body away for size; a body
+            // that arrived without imgBase64 is a malformed request whatever its
+            // Content-Length claims (issue #9771).
+            if (SlimUtils::isBodyDiscardedForSize($request)) {
+                return SlimUtils::renderErrorJSON(
+                    $response,
+                    sprintf(gettext('File size exceeds the server limit of %s'), SystemService::getMaxUploadFileSize(true)),
+                    [],
+                    413
+                );
+            }
+            return SlimUtils::renderErrorJSON($response, gettext('Missing image data in request'), [], 400);
+        }
+
+        try {
+            $family->setImageFromBase64($input['imgBase64']);
+            // Refresh photo status and return updated info
+            $family->getPhoto()->refresh();
+            return SlimUtils::renderJSON($response, [
+                'success' => true,
+                'hasPhoto' => $family->getPhoto()->hasUploadedPhoto()
+            ]);
+        } catch (PhotoSizeException $e) {
+            return SlimUtils::renderErrorJSON($response, $e->getMessage(), [], 413, $e, $request);
+        } catch (\Throwable $e) {
+            return SlimUtils::renderErrorJSON($response, gettext('Failed to upload family photo'), [], 400, $e, $request);
+        }
+    })->add(EditRecordsRoleAuthMiddleware::class);
+
+    /**
+     * @OA\Delete(
+     *     path="/family/{familyId}/photo",
+     *     summary="Delete a family's uploaded photo (EditRecords role required)",
+     *     tags={"Families"},
+     *     security={{"ApiKeyAuth":{}}},
+     *     @OA\Parameter(name="familyId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Photo deletion result",
+     *         @OA\JsonContent(@OA\Property(property="success", type="boolean"))
+     *     ),
+     *     @OA\Response(response=403, description="EditRecords role required")
+     * )
+     */
+    $group->delete('/photo', function (Request $request, Response $response, array $args): Response {
+        /** @var Family $family */
+        $family = $request->getAttribute('family');
+
+        return SlimUtils::renderJSON($response, ['success' => $family->deletePhoto()]);
+    })->add(EditRecordsRoleAuthMiddleware::class);
+
+    /**
+     * @OA\Get(
+     *     path="/family/{familyId}",
+     *     summary="Get a family object by ID",
+     *     tags={"Families"},
+     *     security={{"ApiKeyAuth":{}}},
+     *     @OA\Parameter(name="familyId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Family object"),
+     *     @OA\Response(response=403, description="Access denied"),
+     *     @OA\Response(response=404, description="Family not found")
+     * )
+     */
+    $group->get('', function (Request $request, Response $response, array $args): Response {
+        /** @var Family $family */
+        $family = $request->getAttribute('family');
+
+        return SlimUtils::renderJSON($response, $family->toArray());
+    });
+
+    /**
+     * @OA\Get(
+     *     path="/family/{familyId}/geolocation",
+     *     summary="Get geolocation and driving distance from church for a family",
+     *     tags={"Families"},
+     *     security={{"ApiKeyAuth":{}}},
+     *     @OA\Parameter(name="familyId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Latitude, longitude, and driving distance info from church address")
+     * )
+     */
+    $group->get('/geolocation', function (Request $request, Response $response, array $args): Response {
+        /** @var Family $family */
+        $family = $request->getAttribute('family');
+
+        $familyAddress = $family->getAddress();
+        $familyLatLong = GeoUtils::getLatLong($familyAddress);
+        $familyDrivingInfo = GeoUtils::drivingDistanceMatrix(
+            $familyAddress,
+            ChurchMetaData::getChurchAddress()
+        );
+        $geoLocationInfo = array_merge($familyDrivingInfo, $familyLatLong);
+
+        return SlimUtils::renderJSON($response, $geoLocationInfo);
+    });
+
+    /**
+     * @OA\Post(
+     *     path="/family/{familyId}/verify",
+     *     summary="Send a verification email to the family",
+     *     tags={"Families"},
+     *     security={{"ApiKeyAuth":{}}},
+     *     @OA\Parameter(name="familyId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Verification email sent successfully"),
+     *     @OA\Response(response=500, description="Error sending email")
+     * )
+     */
+    $group->post('/verify', function (Request $request, Response $response, array $args): Response {
+        /** @var Family $family */
+        $family = $request->getAttribute('family');
+
+        if (!SystemConfig::isEmailEnabled()) {
+            return SlimUtils::renderErrorJSON(
+                $response,
+                gettext('Email is not configured. Please configure SMTP settings in System Settings.'),
+                [],
+                400
+            );
+        }
+
+        try {
+            $family->sendVerifyEmail();
+
+            return SlimUtils::renderSuccessJSON($response);
+        } catch (\Throwable $e) {
+            return SlimUtils::renderErrorJSON($response, gettext('Error sending email(s)') , [], 500, $e, $request);
+        }
+    })->add(EditRecordsRoleAuthMiddleware::class);
+
+    /**
+     * @OA\Get(
+     *     path="/family/{familyId}/verify/url",
+     *     summary="Generate a new family self-verify URL token",
+     *     tags={"Families"},
+     *     security={{"ApiKeyAuth":{}}},
+     *     @OA\Parameter(name="familyId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Verification URL",
+     *         @OA\JsonContent(@OA\Property(property="url", type="string", format="uri"))
+     *     )
+     * )
+     */
+    $group->get('/verify/url', function (Request $request, Response $response, array $args): Response {
+        /** @var Family $family */
+        $family = $request->getAttribute('family');
+
+        TokenQuery::create()
+            ->filterByType('verifyFamily')
+            ->filterByReferenceId($family->getId())
+            ->delete();
+        $token = new Token();
+        $token->build('verifyFamily', $family->getId());
+        $token->save();
+        $family->createTimeLineNote('verify-URL');
+
+        return SlimUtils::renderJSON($response, ['url' => SystemURLs::getURL() . '/external/verify/' . $token->getToken()]);
+    })->add(EditRecordsRoleAuthMiddleware::class);
+
+    /**
+     * @OA\Post(
+     *     path="/family/{familyId}/verify/now",
+     *     summary="Mark a family as verified immediately",
+     *     tags={"Families"},
+     *     security={{"ApiKeyAuth":{}}},
+     *     @OA\Parameter(name="familyId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Family marked as verified")
+     * )
+     */
+    $group->post('/verify/now', function (Request $request, Response $response, array $args): Response {
+        /** @var Family $family */
+        $family = $request->getAttribute('family');
+        $family->verify();
+
+        return SlimUtils::renderSuccessJSON($response);
+    })->add(EditRecordsRoleAuthMiddleware::class);
+
+    /**
+     * @OA\Post(
+     *     path="/family/{familyId}/activate/{status}",
+     *     summary="Activate or deactivate a family",
+     *     description="Pass status=true to activate or status=false to deactivate the family.",
+     *     tags={"Families"},
+     *     security={{"ApiKeyAuth":{}}},
+     *     @OA\Parameter(name="familyId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="status", in="path", required=true, @OA\Schema(type="string", enum={"true","false"})),
+     *     @OA\Response(response=200, description="Family activation status updated",
+     *         @OA\JsonContent(@OA\Property(property="success", type="boolean"))
+     *     ),
+     *     @OA\Response(response=400, description="Invalid status value")
+     * )
+     */
+    /**
+     * Update the family status to activated or deactivated with :familyId and :status true/false.
+     * Pass true to activate and false to deactivate.
+     */
+    $group->post('/activate/{status}', function (Request $request, Response $response, array $args): Response {
+        /** @var Family $family */
+        $family = $request->getAttribute('family');
+
+        // Normalize incoming status to boolean for clarity (true = activate, false = deactivate)
+        $newStatus = filter_var($args['status'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($newStatus === null) {
+            return SlimUtils::renderErrorJSON($response, gettext('Invalid status'), [], 400);
+        }
+
+        $currentStatus = $family->isActive();
+
+        // update only if the value is different
+        if ($currentStatus !== $newStatus) {
+            $currentUserId = AuthenticationManager::getCurrentUser()->getId();
+            $currentDate = new \DateTime();
+            if ($newStatus === false) {
+                // Deactivating: set DateDeactivated to now
+                $family->setDateDeactivated($currentDate);
+            } else {
+                // Activating: clear DateDeactivated
+                $family->setDateDeactivated(null);
+            }
+
+
+            // Create a note to record the status change
+            $note = new Note();
+            $note->setFamId($family->getId());
+            $note->setText($newStatus === false ? gettext('Marked the Family as Inactive') : gettext('Marked the Family as Active'));
+            $note->setType('edit');
+            $note->setEntered($currentUserId);
+            $note->save();
+
+            // Update last edited metadata
+            $family->setDateLastEdited($currentDate);
+            $family->setEditedBy($currentUserId);
+            $family->save();
+        }
+
+        return SlimUtils::renderJSON($response, ['success' => true]);
+    })->add(EditRecordsRoleAuthMiddleware::class);
+
+    /**
+     * @OA\Post(
+     *     path="/family/{familyId}/geocode",
+     *     summary="Refresh geocoding (latitude/longitude) for a family's address",
+     *     tags={"Families"},
+     *     security={{"ApiKeyAuth":{}}},
+     *     @OA\Parameter(name="familyId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Geocoding result with lat/lng",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean"),
+     *             @OA\Property(property="message", type="string"),
+     *             @OA\Property(property="latitude", type="number", format="float"),
+     *             @OA\Property(property="longitude", type="number", format="float")
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Family has no street address to geocode")
+     * )
+     */
+    $group->post('/geocode', function (Request $request, Response $response, array $args): Response {
+        $family = $request->getAttribute('family');
+
+        if (empty(trim($family->getAddress1() ?? ''))) {
+            return SlimUtils::renderErrorJSON(
+                $response,
+                gettext('Family has no street address to geocode'),
+                [],
+                400
+            );
+        }
+
+        $familyService = new FamilyService();
+        $success = $familyService->autoGeocodeFamily($family);
+
+        $result = [
+            'success' => $success,
+            'message' => $success ? gettext('Geocoding successful') : gettext('Geocoding failed'),
+            'latitude' => $family->getLatitude(),
+            'longitude' => $family->getLongitude(),
+        ];
+
+        return SlimUtils::renderJSON($response, $result, $success ? 200 : 400);
+    })->add(EditRecordsRoleAuthMiddleware::class);
+
+    /**
+     * @OA\Delete(
+     *     path="/family/{familyId}",
+     *     summary="Delete a family record and optionally its members (DeleteRecord role required)",
+     *     tags={"Families"},
+     *     security={{"ApiKeyAuth":{}}},
+     *     @OA\Parameter(name="familyId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="deleteMembers", in="query", required=false, @OA\Schema(type="boolean", default=false),
+     *         description="If true, also delete all family members. If false, members are unlinked from the family."),
+     *     @OA\Response(response=200, description="Family deleted"),
+     *     @OA\Response(response=403, description="DeleteRecord role required or family has donations"),
+     *     @OA\Response(response=404, description="Family not found")
+     * )
+     */
+    $group->delete('', function (Request $request, Response $response, array $args): Response {
+        /** @var Family $family */
+        $family = $request->getAttribute('family');
+        $familyId = $family->getId();
+        $deleteMembers = filter_var($request->getQueryParams()['deleteMembers'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
+
+        // Check for donations — cannot delete a family with payment records unless finance-authorized
+        $pledgeCount = \ChurchCRM\model\ChurchCRM\PledgeQuery::create()
+            ->filterByFamId($familyId)
+            ->filterByPledgeOrPayment('Payment')
+            ->count();
+        if ($pledgeCount > 0 && !AuthenticationManager::getCurrentUser()->isFinanceEnabled()) {
+            return SlimUtils::renderErrorJSON($response, gettext('Cannot delete a family with donation records. Contact a finance administrator.'), [], 403);
+        }
+
+        // Delete associated notes
+        \ChurchCRM\model\ChurchCRM\NoteQuery::create()
+            ->filterByFamId($familyId)
+            ->delete();
+
+        // Delete family pledges (non-payment)
+        \ChurchCRM\model\ChurchCRM\PledgeQuery::create()
+            ->filterByFamId($familyId)
+            ->filterByPledgeOrPayment('Pledge')
+            ->delete();
+
+        // Remove family property assignments
+        $familyProps = \ChurchCRM\model\ChurchCRM\PropertyQuery::create()
+            ->filterByProClass('f')
+            ->find();
+        foreach ($familyProps as $prop) {
+            \ChurchCRM\model\ChurchCRM\RecordPropertyQuery::create()
+                ->filterByPropertyId($prop->getProId())
+                ->filterByRecordId($familyId)
+                ->delete();
+        }
+
+        if ($deleteMembers) {
+            \ChurchCRM\model\ChurchCRM\PersonQuery::create()
+                ->filterByFamId($familyId)
+                ->find()
+                ->delete();
+        } else {
+            // Unlink members from the family
+            $members = \ChurchCRM\model\ChurchCRM\PersonQuery::create()
+                ->filterByFamId($familyId)
+                ->find();
+            foreach ($members as $member) {
+                $member->setFamId(0);
+                $member->save();
+            }
+        }
+
+        // Remove custom field data via ORM
+        \ChurchCRM\model\ChurchCRM\FamilyCustomQuery::create()
+            ->filterByFamId($familyId)
+            ->delete();
+
+        // Delete the family record itself. Family::preDelete() removes the
+        // photo file from disk; member deletion above triggers Person::preDelete
+        // for each member, which cleans up their photos too (#1697).
+        // FAMILY_DELETED is dispatched from Family::postDelete(). See #9768.
+        $family->delete();
+
+        return SlimUtils::renderJSON($response, ['success' => true]);
+    })->add(DeleteRecordRoleAuthMiddleware::class);
+
+    /**
+     * @OA\Post(
+     *     path="/family/{familyId}/donations/move",
+     *     summary="Move all donations from this family to another (Finance role required)",
+     *     tags={"Families"},
+     *     security={{"ApiKeyAuth":{}}},
+     *     @OA\Parameter(name="familyId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\RequestBody(required=true,
+     *         @OA\JsonContent(
+     *             required={"targetFamilyId"},
+     *             @OA\Property(property="targetFamilyId", type="integer", description="Family ID to move donations to")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Donations moved"),
+     *     @OA\Response(response=400, description="Invalid target family"),
+     *     @OA\Response(response=403, description="Finance role required")
+     * )
+     */
+    $group->post('/donations/move', function (Request $request, Response $response, array $args): Response {
+        if (!AuthenticationManager::getCurrentUser()->isFinanceEnabled()) {
+            return SlimUtils::renderErrorJSON($response, gettext('Finance permission required'), [], 403);
+        }
+
+        /** @var Family $family */
+        $family = $request->getAttribute('family');
+        $body = $request->getParsedBody();
+        $targetFamilyId = (int) ($body['targetFamilyId'] ?? 0);
+
+        if ($targetFamilyId <= 0 || $targetFamilyId === $family->getId()) {
+            throw new \Slim\Exception\HttpBadRequestException($request, gettext('Invalid target family'));
+        }
+
+        $targetFamily = FamilyQuery::create()->findPk($targetFamilyId);
+        if ($targetFamily === null) {
+            throw new HttpNotFoundException($request, gettext('Target family not found'));
+        }
+
+        // Move all pledges/payments to the target family
+        $pledges = \ChurchCRM\model\ChurchCRM\PledgeQuery::create()
+            ->filterByFamId($family->getId())
+            ->find();
+        foreach ($pledges as $pledge) {
+            $pledge->setFamId($targetFamilyId);
+            $pledge->setDateLastEdited(date('Y-m-d'));
+            $pledge->setEditedBy(AuthenticationManager::getCurrentUser()->getId());
+            $pledge->save();
+        }
+
+        return SlimUtils::renderJSON($response, [
+            'success' => true,
+            'movedCount' => $pledges->count(),
+        ]);
+    });
+})->add(FamilyMiddleware::class);

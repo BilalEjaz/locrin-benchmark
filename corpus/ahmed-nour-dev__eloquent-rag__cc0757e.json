@@ -1,0 +1,16 @@
+{
+  "id": "ahmed-nour-dev__eloquent-rag__cc0757e",
+  "source": "git",
+  "repo": "ahmed-nour-dev/eloquent-rag",
+  "sha": "cc0757ea370e91cdde6d491c27d3e4a250a2663f",
+  "parent": "2aa60a4c26b618fc833a496463cd7e908c3adb12",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/ahmed-nour-dev/eloquent-rag/commit/cc0757ea370e91cdde6d491c27d3e4a250a2663f",
+  "files": [
+    "database/migrations/2026_01_04_000001_add_vector_index_to_rag_chunks_table.php",
+    "src/Console/Commands/RagDoctorCommand.php",
+    "tests/Integration/MariaDb/MariaDbAcceptanceTest.php",
+    "tests/Integration/Postgres/PostgresAcceptanceTest.php"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "yashwantbalaji3__gametimepicks__fc26631",
+  "source": "git",
+  "repo": "yashwantbalaji3/gametimepicks",
+  "sha": "fc26631d2148fde58076b16fceeadd05dfa5721e",
+  "parent": "c208c07810b4f4d5367005b3f12fa66f2e2b01bd",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/yashwantbalaji3/gametimepicks/commit/fc26631d2148fde58076b16fceeadd05dfa5721e",
+  "files": [
+    "scripts/research/nfl/forward-player-props-share-level.mjs"
+  ]
+}

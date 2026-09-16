@@ -1,0 +1,16 @@
+{
+  "id": "brettbergin__sbxloop__002eb58",
+  "source": "git",
+  "repo": "brettbergin/sbxloop",
+  "sha": "002eb5844416398ba6d7975e13f1ecff6f7d3074",
+  "parent": "a0e99507f7f565764924fca92da0cde0324d7c60",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/brettbergin/sbxloop/commit/002eb5844416398ba6d7975e13f1ecff6f7d3074",
+  "files": [
+    "packages/sbxloop/src/sbxloop/daemon/loop.py",
+    "packages/sbxloop/src/sbxloop/hostgit.py",
+    "tests/unit/test_git_credential_scope.py",
+    "tests/unit/test_home_workspaces.py"
+  ]
+}

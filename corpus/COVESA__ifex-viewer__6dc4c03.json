@@ -1,0 +1,17 @@
+{
+  "id": "COVESA__ifex-viewer__6dc4c03",
+  "source": "git",
+  "repo": "COVESA/ifex-viewer",
+  "sha": "6dc4c03c3bebc1d20d4aa824624414db5e873535",
+  "parent": "0230ff1934a847c72e887300d22bad4f38e1acdd",
+  "licence": "Apache-2.0",
+  "language": "typescript",
+  "url": "https://github.com/COVESA/ifex-viewer/commit/6dc4c03c3bebc1d20d4aa824624414db5e873535",
+  "files": [
+    "e2e/e2e.spec.ts",
+    "src/components/sidenav/search-input/SearchInput.spec.ts",
+    "src/components/sidenav/search-input/SearchInput.stories.ts",
+    "src/components/sidenav/types.ts",
+    "src/types.ts"
+  ]
+}

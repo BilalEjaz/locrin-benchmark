@@ -1,0 +1,15 @@
+{
+  "id": "kass2024__Xanderschool__c341fa2",
+  "source": "git",
+  "repo": "kass2024/Xanderschool",
+  "sha": "c341fa2b9b5d4fadf9884319a61639fcbabf1e16",
+  "parent": "78b2cf5e047979309f3e5f3163ac5bd83661d05e",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/kass2024/Xanderschool/commit/c341fa2b9b5d4fadf9884319a61639fcbabf1e16",
+  "files": [
+    "app/Controllers/TimetableManagement.php",
+    "app/Models/TimetableSchemaModel.php",
+    "app/Views/pages/timetable/dashboard.php"
+  ]
+}

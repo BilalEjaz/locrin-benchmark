@@ -1,0 +1,13 @@
+{
+  "id": "banalasiva__Rhyza__a1aca48",
+  "source": "git",
+  "repo": "banalasiva/Rhyza",
+  "sha": "a1aca4803645585e92688a5558a8e433d185b277",
+  "parent": "1007d431e985726cde6aed2e3303a6c02ee8cbdd",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/banalasiva/Rhyza/commit/a1aca4803645585e92688a5558a8e433d185b277",
+  "files": [
+    "web/src/components/SeedRoom.tsx"
+  ]
+}

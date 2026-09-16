@@ -1,0 +1,25 @@
+{
+  "id": "hsuanliu112__ChainSUI__b9f6865",
+  "source": "git",
+  "repo": "hsuanliu112/ChainSUI",
+  "sha": "b9f6865415f0e7ed2f0b2644583cce27f142523b",
+  "parent": "5ee0bc44b543c2828819f7b69d2e419a663f4fc8",
+  "licence": "MIT",
+  "language": "python",
+  "url": "https://github.com/hsuanliu112/ChainSUI/commit/b9f6865415f0e7ed2f0b2644583cce27f142523b",
+  "files": [
+    "backend/app/api/v1/agent.py",
+    "backend/app/config.py",
+    "backend/app/models/__init__.py",
+    "backend/app/models/agent_decision.py",
+    "backend/app/models/delegation.py",
+    "backend/app/services/agent_brain.py",
+    "backend/app/services/llm_client.py",
+    "backend/app/services/trip_service.py",
+    "backend/app/websocket/notifier.py",
+    "backend/tests/integration/conftest.py",
+    "backend/tests/integration/test_agent_brain_decide.py",
+    "backend/tests/integration/test_agent_brain_settle.py",
+    "backend/tests/integration/test_llm_client.py"
+  ]
+}

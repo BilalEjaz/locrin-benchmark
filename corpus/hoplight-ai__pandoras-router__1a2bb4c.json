@@ -1,0 +1,13 @@
+{
+  "id": "hoplight-ai__pandoras-router__1a2bb4c",
+  "source": "git",
+  "repo": "hoplight-ai/pandoras-router",
+  "sha": "1a2bb4cf84fe7309b0e07cc29b174049b10e54d8",
+  "parent": "856dbe953a663548ad8a850763bf611bd2da9ba2",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/hoplight-ai/pandoras-router/commit/1a2bb4cf84fe7309b0e07cc29b174049b10e54d8",
+  "files": [
+    "test/gate-matrix-test.mjs"
+  ]
+}

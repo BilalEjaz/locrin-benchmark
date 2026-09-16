@@ -1,0 +1,16 @@
+{
+  "id": "utopia-php__database__6718834",
+  "source": "git",
+  "repo": "utopia-php/database",
+  "sha": "67188349221a9c61bdd457198a2a03ada4f6daa1",
+  "parent": "704dd6eb7f42de44ec418ca20414148d00692be1",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/utopia-php/database/commit/67188349221a9c61bdd457198a2a03ada4f6daa1",
+  "files": [
+    "src/Database/Adapter/MariaDB.php",
+    "src/Database/Adapter/Postgres.php",
+    "src/Database/Adapter/SQLite.php",
+    "tests/e2e/Adapter/Scopes/PermissionTests.php"
+  ]
+}

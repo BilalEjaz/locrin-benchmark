@@ -1,0 +1,19 @@
+{
+  "id": "thayronarrais__lunar-cjdropshipping__b5f2627",
+  "source": "git",
+  "repo": "thayronarrais/lunar-cjdropshipping",
+  "sha": "b5f262754737f317f12ca8bc9aa0ec78455e9e2f",
+  "parent": "685db061c48e732ea39f04cf81b48887c04c6518",
+  "licence": "MIT",
+  "language": "php",
+  "url": "https://github.com/thayronarrais/lunar-cjdropshipping/commit/b5f262754737f317f12ca8bc9aa0ec78455e9e2f",
+  "files": [
+    "config/lunar-cjdropshipping.php",
+    "src/Actions/CheckCandidateShipping.php",
+    "src/Filament/Resources/ImportRuleResource.php",
+    "src/LunarCjDropshippingServiceProvider.php",
+    "src/Support/SiteCurrencies.php",
+    "tests/Feature/Discovery/CheckCandidateShippingTest.php",
+    "tests/Filament/ImportRuleResourceTest.php"
+  ]
+}

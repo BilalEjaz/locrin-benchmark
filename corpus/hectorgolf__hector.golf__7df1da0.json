@@ -1,0 +1,13 @@
+{
+  "id": "hectorgolf__hector.golf__7df1da0",
+  "source": "git",
+  "repo": "hectorgolf/hector.golf",
+  "sha": "7df1da0004ca6ea455e578785681d6ffdb4582cc",
+  "parent": "8775e1c3dfcff369bed3b13bcdd29d447d84cf9f",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/hectorgolf/hector.golf/commit/7df1da0004ca6ea455e578785681d6ffdb4582cc",
+  "files": [
+    "backend/backend-functions/src/cli/cli.ts"
+  ]
+}

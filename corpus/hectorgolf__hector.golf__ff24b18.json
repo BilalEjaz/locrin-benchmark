@@ -1,0 +1,16 @@
+{
+  "id": "hectorgolf__hector.golf__ff24b18",
+  "source": "git",
+  "repo": "hectorgolf/hector.golf",
+  "sha": "ff24b182464fc3ce9b33ac90a7a9a5d907c017b1",
+  "parent": "aec537b190dbcb868d987f57be963dae2297ee08",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/hectorgolf/hector.golf/commit/ff24b182464fc3ce9b33ac90a7a9a5d907c017b1",
+  "files": [
+    "astrosite/src/code/field-handicaps.ts",
+    "astrosite/test/unit/field-handicaps.test.ts",
+    "astrosite/test/unit/handicap-checks.test.ts",
+    "packages/schemas/src/handicap-checks.ts"
+  ]
+}

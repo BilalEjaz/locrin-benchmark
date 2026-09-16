@@ -1,0 +1,60 @@
+{
+  "diff": "iwangbowen__zenith-admin__9dc8aed",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "packages/web/src/mocks/data/iot.ts",
+      "line": 110,
+      "id": "4ddd2a60f07d451a",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "getNextIotGroupId lost its only importer (handlers/iot.ts) in this change."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/web/src/mocks/data/marketing.ts",
+      "line": 33,
+      "id": "824395a7d55d60e1",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "getNextMarketingCampaignId lost its only importer (handlers/marketing.ts) in this change."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/web/src/mocks/data/wiki.ts",
+      "line": 113,
+      "id": "b160fd2f9e1949c3",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "getNextWikiTagId lost its only importer (handlers/wiki.ts) in this change."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/web/src/mocks/data/mp-broadcasts.ts",
+      "line": 8,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: getNextMpBroadcastId lost its only importer (handlers/mp-broadcasts.ts) in this change; no importer repo-wide. pass two: getNextMpBroadcastId: this change removed its only importer (handlers/mp-broadcasts.ts, replaced by mockResource); no importer anywhere at the commit"
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/web/src/mocks/data/mp-conditional-menus.ts",
+      "line": 20,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: getNextMpConditionalMenuId lost its only importer (handlers/mp-conditional-menus.ts) in this change; no importer repo-wide. pass two: getNextMpConditionalMenuId: this change removed its only importer (handlers/mp-conditional-menus.ts, replaced by mockResource); no importer anywhere at the commit"
+    }
+  ]
+}

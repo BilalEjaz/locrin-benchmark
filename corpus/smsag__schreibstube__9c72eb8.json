@@ -1,0 +1,15 @@
+{
+  "id": "smsag__schreibstube__9c72eb8",
+  "source": "git",
+  "repo": "smsag/schreibstube",
+  "sha": "9c72eb8e757e53f905b838d5f4a4356bfc552449",
+  "parent": "21fc86569f6ff7ef8176e81bf2fdbeb8d1291c10",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/smsag/schreibstube/commit/9c72eb8e757e53f905b838d5f4a4356bfc552449",
+  "files": [
+    "src/services/ground-colour.test.ts",
+    "src/services/ground-colour.ts",
+    "src/ui/explorer-view.ts"
+  ]
+}

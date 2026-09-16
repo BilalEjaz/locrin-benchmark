@@ -1,0 +1,78 @@
+{
+  "diff": "medstudy-cz__quiz_proforientationgit__49d9a6b",
+  "locrin": "v0.5.0",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-09-14"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-09-15"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "sanity/lib/api.ts",
+      "line": 72,
+      "id": "3c371f27100cf5fd",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "diff removed its only importer (services/sanityAdapter.ts); no importer at the commit"
+    },
+    {
+      "rule": "dead-export",
+      "file": "sanity/lib/api.ts",
+      "line": 103,
+      "id": "3e7f0a05711ad476",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "diff removed its only importer (services/sanityAdapter.ts); no importer at the commit"
+    },
+    {
+      "rule": "dead-export",
+      "file": "utils/formatUniversitiesForPrompt.ts",
+      "line": 7,
+      "id": "8b8784f7de99c6ef",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "new file; exported type used only inside this file, no importer in the repository"
+    },
+    {
+      "rule": "dead-export",
+      "file": "utils/formatUniversitiesForPrompt.ts",
+      "line": 26,
+      "id": "bbbc2b79a2e904a2",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "new file; exported type used only inside this file, no importer in the repository"
+    },
+    {
+      "rule": "dead-export",
+      "file": "utils/formatUniversitiesForPrompt.ts",
+      "line": 127,
+      "id": "e1468209638bd6af",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "used only inside this file; geminiService matches the literal via regex, not the export"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "app/api/report/route.ts",
+      "line": 19,
+      "id": "64f2820acab7f811",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "console.log trace in a Next.js API route"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "components/quiz/QuizScreen.tsx",
+      "line": 137,
+      "id": "a5591699601658cb",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "console.log success trace in a client component"
+    }
+  ]
+}

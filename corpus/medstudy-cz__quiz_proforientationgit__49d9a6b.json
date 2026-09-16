@@ -1,0 +1,29 @@
+{
+  "id": "medstudy-cz__quiz_proforientationgit__49d9a6b",
+  "source": "git",
+  "repo": "medstudy-cz/quiz_proforientationgit",
+  "sha": "49d9a6b5bbc58279ad1e31758b9bfdf6d7a5fff7",
+  "parent": "e9130c3332e761301e2327395eda73f2664d5295",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/medstudy-cz/quiz_proforientationgit/commit/49d9a6b5bbc58279ad1e31758b9bfdf6d7a5fff7",
+  "files": [
+    "app/api/report/route.ts",
+    "components/quiz/EducationLevelSelection.tsx",
+    "components/quiz/QuizScreen.tsx",
+    "components/ui/AnswerButton.tsx",
+    "context/QuizContext.tsx",
+    "dictionaries/educationalInstitutionsDictionary.ts",
+    "dictionaries/promptsDictionary.ts",
+    "dictionaries/quizDictionary.ts",
+    "sanity/lib/queries.ts",
+    "sanity/lib/types.ts",
+    "sanity/schemas/quiz.ts",
+    "sanity/schemas/simpleQuestion.ts",
+    "services/geminiService.ts",
+    "services/sanityAdapter.ts",
+    "utils/buildPrompt.ts",
+    "utils/buildReportPrompt.ts",
+    "utils/formatUniversitiesForPrompt.ts"
+  ]
+}
