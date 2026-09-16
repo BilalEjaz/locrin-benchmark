@@ -57,15 +57,32 @@ jobs:
             fi
             if [[ -n "$reason" ]]; then echo "skip: $reason"; echo "skip=true" >> "$GITHUB_OUTPUT"; fi
           fi
+      - name: Runner resources
+        if: steps.v.outputs.skip != 'true'
+        run: |
+          # What the run starts with. The first run of this workflow filled the disk and the runner
+          # lost communication with the server, with nothing in the log to say so. || true: not every
+          # runner image has free(1), and a missing tool must never fail the job.
+          df -h / || true
+          free -m || true
       - name: Run
         id: run
         if: steps.v.outputs.skip != 'true'
         env:
           V: ${{ steps.v.outputs.version }}
+          # Unbuffered, so each diff's progress line reaches the log as the diff finishes rather than
+          # when the process exits: a run the runner kills still shows how far it got.
+          PYTHONUNBUFFERED: "1"
         run: |
           code=0
-          ./run.sh "$V" || code=$?
+          # --evict-repos: the runner has about 14 GB free and every clone together is more, so each
+          # repository's clone goes as soon as its last diff has run.
+          ./run.sh "$V" --evict-repos || code=$?
           echo "code=$code" >> "$GITHUB_OUTPUT"
+          # What the run left behind, printed before the step can exit, so a run that ran out of
+          # disk or memory says so in its own log even when it failed.
+          df -h / || true
+          free -m || true
           # 3: at least one diff ran and every diff that did not is a confirmed gone source (its repository
           # answers 404, or the server lacks its commit after a fetch). The table says how many ran, so the
           # results still publish and the last step flags them. Any other failure, a network error included,
