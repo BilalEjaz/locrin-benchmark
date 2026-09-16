@@ -286,7 +286,7 @@ def test_only_confirmed_gone_sources_exit_three_publish_and_record_the_evidence(
     args = _setup(tmp_path, monkeypatch, ["fx-01-ok", "fx-02-gone"], {"fx-02-gone": gone})
     assert main_mod.main(args) == 3
     table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
-    assert table.startswith("Locrin v0.5.0, 1 of 2 diffs ran. Left out of the numbers: 0 unlabelled, 0 without an agreed and confirmed label, 0 not applicable, 0 pre-existing and 0 duplicate.\n")
+    assert table.startswith("Locrin v0.5.0, 1 of 2 diffs ran. Left out of the numbers: 0 unlabelled, 0 without an agreed and confirmed label, 0 not applicable, 0 pre-existing and 0 duplicate. 0 of 1 rules and 0 of 0 pairs reached n=5 and are scored.\n")
     run = _run_json(tmp_path)
     assert run["diffs"] == 2 and run["ran"] == 1 and run["publishable"] is True
     assert run["gone"] == [{"id": "fx-02-gone", "evidence": "commit 1111 is not on acme/w after an explicit fetch: not our ref 1111"}]
@@ -355,7 +355,7 @@ def test_findings_matched_to_unconfirmed_entries_are_listed_as_excluded(tmp_path
     assert f"excluded: fx-01-ok leftover-debug src/x.ts:3 {'b' * 16}" in capsys.readouterr().err
     # A published table always says how many findings it left out, in its heading and per rule and pair.
     table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
-    assert table.startswith("Locrin v0.5.0, 1 of 1 diffs ran. Left out of the numbers: 0 unlabelled, 1 without an agreed and confirmed label, 0 not applicable, 0 pre-existing and 0 duplicate.\n")
+    assert table.startswith("Locrin v0.5.0, 1 of 1 diffs ran. Left out of the numbers: 0 unlabelled, 1 without an agreed and confirmed label, 0 not applicable, 0 pre-existing and 0 duplicate. 0 of 1 rules and 0 of 1 pairs reached n=5 and are scored.\n")
     assert "| `leftover-debug` | on | 100% | 100% | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | n<5, not scored |" in table
     assert "| `leftover-debug@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | n<5, not scored |" in table
     assert (tmp_path / "README.md").read_bytes() == b"x\n<!-- results:start -->\n" + table.encode("utf-8") + b"<!-- results:end -->\n"
@@ -481,6 +481,22 @@ def test_a_label_file_pass_two_never_confirmed_makes_the_run_not_publishable(tmp
     assert "not publishable" in capsys.readouterr().err
 
 
+def test_an_adjudication_still_marked_pending_is_unconfirmed_and_the_run_does_not_publish(tmp_path, monkeypatch, capsys):
+    labels = tmp_path / "labels"
+    labels.mkdir()
+    write_label(labels, "fx-01-ok", [dict(entry("src/x.ts", 2, "a" * 16, "true"),
+                                          note="adjudicated (opus), pending Fable review")])
+    args = _setup(tmp_path, monkeypatch, ["fx-01-ok"], {})
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif([result("src/x.ts", 2, "a" * 16)]))
+    assert main_mod.main(args) == 4
+    run = _run_json(tmp_path)
+    assert run["publishable"] is False and run["labels"]["unconfirmed"] == ["fx-01-ok"]
+    # It counts nowhere while it waits for the review, and the Excluded column says so.
+    assert run["excluded"] == 1 and run["unlabelled"] == 0
+    assert (tmp_path / "README.md").read_bytes() == OLD_README
+    assert "not publishable" in capsys.readouterr().err
+
+
 @pytest.mark.parametrize("verdict", ["false-positive", "true", "not-applicable"])
 def test_a_labelled_finding_the_run_does_not_reproduce_makes_the_run_not_publishable(tmp_path, monkeypatch, capsys, verdict):
     # Labels name this locrin version, so every finding entry came from this version's output: one the run
@@ -535,7 +551,8 @@ def test_findings_the_parent_reports_are_pre_existing_and_repeats_in_later_diffs
     assert [(f["diff"], f["id"]) for f in findings] == [("acme__w__1111111", Y)]
     table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
     assert table.startswith("Locrin v0.5.0, 2 of 2 diffs ran. Left out of the numbers: 0 unlabelled, 0 without an agreed and "
-                            "confirmed label, 0 not applicable, 2 pre-existing and 1 duplicate.\n")
+                            "confirmed label, 0 not applicable, 2 pre-existing and 1 duplicate. 0 of 1 rules and "
+                            "0 of 1 pairs reached n=5 and are scored.\n")
     assert "| `leftover-debug` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | n<5, not scored |" in table
     assert "| `leftover-debug@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | n<5, not scored |" in table
     # Findings left out as pre-existing or duplicate are listed, not only counted.
@@ -593,7 +610,8 @@ def test_not_applicable_findings_are_counted_listed_and_recorded(tmp_path, monke
     assert run["not_applicable"] == 1 and run["excluded"] == 0 and run["publishable"] is True
     assert f"not applicable: fx-01-ok leftover-debug src/gen.ts:3 {'b' * 16}" in capsys.readouterr().err
     table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
-    assert "0 without an agreed and confirmed label, 1 not applicable, 0 pre-existing and 0 duplicate.\n" in table
+    assert ("0 without an agreed and confirmed label, 1 not applicable, 0 pre-existing and 0 duplicate. "
+            "0 of 1 rules and 0 of 1 pairs reached n=5 and are scored.\n") in table
     assert "| `leftover-debug` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | n<5, not scored |" in table
 
 
@@ -729,7 +747,7 @@ def test_a_reland_pair_counts_its_reported_construct_once_and_its_missed_constru
     run = _run_json(tmp_path)
     assert (run["findings"], run["duplicates"], run["publishable"], run["labels"]["invalid_missed"]) == (1, 1, True, [])
     table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
-    assert "0 not applicable, 0 pre-existing and 1 duplicate.\n" in table
+    assert "0 not applicable, 0 pre-existing and 1 duplicate. 0 of 1 rules and 0 of 1 pairs reached n=5 and are scored.\n" in table
     assert "| `leftover-debug` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | n<5, not scored |" in table
 
 
@@ -767,5 +785,5 @@ def test_the_same_line_text_in_two_functions_from_one_repository_counts_each_mis
     run = _run_json(tmp_path)
     assert (run["findings"], run["duplicates"], run["publishable"], run["labels"]["invalid_missed"]) == (2, 0, True, [])
     table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
-    assert "0 not applicable, 0 pre-existing and 0 duplicate.\n" in table
+    assert "0 not applicable, 0 pre-existing and 0 duplicate. 0 of 1 rules and 0 of 1 pairs reached n=5 and are scored.\n" in table
     assert "| `leftover-debug` | on | 100% | 50% | 2 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |" in table

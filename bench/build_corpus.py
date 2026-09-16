@@ -296,6 +296,26 @@ def _portable_problem(names) -> str | None:
     return None
 
 
+def _symlink_problem(gh, repo: str, sha: str, names) -> str | None:
+    """Why this commit's tree cannot be scored the same way on Windows and Linux, or None.
+
+    A tree entry with mode 120000 is a symbolic link: git checks it out as a link where the platform
+    has them and as a text file holding the target path where it does not, so the engine would read
+    different bytes on each platform and materialise refuses such a commit. Read once, before any file
+    is downloaded. A tree that is truncated or comes back without a listing cannot rule the links out,
+    so those commits are skipped too: an unreadable tree is an answer we do not have, not a no.
+    """
+    doc = gh.get(f"repos/{repo}/git/trees/{sha}", {"recursive": "1"})
+    tree = doc.get("tree") if isinstance(doc, dict) else None
+    if not isinstance(tree, list):
+        return f"the tree at {sha[:7]} cannot be read, so a symbolic link among the changed files cannot be ruled out"
+    if doc.get("truncated"):
+        return f"the tree at {sha[:7]} is truncated, so a symbolic link among the changed files cannot be ruled out"
+    wanted = set(names)
+    links = sorted(e["path"] for e in tree if isinstance(e, dict) and e.get("mode") == "120000" and e.get("path") in wanted)
+    return f"{links[0]} is a symbolic link at {sha[:7]}" if links else None
+
+
 def _contents(gh, repo: str, path: str, ref: str) -> bytes:
     """The file at ref. Raises _Skip when it cannot be read or is over MAX_BYTES."""
     try:
@@ -433,6 +453,10 @@ def accept(gh, item: dict, seen_repos: dict[str, int], language_skip=None, meta_
         problem = f"files {sorted(set(names) - set(want_before) - set(want_after))} have no stored copy"
     if problem:
         _skip(repo, sha, problem, "path not portable or not stored")
+        return None
+    problem = _symlink_problem(gh, repo, sha, want_after)
+    if problem:
+        _skip(repo, sha, problem, "symbolic link among the changed files")
         return None
     try:
         before = {n: _contents(gh, repo, n, parent) for n in want_before}

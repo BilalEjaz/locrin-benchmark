@@ -42,6 +42,10 @@ class FakeGitHub:
             return {"total_count": 1, "incomplete_results": False, "items": [load("repo.json")]}
         if path.endswith("/commits"):
             return load("commits_list.json")
+        if "/git/trees/" in path:
+            # Ordinary blobs for the captured commit's files: a test that wants a link overrides this.
+            return {"sha": SHA, "truncated": False,
+                    "tree": [{"path": f["filename"], "mode": "100644", "type": "blob"} for f in load("commit.json")["files"]]}
         if "/contents/" in path:
             ref = (params or {}).get("ref", "")
             commit = load("commit.json")
@@ -406,6 +410,44 @@ def test_accept_skips_a_path_windows_cannot_hold_before_fetching_anything(name, 
     assert seen == {}
     assert not [c for c in gh.calls if "/contents/" in c]
     assert "not portable" in capsys.readouterr().err
+
+
+def _tree(entries):
+    return {"sha": SHA, "truncated": False, "tree": entries}
+
+
+def test_accept_skips_a_commit_whose_tree_stores_a_changed_file_as_a_symbolic_link(capsys):
+    # A link checks out as a link on Linux and as a text file on Windows, so the same commit would
+    # score differently on the two platforms. The tree is read before any file is downloaded.
+    tree = _tree([{"path": FILE, "mode": "120000", "type": "blob"}])
+    gh = FakeGitHub({f"repos/{REPO}/git/trees/{SHA}": tree})
+    seen = {}
+    assert accept(gh, first_item(), seen_repos=seen) is None
+    assert seen == {}
+    assert not [c for c in gh.calls if "/contents/" in c]
+    assert "symbolic link" in capsys.readouterr().err
+
+
+def test_accept_keeps_a_commit_whose_changed_files_are_ordinary_blobs():
+    gh = FakeGitHub({f"repos/{REPO}/git/trees/{SHA}": _tree([{"path": FILE, "mode": "100644", "type": "blob"},
+                                                             {"path": "other/link.ts", "mode": "120000", "type": "blob"}])})
+    rec, before, after = accept(gh, first_item(), seen_repos={})
+    assert rec["files"] == [FILE] and set(after) == {FILE}
+
+
+def test_accept_skips_a_commit_whose_tree_cannot_be_read_for_links(capsys):
+    gh = FakeGitHub({f"repos/{REPO}/git/trees/{SHA}": _tree([{"path": FILE, "mode": "100644", "type": "blob"}]) | {"truncated": True}})
+    assert accept(gh, first_item(), seen_repos={}) is None
+    assert not [c for c in gh.calls if "/contents/" in c]
+    assert "symbolic link" in capsys.readouterr().err
+
+
+def test_accept_skips_a_commit_whose_tree_response_holds_no_tree(capsys):
+    # An unreadable tree rules nothing out, so it is a skip like a truncated one, never a quiet pass.
+    gh = FakeGitHub({f"repos/{REPO}/git/trees/{SHA}": {"sha": SHA, "message": "Not Found"}})
+    assert accept(gh, first_item(), seen_repos={}) is None
+    assert not [c for c in gh.calls if "/contents/" in c]
+    assert "symbolic link" in capsys.readouterr().err
 
 
 def test_accept_skips_paths_that_collide_when_case_is_ignored_on_one_side():
