@@ -132,6 +132,11 @@ def test_fixture_corpus_scores_exactly(tmp_path, home):
     assert keys == sorted(keys)
     assert ("fx-01-debug", "leftover-debug", "src/logger.ts", 3, "01b73e4aa766c158") in keys
     assert not any(f["diff"] == "fx-10-clean" for f in findings)
+    # fx-10-clean carries files whose extensions a git checkout skips (materialise.SKIPPED_EXTENSIONS).
+    # They are here so the numbers above stay the proof that such a file changes nothing locrin reports.
+    from bench.materialise import SKIPPED_EXTENSIONS
+    dumps = sorted(p.suffix.lstrip(".") for p in (ROOT / "fixtures" / "corpus" / "fx-10-clean" / "after" / "data").iterdir())
+    assert dumps == ["csv", "ndjson"] and all(d in SKIPPED_EXTENSIONS for d in dumps)
     # The breakpoint() pkg/i.py held before the change is not among the scored findings.
     assert [(f["file"], f["line"]) for f in findings if f["diff"] == "fx-09-py-debug"] == [("pkg/i.py", 5)]
 

@@ -936,6 +936,53 @@ def test_a_failed_checkout_of_the_base_is_a_materialise_error_naming_the_diff(tm
         checkout_base(d, Checkout(root=co.root, base_ref="0" * 40), tmp_path / "cache")
 
 
+PNG = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+
+
+def _upstream_with_data_dumps(tmp_path: Path, monkeypatch) -> Diff:
+    """An upstream whose commit changes a source file and a data dump beside a manifest and an image."""
+    return _local_upstream(
+        tmp_path, monkeypatch,
+        before={"src/a.ts": b"export const a = 1;\n", "package.json": b'{"name": "w"}\n',
+                "web/data.ndjson": b'{"n": 1}\n', "web/logo.PNG": PNG},
+        after={"src/a.ts": b"export const a = 2;\n", "package.json": b'{"name": "w"}\n',
+               "web/data.ndjson": b'{"n": 2}\n', "web/logo.PNG": PNG},
+    )
+
+
+def test_a_git_checkout_leaves_out_the_extensions_the_engine_never_reads(tmp_path, monkeypatch):
+    # The runner holds about 14 GB: one corpus repository alone stores 9 GB of .ndjson dumps that
+    # locrin never parses, so the checkout skips them and a blob:none clone never downloads them.
+    d = _upstream_with_data_dumps(tmp_path, monkeypatch)
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    assert (co.root / "src" / "a.ts").read_bytes() == b"export const a = 2;\n"
+    assert (co.root / "package.json").read_bytes() == b'{"name": "w"}\n'
+    assert not (co.root / "web" / "data.ndjson").exists()
+    # Upper case too: git's pattern syntax has no ignore-case flag, so each letter is a class.
+    assert not (co.root / "web" / "logo.PNG").exists()
+    # The commit is still the commit: every path is in the tree, and the diff still names the dump.
+    listed = _run(["ls-tree", "-r", "--name-only", "-z", d.sha], co.root).split("\0")
+    assert sorted(n for n in listed if n) == ["package.json", "src/a.ts", "web/data.ndjson", "web/logo.PNG"]
+    changed = _run(["diff", "--name-only", "--diff-filter=ACMR", d.parent, d.sha], co.root).split()
+    assert sorted(changed) == ["src/a.ts", "web/data.ndjson"]
+
+
+def test_the_sparse_rules_hold_when_the_checkout_moves_to_the_base_and_over_a_cached_clone(tmp_path, monkeypatch):
+    from bench.materialise import checkout_base
+
+    d = _upstream_with_data_dumps(tmp_path, monkeypatch)
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    checkout_base(d, co, tmp_path / "cache")
+    assert (co.root / "src" / "a.ts").read_bytes() == b"export const a = 1;\n"
+    assert not (co.root / "web" / "data.ndjson").exists() and not (co.root / "web" / "logo.PNG").exists()
+    # A second materialise reuses the clone: the rules are configured again, never doubled or dropped.
+    co = materialise(d, tmp_path / "corpus", tmp_path / "cache")
+    assert (co.root / "src" / "a.ts").read_bytes() == b"export const a = 2;\n"
+    assert not (co.root / "web" / "data.ndjson").exists()
+    patterns = (co.root / ".git" / "info" / "sparse-checkout").read_text(encoding="utf-8").splitlines()
+    assert patterns[0] == "/*" and len(patterns) == len(set(patterns))
+
+
 def test_added_lines_are_the_lines_the_commit_added_to_each_named_file(tmp_path):
     from bench.materialise import added_lines
 
