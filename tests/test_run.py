@@ -227,8 +227,11 @@ def test_run_check_really_runs_a_relative_binary_from_another_cwd(tmp_path, monk
 
 
 def test_bench_toml_has_no_carriage_returns_and_enables_the_ships_off_rules():
+    # Every rule that ships off in some Locrin version is enabled here by name, so a default that
+    # flips off between versions (leftover-commented-code did in 0.6.0) never silently stops being
+    # measured; the table's Ships column comes from the engine, not from this file.
     assert "\r" not in BENCH_TOML
-    for rule in ("dead-file", "swallowed-error", "injection-sink"):
+    for rule in ("dead-file", "swallowed-error", "injection-sink", "leftover-commented-code"):
         assert f"[rules.{rule}]\nenabled = true" in BENCH_TOML
 
 

@@ -31,6 +31,7 @@ enabled = true
 [rules.injection-sink]
 enabled = true
 [rules.leftover-commented-code]
+enabled = true
 languages = ["typescript", "tsx", "javascript", "php", "python"]
 """
 
