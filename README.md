@@ -27,19 +27,19 @@ The table always says how many diffs ran. Run the tests with `python -m pytest -
 A rule or a language pair is scored only once five confirmed labelled findings back it, so read the table against how many reached that n: the table heading says how many of the rules and how many of the pairs did, and every row that did not reads `n<5, not scored` in its Note. In a wave of this size that is most rows, and the headline rests on the handful of rules that did reach n, so the corpus target for wave two is set by the rules still under it rather than by a number of diffs.
 
 <!-- results:start -->
-Locrin v0.5.0, 217 of 217 diffs ran. Left out of the numbers: 0 unlabelled, 10 without an agreed and confirmed label, 0 not applicable, 1324 pre-existing and 0 duplicate. 6 of 21 rules and 5 of 34 pairs reached n=5 and are scored.
+Locrin v0.6.0, 217 of 217 diffs ran. Left out of the numbers: 0 unlabelled, 3 without an agreed and confirmed label, 0 not applicable, 1188 pre-existing and 0 duplicate. 5 of 21 rules and 4 of 32 pairs reached n=5 and are scored.
 
 | Rule | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Excluded | Not applicable | Pre-existing | Duplicate | Note |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `leftover-debug` | on | 24% (below line) | 100% | 5 | 16 | 0 | 0 | 7 | 0 | 127 | 0 |  |
-| `leftover-commented-code` | on | 0% (below line) |  | 0 | 5 | 0 | 0 | 0 | 0 | 39 | 0 |  |
+| `leftover-debug` | on | 43% (below line) | 100% | 3 | 4 | 0 | 0 | 0 | 0 | 18 | 0 |  |
+| `leftover-commented-code` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 12 | 0 | n<5, not scored |
 | `leftover-agent-marker` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 39 | 0 | n<5, not scored |
 | `unused-import` | on | 100% | 25% | 1 | 0 | 3 | 0 | 0 | 0 | 51 | 0 | n<5, not scored |
 | `unreachable` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |
 | `dead-export` | on | 94% | 74% | 34 | 2 | 12 | 0 | 1 | 0 | 729 | 0 |  |
 | `dead-file` | off | 0% (below line) |  | 0 | 16 | 0 | 0 | 0 | 0 | 62 | 0 |  |
 | `boundary-violation` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | not benchmarked: needs per-repository config |
-| `swallowed-error` | off | 92% | 100% | 11 | 1 | 0 | 0 | 2 | 0 | 138 | 0 |  |
+| `swallowed-error` | on | 92% | 100% | 11 | 1 | 0 | 0 | 2 | 0 | 138 | 0 |  |
 | `test-no-assert` | on | 0% |  | 0 | 2 | 0 | 0 | 0 | 0 | 12 | 0 | n<5, not scored |
 | `test-newly-skipped` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |
 | `secret-exposed` | locked |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |
@@ -68,19 +68,17 @@ Locrin v0.5.0, 217 of 217 diffs ran. Left out of the numbers: 0 unlabelled, 10 w
 | `leftover-agent-marker@php` | opt-in |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 3 | 0 | n<5, not scored |
 | `leftover-agent-marker@python` | opt-in | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 30 | 0 | n<5, not scored |
 | `leftover-agent-marker@typescript` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 6 | 0 | n<5, not scored |
-| `leftover-commented-code@javascript` | on | 0% |  | 0 | 2 | 0 | 0 | 0 | 0 | 14 | 0 | n<5, not scored |
-| `leftover-commented-code@php` | opt-in | 0% |  | 0 | 2 | 0 | 0 | 0 | 0 | 3 | 0 | n<5, not scored |
-| `leftover-commented-code@python` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 9 | 0 | n<5, not scored |
-| `leftover-commented-code@tsx` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 | n<5, not scored |
-| `leftover-commented-code@typescript` | on | 0% |  | 0 | 1 | 0 | 0 | 0 | 0 | 11 | 0 | n<5, not scored |
-| `leftover-debug@javascript` | on | 0% (below line) |  | 0 | 16 | 0 | 0 | 0 | 0 | 15 | 0 |  |
+| `leftover-commented-code@php` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 | n<5, not scored |
+| `leftover-commented-code@python` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 6 | 0 | n<5, not scored |
+| `leftover-commented-code@typescript` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 | n<5, not scored |
+| `leftover-debug@javascript` | on | 0% |  | 0 | 4 | 0 | 0 | 0 | 0 | 12 | 0 | n<5, not scored |
 | `leftover-debug@php` | opt-in |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | n<5, not scored |
 | `leftover-debug@tsx` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 5 | 0 | n<5, not scored |
-| `leftover-debug@typescript` | on | 100% | 100% | 4 | 0 | 0 | 0 | 7 | 0 | 106 | 0 | n<5, not scored |
+| `leftover-debug@typescript` | on | 100% | 100% | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |
 | `supabase-service-role-in-client@typescript` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 | n<5, not scored |
-| `swallowed-error@javascript` | off | 91% | 100% | 10 | 1 | 0 | 0 | 2 | 0 | 105 | 0 |  |
-| `swallowed-error@tsx` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 24 | 0 | n<5, not scored |
-| `swallowed-error@typescript` | off | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 9 | 0 | n<5, not scored |
+| `swallowed-error@javascript` | on | 91% | 100% | 10 | 1 | 0 | 0 | 2 | 0 | 105 | 0 |  |
+| `swallowed-error@tsx` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 24 | 0 | n<5, not scored |
+| `swallowed-error@typescript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 9 | 0 | n<5, not scored |
 | `test-no-assert@javascript` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 7 | 0 | n<5, not scored |
 | `test-no-assert@typescript` | on | 0% |  | 0 | 2 | 0 | 0 | 0 | 0 | 5 | 0 | n<5, not scored |
 | `unused-import@javascript` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 47 | 0 | n<5, not scored |
