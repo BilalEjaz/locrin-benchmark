@@ -25,6 +25,7 @@ from collections import Counter
 from pathlib import Path
 
 from bench.corpus import ALLOWED_LICENCES, CorpusError, _valid_file, _valid_id, _valid_repo, language_of, load_corpus
+from bench.materialise import SKIPPED_EXTENSIONS
 
 TRAILERS = ["Co-Authored-By: Claude", "Co-authored-by: Codex", "Co-authored-by: Copilot", "Co-authored-by: Cursor"]
 MAX_FILES = 30
@@ -296,24 +297,57 @@ def _portable_problem(names) -> str | None:
     return None
 
 
-def _symlink_problem(gh, repo: str, sha: str, names) -> str | None:
-    """Why this commit's tree cannot be scored the same way on Windows and Linux, or None.
+# What a runner can check out. A GitHub runner has about 14 GB of disk and 7 GB of memory, and one
+# wave one repository holds 350,462 files and 9,127 MB at its commits, which filled the runner before
+# locrin ever ran. Counted over the files a checkout would hold: the extensions materialise skips are
+# never downloaded, so they cost nothing. MB here is 1024 by 1024 bytes, as du reports it.
+MAX_TREE_MB = 2000
+MAX_TREE_ENTRIES = 100_000
+# The skip kind the summary counts an unreadable tree under: it rules no symbolic link out.
+_LINK_KIND = "symbolic link among the changed files"
+
+
+def _checked_out(entry: dict) -> bool:
+    """Whether a checkout of the tree would hold this entry: a blob whose extension is not skipped."""
+    if entry.get("type") != "blob":
+        return False
+    extension = str(entry.get("path", "")).rpartition("/")[2].rpartition(".")[2].lower()
+    return extension not in SKIPPED_EXTENSIONS
+
+
+def _oversized_problem(tree: list, sha: str) -> str | None:
+    """Why a checkout of this tree would not fit on a runner, or None."""
+    kept = [e for e in tree if isinstance(e, dict) and _checked_out(e)]
+    megabytes = sum(int(e.get("size") or 0) for e in kept) / (1024 * 1024)
+    if megabytes > MAX_TREE_MB:
+        return (f"the tree at {sha[:7]} checks out {megabytes:.0f} MB, over the {MAX_TREE_MB} MB a runner holds")
+    if len(kept) > MAX_TREE_ENTRIES:
+        return f"the tree at {sha[:7]} checks out {len(kept)} files, over {MAX_TREE_ENTRIES}"
+    return None
+
+
+def _tree_problem(gh, repo: str, sha: str, names) -> tuple[str, str] | None:
+    """Why this commit cannot go in the corpus, with the kind the skip summary counts it under, or None.
 
     A tree entry with mode 120000 is a symbolic link: git checks it out as a link where the platform
     has them and as a text file holding the target path where it does not, so the engine would read
-    different bytes on each platform and materialise refuses such a commit. Read once, before any file
-    is downloaded. A tree that is truncated or comes back without a listing cannot rule the links out,
-    so those commits are skipped too: an unreadable tree is an answer we do not have, not a no.
+    different bytes on each platform and materialise refuses such a commit. A commit whose tree is too
+    big for a runner to check out is refused here too. Read once, before any file is downloaded. A tree
+    that is truncated or comes back without a listing cannot rule the links out, so those commits are
+    skipped too: an unreadable tree is an answer we do not have, not a no.
     """
     doc = gh.get(f"repos/{repo}/git/trees/{sha}", {"recursive": "1"})
     tree = doc.get("tree") if isinstance(doc, dict) else None
     if not isinstance(tree, list):
-        return f"the tree at {sha[:7]} cannot be read, so a symbolic link among the changed files cannot be ruled out"
+        return f"the tree at {sha[:7]} cannot be read, so a symbolic link among the changed files cannot be ruled out", _LINK_KIND
     if doc.get("truncated"):
-        return f"the tree at {sha[:7]} is truncated, so a symbolic link among the changed files cannot be ruled out"
+        return f"the tree at {sha[:7]} is truncated, so a symbolic link among the changed files cannot be ruled out", _LINK_KIND
     wanted = set(names)
     links = sorted(e["path"] for e in tree if isinstance(e, dict) and e.get("mode") == "120000" and e.get("path") in wanted)
-    return f"{links[0]} is a symbolic link at {sha[:7]}" if links else None
+    if links:
+        return f"{links[0]} is a symbolic link at {sha[:7]}", _LINK_KIND
+    oversized = _oversized_problem(tree, sha)
+    return (oversized, "tree too big to check out") if oversized else None
 
 
 def _contents(gh, repo: str, path: str, ref: str) -> bytes:
@@ -454,9 +488,9 @@ def accept(gh, item: dict, seen_repos: dict[str, int], language_skip=None, meta_
     if problem:
         _skip(repo, sha, problem, "path not portable or not stored")
         return None
-    problem = _symlink_problem(gh, repo, sha, want_after)
+    problem = _tree_problem(gh, repo, sha, want_after)
     if problem:
-        _skip(repo, sha, problem, "symbolic link among the changed files")
+        _skip(repo, sha, problem[0], problem[1])
         return None
     try:
         before = {n: _contents(gh, repo, n, parent) for n in want_before}

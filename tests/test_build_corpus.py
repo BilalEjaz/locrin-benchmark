@@ -450,6 +450,49 @@ def test_accept_skips_a_commit_whose_tree_response_holds_no_tree(capsys):
     assert "symbolic link" in capsys.readouterr().err
 
 
+def _blobs(count: int, size: int, ext: str) -> list[dict]:
+    return [{"path": f"web/data/{i}.{ext}", "mode": "100644", "type": "blob", "size": size} for i in range(count)]
+
+
+MB = 1024 * 1024
+
+
+def test_accept_skips_a_commit_whose_tree_is_too_big_for_a_runner_to_check_out(capsys):
+    # One wave one repository holds 9,127 MB at its commits and filled the CI runner's 14 GB disk.
+    # The tree is read before any file is downloaded, so an oversized commit costs nothing.
+    over = _tree([{"path": FILE, "mode": "100644", "type": "blob", "size": MB}, *_blobs(800, 3 * MB, "json")])
+    gh = FakeGitHub({f"repos/{REPO}/git/trees/{SHA}": over})
+    seen = {}
+    assert accept(gh, first_item(), seen_repos=seen) is None
+    assert seen == {}
+    assert not [c for c in gh.calls if "/contents/" in c]
+    assert "2000 MB" in capsys.readouterr().err
+
+
+def test_accept_skips_a_commit_whose_tree_holds_too_many_files(capsys):
+    over = _tree([{"path": FILE, "mode": "100644", "type": "blob", "size": 1},
+                  *_blobs(bc.MAX_TREE_ENTRIES, 1, "js")])
+    gh = FakeGitHub({f"repos/{REPO}/git/trees/{SHA}": over})
+    assert accept(gh, first_item(), seen_repos={}) is None
+    assert not [c for c in gh.calls if "/contents/" in c]
+    assert f"over {bc.MAX_TREE_ENTRIES}" in capsys.readouterr().err
+
+
+def test_accept_keeps_a_commit_under_the_tree_limits():
+    under = _tree([{"path": FILE, "mode": "100644", "type": "blob", "size": MB}, *_blobs(600, 3 * MB, "json")])
+    gh = FakeGitHub({f"repos/{REPO}/git/trees/{SHA}": under})
+    rec, before, after = accept(gh, first_item(), seen_repos={})
+    assert rec["files"] == [FILE]
+
+
+def test_the_tree_limits_count_only_what_a_checkout_would_hold():
+    # The same bytes as the oversized tree, in the data dumps materialise never checks out.
+    dumps = _tree([{"path": FILE, "mode": "100644", "type": "blob", "size": MB}, *_blobs(800, 3 * MB, "ndjson")])
+    gh = FakeGitHub({f"repos/{REPO}/git/trees/{SHA}": dumps})
+    rec, before, after = accept(gh, first_item(), seen_repos={})
+    assert rec["files"] == [FILE]
+
+
 def test_accept_skips_paths_that_collide_when_case_is_ignored_on_one_side():
     files = [{"filename": "src/Util.ts", "status": "added"}, {"filename": "src/util.ts", "status": "modified"}]
     gh = FakeGitHub({f"repos/{REPO}/commits/{SHA}": commit_with(files)})

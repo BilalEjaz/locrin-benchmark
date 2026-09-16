@@ -787,3 +787,46 @@ def test_the_same_line_text_in_two_functions_from_one_repository_counts_each_mis
     table = (tmp_path / "r" / "v0.5.0" / "table.md").read_text(encoding="utf-8")
     assert "0 not applicable, 0 pre-existing and 0 duplicate. 0 of 1 rules and 0 of 1 pairs reached n=5 and are scored.\n" in table
     assert "| `leftover-debug` | on | 100% | 50% | 2 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |" in table
+
+
+def repo_diff(repo: str, sha: str) -> Diff:
+    return Diff(id=f"{repo.replace('/', '__')}__{sha[:7]}", source="git", repo=repo, sha=sha, parent="0" * 40,
+                licence="MIT", language="typescript", url="u", files=["src/x.ts"])
+
+
+@pytest.mark.parametrize("evict", [True, False])
+def test_evict_repos_drops_each_clone_once_its_last_diff_has_run(tmp_path, monkeypatch, evict):
+    # Diffs run in id order, so one repository's diffs are consecutive and the runner never holds
+    # two repositories' checkouts at once. Off by default, so a local run keeps its cache.
+    from bench.materialise import repo_cache
+
+    cache = tmp_path / "cache"
+    diffs = [repo_diff("acme/w", "a" * 40), repo_diff("acme/w", "b" * 40), repo_diff("acme/x", "c" * 40)]
+    labels = tmp_path / "labels"
+    labels.mkdir()
+    for d in diffs:
+        write_label(labels, d.id, [])
+    held: list[list[str]] = []
+
+    def fake_materialise(d, corpus_root, cache_dir):
+        repos = Path(cache_dir) / "repos"
+        held.append(sorted(p.name for p in repos.iterdir()) if repos.is_dir() else [])
+        root = repo_cache(d, cache_dir)
+        root.mkdir(parents=True, exist_ok=True)
+        # Read-only, as git writes its object files: eviction must clear the flag and delete them anyway.
+        pack = root / f"{d.sha[:7]}.pack"
+        pack.write_bytes(b"objects git writes read only\n")
+        os.chmod(pack, 0o444)
+        return Checkout(root=root, base_ref="0" * 40, removed=[])
+
+    monkeypatch.setattr(main_mod, "install_locrin", lambda version, c: Path("locrin"))
+    monkeypatch.setattr(main_mod, "load_corpus", lambda root: diffs)
+    monkeypatch.setattr(main_mod, "materialise", fake_materialise)
+    monkeypatch.setattr(main_mod, "run_check", lambda locrin, co, work, diff_id: sarif([]))
+    args = ["--version", "v0.5.0", "--labels", str(labels), "--out", str(tmp_path / "r"),
+            "--work", str(tmp_path / "work"), "--cache", str(cache), "--readme", str(tmp_path / "README.md")]
+    assert main_mod.main([*args, "--evict-repos"] if evict else args) == 0
+    # The third diff is the first of another repository: with eviction the first clone is already gone.
+    assert held == ([[], ["acme__w"], []] if evict else [[], ["acme__w"], ["acme__w"]])
+    left = sorted(p.name for p in (cache / "repos").iterdir())
+    assert left == ([] if evict else ["acme__w", "acme__x"])

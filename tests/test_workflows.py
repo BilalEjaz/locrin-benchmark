@@ -96,13 +96,33 @@ def test_benchmark_publishes_when_only_confirmed_gone_sources_failed_then_flags_
     bm = read("benchmark.yml")
     run = step(bm, "Run")
     assert "id: run\n" in run
-    assert './run.sh "$V" || code=$?' in run
+    assert './run.sh "$V" --evict-repos || code=$?' in run
     assert 'echo "code=$code" >> "$GITHUB_OUTPUT"' in run
     flag = step(bm, "Flag diffs whose source is gone")
     assert "if: steps.run.outputs.code == '3'" in flag
     assert '["gone"]' in flag and "exit 1" in flag
     assert "materialise_failures" not in flag
     assert bm.index("- name: Commit results\n") < bm.index("- name: Flag diffs whose source is gone\n")
+
+
+def test_benchmark_reports_disk_and_memory_around_the_run_and_streams_each_diff():
+    # The first run of this workflow died at 64 minutes with "the hosted runner lost communication",
+    # having filled the disk, and the log showed neither the free space nor how far the run had got.
+    bm = read("benchmark.yml")
+    assert bm.index("- name: Runner resources\n") < bm.index("- name: Run\n")
+    before = step(bm, "Runner resources")
+    assert "df -h /" in before and "free -m" in before
+    run = step(bm, "Run")
+    # Inside the Run step and after the exit code is recorded, so they land in the log even when it fails.
+    assert run.index('echo "code=$code"') < run.index("df -h /") < run.index("free -m") < run.index('exit "$code"')
+    assert 'PYTHONUNBUFFERED: "1"' in run
+    for text in (before, run):
+        assert text.count("df -h / || true") == 1 and text.count("free -m || true") == 1
+
+
+def test_benchmark_evicts_each_clone_so_one_repository_is_on_disk_at_a_time():
+    # The runner has about 14 GB; every clone together is 5.2 GB of packs and growing with the corpus.
+    assert "--evict-repos" in step(read("benchmark.yml"), "Run")
 
 
 # The step scripts themselves, run with bash, so the skip and publish logic is tested, not just its text.

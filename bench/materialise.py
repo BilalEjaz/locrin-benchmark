@@ -68,6 +68,37 @@ _LEAKY_ENV = ("GIT_TEMPLATE_DIR", "GIT_DEFAULT_HASH", "GIT_DIR", "GIT_WORK_TREE"
 PINNED_ATTRIBUTES = b"* -text -eol -ident -filter -working-tree-encoding\n"
 # A commit the server does not have, as git reports it after an explicit fetch of that sha.
 _NOT_OUR_REF = re.compile(r"not our ref|couldn't find remote ref|no such remote ref|unadvertised object", re.I)
+# Extensions no checkout needs. Locrin parses .ts .tsx .mts .cts .js .jsx .mjs .cjs .php .py and reads the
+# manifests (package.json, the lock files, composer.json, requirements*.txt, pyproject.toml, locrin.toml,
+# tsconfig*.json) plus .gitignore and .ignore, so none of these can carry a finding or change one. Every
+# family here is a file the engine cannot parse and the harness never diffs by content:
+#   data dumps and tables, the family that filled the runner (one repository stores 9 GB of .ndjson)
+#   databases, archives, images, audio, video, documents, fonts
+#   compiled artefacts (a .so, .wasm or .exe is a build output, never a source file)
+#   notebooks, which locrin reads as JSON data rather than as Python
+# No source extension is here, and neither is .json, .lock, .txt, .toml, .yaml, .yml or .md, which
+# manifests and ignore files use. With --filter=blob:none an excluded blob is never downloaded either.
+SKIPPED_EXTENSIONS = (
+    "ndjson", "jsonl", "csv", "tsv", "parquet", "avro",
+    "sqlite", "db",
+    "zip", "gz", "tgz", "tar", "bz2", "xz", "7z", "rar", "jar",
+    "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "tif", "tiff", "psd", "ai",
+    "mp3", "mp4", "mov", "avi", "mkv", "wav", "ogg", "webm", "flac",
+    "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+    "ttf", "otf", "woff", "woff2", "eot",
+    "wasm", "bin", "exe", "dll", "so", "dylib",
+    "ipynb",
+)
+
+
+def _any_case(extension: str) -> str:
+    """The extension as a git pattern that matches any case: git's patterns have no ignore-case flag."""
+    return "".join(f"[{c}{c.upper()}]" if c.isalpha() else c for c in extension)
+
+
+# A non-cone sparse checkout, read like .gitignore with the last matching pattern winning: take
+# everything, then drop each excluded extension wherever it sits.
+SPARSE_PATTERNS = ("/*", *(f"!*.{_any_case(e)}" for e in SKIPPED_EXTENSIONS))
 
 
 class MaterialiseError(Exception):
@@ -307,9 +338,38 @@ def _case_clash(names: list[str]) -> str | None:
     return None
 
 
-def _materialise_git(diff: Diff, cache: Path, hermetic: Path) -> Checkout:
+def repo_cache(diff: Diff, cache: Path) -> Path | None:
+    """The directory a git source's clone is kept in, or None for a tree source, which has no clone."""
+    if diff.source != "git" or not diff.repo or "/" not in diff.repo:
+        return None
     owner, name = diff.repo.split("/", 1)
-    root = cache / "repos" / f"{owner}__{name}"
+    return Path(cache).resolve() / "repos" / f"{owner}__{name}"
+
+
+def evict_repo(diff: Diff, cache: Path) -> None:
+    """Delete the diff's repository clone, for a runner that cannot hold every repository at once.
+
+    Does nothing for a tree source or a clone that is not there. Uses the same writable-retry as
+    every other removal here, since git writes its object files read-only.
+    """
+    root = repo_cache(diff, cache)
+    if root is not None and root.exists():
+        _rmtree(root)
+
+
+def _sparse_checkout(git) -> None:
+    """Configure the sparse checkout that keeps SKIPPED_EXTENSIONS out of the working tree.
+
+    Safe to run again on a cached clone: `set` replaces the whole pattern list, so the rules are
+    never doubled, and they live in the repository, so every later checkout in it keeps them.
+    """
+    git(["sparse-checkout", "set", "--no-cone", *SPARSE_PATTERNS])
+
+
+def _materialise_git(diff: Diff, cache: Path, hermetic: Path) -> Checkout:
+    root = repo_cache(diff, cache)
+    if root is None:
+        raise MaterialiseError(f"a git source needs an owner/name repository, not {diff.repo!r}")
 
     def git(args: list[str]) -> str:
         return _git(args, root, hermetic=hermetic)
@@ -329,6 +389,8 @@ def _materialise_git(diff: Diff, cache: Path, hermetic: Path) -> Checkout:
     _persist_settings(git)
     _clear_info_exclude(root)
     _pin_attributes(root)
+    # Before the first checkout writes anything, and again on every cached clone.
+    _sparse_checkout(git)
     checkout = ["checkout", "--detach", "-f", diff.sha]
     try:
         git(checkout)
