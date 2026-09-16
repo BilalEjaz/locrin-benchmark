@@ -1,13 +1,14 @@
 {
   "diff": "hoplight-ai__pandoras-router__b052851",
-  "locrin": "v0.5.0",
+  "locrin": "v0.6.0",
+  "carried_from": "v0.5.0",
   "pass1": {
     "by": "opus",
-    "date": "2026-09-14"
+    "date": "2026-09-16"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-09-15"
+    "date": "2026-09-16"
   },
   "pass2_by": "fable",
   "entries": [
@@ -19,51 +20,6 @@
       "pass1": "false-positive",
       "pass2": "false-positive",
       "note": "pass one: test/run.mjs discovers and imports every `*-test.mjs` beside it, so `npm test` names this file; it is not unimported. pass two: test/run.mjs discovers and imports every *-test.mjs beside it (readdirSync filter), and npm test runs run.mjs, so the file has an importer"
-    },
-    {
-      "rule": "leftover-commented-code",
-      "file": "src/bin/lane-open.mjs",
-      "line": 307,
-      "id": "85851e040c3438b9",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: A section banner comment explaining the compare-and-set and the records-first ordering: prose, not disabled code. pass two: prose section heading comment (THE COMPARE-AND-SET, one locked section), not disabled code"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "test/concurrency-test.mjs",
-      "line": 418,
-      "id": "0f2b3168509322e8",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "test/concurrency-test.mjs",
-      "line": 419,
-      "id": "53382d1d8f5cb0a8",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "test/concurrency-test.mjs",
-      "line": 420,
-      "id": "9aa1d1fc23aad5a8",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
-    },
-    {
-      "rule": "leftover-debug",
-      "file": "test/concurrency-test.mjs",
-      "line": 421,
-      "id": "fe44896a2df33542",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: console.log on the main path of a CLI test script (shebang, run as `node test/...`): its run summary output, not a leftover debug print. pass two: console.log is the test harness summary output on the script main path (file is a #!/usr/bin/env node suite that reports pass/fail), the module real logging, not a leftover debug print"
     },
     {
       "rule": "dead-export",
