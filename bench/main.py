@@ -11,7 +11,7 @@ from pathlib import Path
 from bench import inputs
 from bench.corpus import CorpusError, load_corpus
 from bench.labels import LabelError, dropped_missed, invalid_missed, load_labels
-from bench.materialise import MaterialiseError, SourceGone, added_lines, materialise
+from bench.materialise import MaterialiseError, SourceGone, added_lines, evict_repo, materialise
 from bench.readme_table import replace_table
 from bench.run import Finding, RuleMeta, RunError, check_parent, ignore_files_above, install_locrin, normalise, run_check
 from bench.score import (excluded, excluded_count, excluded_missed, not_applicable, render_markdown, repeated_files, repository_of,
@@ -71,6 +71,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--work", default=".work")
     p.add_argument("--cache", default=".cache")
     p.add_argument("--readme", default="README.md")
+    p.add_argument("--evict-repos", action="store_true",
+                   help="Delete each repository's clone once its last diff has run. For a CI runner whose "
+                        "disk cannot hold every clone; a local run keeps the cache and re-uses it.")
     a = p.parse_args(argv)
     started = _now()
     try:
@@ -98,7 +101,13 @@ def main(argv: list[str] | None = None) -> int:
     mat_fail: list[str] = []
     gone: list[dict[str, str]] = []
     run_fail: list[str] = []
+    # The diff whose repository is still on disk. Diffs come in id order, which groups a repository's
+    # diffs together, so the clone goes as soon as the next diff names another repository.
+    held: Diff | None = None
     for d in diffs:
+        if a.evict_repos and held is not None and repository_of(held) != repository_of(d):
+            evict_repo(held, Path(a.cache))
+        held = d
         try:
             co = materialise(d, Path(a.corpus), Path(a.cache))
         except SourceGone as e:
@@ -146,6 +155,8 @@ def main(argv: list[str] | None = None) -> int:
         invalid.extend(problems)
         rules = rs or rules
         print(f"{d.id}: {len(fs)} findings introduced, {len(old)} pre-existing")
+    if a.evict_repos and held is not None:
+        evict_repo(held, Path(a.cache))
     findings, duplicates = split_duplicates(findings, {d.id: repository_of(d) for d in diffs}, preexisting)
     flagged = {(p["diff"], p["rule"], p["file"], p["line"]) for p in invalid}
     invalid += [p for d in sorted(ran) if d in labels for p in dropped_missed(labels[d], preexisting + duplicates)

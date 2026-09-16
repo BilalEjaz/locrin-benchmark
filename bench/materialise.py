@@ -338,6 +338,25 @@ def _case_clash(names: list[str]) -> str | None:
     return None
 
 
+def repo_cache(diff: Diff, cache: Path) -> Path | None:
+    """The directory a git source's clone is kept in, or None for a tree source, which has no clone."""
+    if diff.source != "git" or not diff.repo or "/" not in diff.repo:
+        return None
+    owner, name = diff.repo.split("/", 1)
+    return Path(cache).resolve() / "repos" / f"{owner}__{name}"
+
+
+def evict_repo(diff: Diff, cache: Path) -> None:
+    """Delete the diff's repository clone, for a runner that cannot hold every repository at once.
+
+    Does nothing for a tree source or a clone that is not there. Uses the same writable-retry as
+    every other removal here, since git writes its object files read-only.
+    """
+    root = repo_cache(diff, cache)
+    if root is not None and root.exists():
+        _rmtree(root)
+
+
 def _sparse_checkout(git) -> None:
     """Configure the sparse checkout that keeps SKIPPED_EXTENSIONS out of the working tree.
 
@@ -348,8 +367,9 @@ def _sparse_checkout(git) -> None:
 
 
 def _materialise_git(diff: Diff, cache: Path, hermetic: Path) -> Checkout:
-    owner, name = diff.repo.split("/", 1)
-    root = cache / "repos" / f"{owner}__{name}"
+    root = repo_cache(diff, cache)
+    if root is None:
+        raise MaterialiseError(f"a git source needs an owner/name repository, not {diff.repo!r}")
 
     def git(args: list[str]) -> str:
         return _git(args, root, hermetic=hermetic)
