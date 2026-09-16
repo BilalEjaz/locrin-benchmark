@@ -6,7 +6,7 @@ Open an issue titled `label: <diff id> <rule> <file>:<line>` saying which verdic
 
 ## Adding a diff
 
-Run `python -m bench.build_corpus --repo owner/name --sha <commit>`; it refuses licences outside MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause and ISC. Then label it with `python label.py new <id> --locrin <version> --by <name>`, fold the blind second pass in with `python label.py merge <id> --pass2 <file>`, and record it with `python label.py confirm <id> --by <name>` (see LABELLING.md).
+Run `python -m bench.build_corpus --repo owner/name --sha <commit>`; it refuses licences outside MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause and ISC. Then label it with `python label.py new <id> --locrin <version> --by <name>`, fold the blind second pass in with `python label.py merge <id> --pass2 <file>`, and record it with `python label.py confirm <id> --by <name>` (see LABELLING.md). For a new Locrin version, do not label the corpus again: `python label.py carry <id> --locrin <new version>` writes the existing verdicts forward and leaves only what that version newly reports to judge.
 
 ## Building many diffs at once
 

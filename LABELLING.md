@@ -51,4 +51,16 @@ An entry where the two passes disagree is listed by `python label.py status --la
 
 ## A new Locrin version
 
-Label files name the Locrin version they were written for, and a run publishes only with labels for its own version. For a new version, label every diff again with `python label.py new <id> --locrin <new version> --by <name> --force` and both passes as above; verdicts from the older file can guide the labeller, but each finding the new version reports gets an entry and a verdict of its own. Label on the same Locrin build the run uses: a run that does not report a finding a label entry describes does not publish.
+Label files name the Locrin version they were written for, and a run publishes only with labels for its own version. The corpus does not change with the engine, though: a verdict on a construct at a fixed commit stays true whatever version reads it, and what a new version changes is which findings it reports, under which ids, and where. So a new version is not labelled from scratch. `python label.py carry <id> --locrin <new version>` runs the engine for the new version exactly as `new` does, reads the old version's file (`labels/<id>.json`, or the one `--from` names) and writes the new version's label file in its place:
+
+- A finding the new version reports that the old file holds, matched on rule, file, line and engine id, keeps both verdicts and its note verbatim.
+- A finding no entry of the old file matches goes in with `?` in both passes. It is judged like any other template entry, by both passes, and `confirm` refuses the file until they have judged it.
+- A missed entry is carried verbatim while the new version still reports nothing on its rule, file and line.
+- A missed entry the new version does report there is dropped, and the reported entry takes `true` in both passes with a note saying it was carried from the old version: both passes wrote that construct as a miss, and the engine now reports it. This is the one verdict a carry infers, and it is inferred only from a miss both passes wrote. A miss they did not agree on infers nothing, because they read that construct differently; it is dropped all the same and the reported entry is judged afresh.
+- An entry for a finding the new version no longer reports is dropped.
+
+`pass1.by`, `pass2.by` and `pass2_by` come over, the dates become today, and a `carried_from` field records the version the verdicts were written for. The file is confirmed exactly when the old file was confirmed and no entry is left `?`, so a carry that turns up no new findings publishes at once; otherwise both passes fill the new entries and pass two runs `python label.py confirm <id>`, which stamps the pass-two name the carry brought over. `carry` refuses a file already written for the new version and refuses to overwrite another file for it unless `--force`, and `--dry-run` prints the counts and writes nothing. It prints one line of counts per diff, so the corpus goes over in a loop:
+
+    for f in labels/*.json; do python label.py carry "$(basename "$f" .json)" --locrin <new version>; done
+
+`python label.py status --labels labels` then lists what each file still has to judge. Label on the same Locrin build the run uses: a run that does not report a finding a label entry describes does not publish.
