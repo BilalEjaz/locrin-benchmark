@@ -1,4 +1,4 @@
-"""label.py: new, merge, confirm, status."""
+"""label.py: new, carry, merge, confirm, status."""
 from __future__ import annotations
 
 import argparse
@@ -14,6 +14,11 @@ from bench.labels import Entry, LabelError, LabelFile, disagreements, load_label
 from bench.run import Finding
 
 
+def _tag(version: str) -> str:
+    """The release tag, as bench.main compares it: 0.5.0 and v0.5.0 name one version."""
+    return version if version.startswith("v") else f"v{version}"
+
+
 def _refuse_overwrite(diff_id: str, out_root: Path, force: bool) -> None:
     if not force and (Path(out_root) / f"{diff_id}.json").exists():
         raise LabelError(f"{diff_id}: {Path(out_root) / (diff_id + '.json')} already exists; pass --force to overwrite")
@@ -27,6 +32,90 @@ def new(diff_id: str, findings: list[Finding], locrin_version: str, out_root: Pa
     Path(out_root).mkdir(parents=True, exist_ok=True)
     save_label_file(out_root, lf)
     return Path(out_root) / f"{diff_id}.json"
+
+
+def _carry_from(diff_id: str, source: Path, new_version: str, out_root: Path, force: bool) -> LabelFile:
+    """The old version's label file, refusing before the engine runs whatever the carry would refuse after."""
+    source = Path(source)
+    lf = load_label_file(source)
+    if lf.diff != diff_id:
+        raise LabelError(f"{diff_id}: {source} holds the labels for {lf.diff}")
+    if lf.locrin == new_version:
+        raise LabelError(f"{diff_id}: {source} was written for locrin {new_version} already; "
+                         "carry writes the labels of an older version forward to a new one")
+    target = Path(out_root) / f"{diff_id}.json"
+    if target.exists() and not force and target.resolve() != source.resolve():
+        raise LabelError(f"{diff_id}: {target} already exists; pass --force to overwrite")
+    return lf
+
+
+def _inferred_note(old_version: str) -> str:
+    return (f"carried from {old_version}: both passes wrote this as a missed entry, "
+            "and the engine now reports it")
+
+
+def carry(diff_id: str, findings: list[Finding], source: Path, new_version: str, out_root: Path, date: str,
+          force: bool = False, dry_run: bool = False) -> dict[str, int]:
+    """Write the old version's verdicts forward into a label file for new_version, under LABELLING.md.
+
+    The corpus commit does not change with the engine, so a verdict on a construct there stays true for a
+    new version; what changes is which findings the engine reports. So an entry for a finding this version
+    reports again, matched on rule, file, line and engine id, keeps its two verdicts and its note verbatim,
+    and a finding no entry matches goes in marked `?` for both passes to judge. A missed entry is carried
+    verbatim while the engine still does not report its rule at that file and line; when it does, the missed
+    entry is dropped, and the reported entry there takes `true` in both passes with a note saying where that
+    came from, but only when both passes wrote the miss. A miss they did not agree on infers nothing: they
+    read that construct differently, so the new entry is judged afresh. An entry for a finding this version
+    no longer reports is dropped. The passes' names come over and their dates become today, and the file is
+    confirmed exactly when the old file was and nothing is left to judge. Returns the counts, and with
+    dry_run writes nothing.
+    """
+    old = _carry_from(diff_id, source, new_version, out_root, force)
+    reported: dict[tuple, list[Entry]] = defaultdict(list)
+    infer: dict[tuple, list[Entry]] = defaultdict(list)
+    for e in old.entries:
+        if e.id is not None:
+            reported[(e.rule, e.file, e.line, e.id)].append(e)
+        elif e.pass1 == "missed" and e.pass2 == "missed":
+            infer[(e.rule, e.file, e.line)].append(e)
+    now_reported = {(f.rule, f.file, f.line) for f in findings}
+    counts = {"carried": 0, "new": 0, "inferred": 0, "dropped_missed": 0, "dropped_reported": 0}
+    out: list[Entry] = []
+    for f in findings:
+        held = reported.get((f.rule, f.file, f.line, f.id))
+        if held:
+            old_entry = held.pop(0)
+            counts["carried"] += 1
+            out.append(Entry(rule=f.rule, file=f.file, line=f.line, id=f.id, pass1=old_entry.pass1,
+                             pass2=old_entry.pass2, note=old_entry.note))
+            continue
+        agreed_miss = infer.get((f.rule, f.file, f.line))
+        if agreed_miss:
+            agreed_miss.pop(0)
+            counts["inferred"] += 1
+            out.append(Entry(rule=f.rule, file=f.file, line=f.line, id=f.id, pass1="true", pass2="true",
+                             note=_inferred_note(old.locrin)))
+            continue
+        counts["new"] += 1
+        out.append(Entry(rule=f.rule, file=f.file, line=f.line, id=f.id, pass1="?", pass2="?", note=""))
+    for e in old.entries:
+        if e.id is not None:
+            continue
+        if (e.rule, e.file, e.line) in now_reported:
+            counts["dropped_missed"] += 1
+            continue
+        counts["carried"] += 1
+        out.append(e)
+    counts["dropped_reported"] = sum(len(held) for held in reported.values())
+    unfilled = any(e.pass1 == "?" or e.pass2 == "?" for e in out)
+    lf = LabelFile(diff=diff_id, locrin=new_version,
+                   pass1={"by": old.pass1["by"], "date": date} if old.pass1 else None,
+                   pass2={"by": old.pass2["by"], "date": date} if old.pass2 and not unfilled else None,
+                   entries=out, pass2_by=old.pass2_by or (old.pass2 or {}).get("by", ""), carried_from=old.locrin)
+    if not dry_run:
+        Path(out_root).mkdir(parents=True, exist_ok=True)
+        save_label_file(out_root, lf)
+    return counts
 
 
 def confirm(diff_id: str, root: Path, by: str | None, date: str, force: bool = False) -> tuple[str, str | None]:
@@ -238,6 +327,14 @@ def main(argv: list[str] | None = None) -> int:
     n.add_argument("--corpus", default="corpus")
     n.add_argument("--labels", default="labels")
     n.add_argument("--force", action="store_true", help="overwrite an existing label file")
+    cy = sub.add_parser("carry", help="write an older version's verdicts forward to a new locrin version")
+    cy.add_argument("diff")
+    cy.add_argument("--locrin", required=True, help="the new locrin version to write labels for")
+    cy.add_argument("--from", dest="source", help="the old version's label file (default <labels>/<diff>.json)")
+    cy.add_argument("--corpus", default="corpus")
+    cy.add_argument("--labels", default="labels")
+    cy.add_argument("--force", action="store_true", help="overwrite an existing label file for the new version")
+    cy.add_argument("--dry-run", action="store_true", help="print the counts and write nothing")
     m = sub.add_parser("merge")
     m.add_argument("diff")
     m.add_argument("--pass2", help="the blind pass two file (default .work/pass2/<diff>.json)")
@@ -255,10 +352,20 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if a.cmd == "new":
             _refuse_overwrite(a.diff, Path(a.labels), a.force)
-            # The release tag, as bench.main compares it: 0.5.0 and v0.5.0 name one version.
-            tag = a.locrin if a.locrin.startswith("v") else f"v{a.locrin}"
-            findings = _findings_for(a.diff, tag, Path(a.corpus), Path("."))
-            print(new(a.diff, findings, tag, Path(a.labels), a.by, today, force=a.force))
+            findings = _findings_for(a.diff, _tag(a.locrin), Path(a.corpus), Path("."))
+            print(new(a.diff, findings, _tag(a.locrin), Path(a.labels), a.by, today, force=a.force))
+        elif a.cmd == "carry":
+            source = Path(a.source) if a.source else Path(a.labels) / f"{a.diff}.json"
+            # Refuse before the engine runs, as `new` does: a carry over the corpus runs it 217 times.
+            old = _carry_from(a.diff, source, _tag(a.locrin), Path(a.labels), a.force)
+            findings = _findings_for(a.diff, _tag(a.locrin), Path(a.corpus), Path("."))
+            counts = carry(a.diff, findings, source, _tag(a.locrin), Path(a.labels), today, force=a.force,
+                           dry_run=a.dry_run)
+            done = "would carry" if a.dry_run else "carried"
+            print(f"{a.diff}: {done} {counts['carried']} verdicts from {old.locrin} to {_tag(a.locrin)}, "
+                  f"{counts['new']} findings to judge, {counts['inferred']} inferred true, "
+                  f"{counts['dropped_missed']} missed entries the engine now reports, "
+                  f"{counts['dropped_reported']} entries it no longer reports")
         elif a.cmd == "merge":
             pass2 = Path(a.pass2) if a.pass2 else Path(".work") / "pass2" / f"{a.diff}.json"
             counts = merge(a.diff, pass2, Path(a.labels), dry_run=a.dry_run)
