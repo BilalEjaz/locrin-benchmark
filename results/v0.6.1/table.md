@@ -1,4 +1,4 @@
-Locrin v0.6.1, 214 of 217 diffs ran. Left out of the numbers: 0 unlabelled, 3 without an agreed and confirmed label, 0 not applicable, 1177 pre-existing and 0 duplicate. 4 of 21 rules and 4 of 32 pairs reached n=5 and are scored.
+Locrin v0.6.1, 214 of 214 diffs ran. Left out of the numbers: 0 unlabelled, 3 without an agreed and confirmed label, 0 not applicable, 1177 pre-existing and 0 duplicate. 4 of 21 rules and 4 of 32 pairs reached n=5 and are scored.
 
 | Rule | Ships | Precision | Recall | True | False positive | Missed | Unlabelled | Excluded | Not applicable | Pre-existing | Duplicate | Note |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
