@@ -1,14 +1,14 @@
 {
   "diff": "huizongsong__deepchat__ed06dc2",
-  "locrin": "v0.6.0",
-  "carried_from": "v0.5.0",
+  "locrin": "v0.6.1",
+  "carried_from": "v0.6.0",
   "pass1": {
     "by": "opus",
-    "date": "2026-09-16"
+    "date": "2026-09-17"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-09-16"
+    "date": "2026-09-17"
   },
   "pass2_by": "fable",
   "entries": [
