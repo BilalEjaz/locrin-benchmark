@@ -23,6 +23,8 @@ Verdicts:
 - `missed`: the definition is met at that file and line, on a construct the diff introduced and no earlier diff from the same repository already introduced, and the engine did not report it. Use the first line of the offending construct. A missed entry has `"id": null`; every other entry carries the engine's 16 character id.
 - `not-applicable`: the finding is on a file the diff did not really author: generated code or vendored code committed with the change. It is counted in the Not applicable column and excluded from both precision and recall.
 
+A note is evidence, and it says where it came from. A note that asserts something about the code, that the file has a shebang, that another file imports it, that a config entry names it, that a caller exists, quotes the line it read or names the file and line. Both wave-one passes described `test/scope-prop-test.mjs` as a `#!/usr/bin/env node` suite; the file's first line is a comment and it has no shebang. The verdict was right and the reason was invented, and nothing in the label file could have told a reader which. A claim a labeller cannot point to in the checkout does not go in a note.
+
 ## What counts as true, per rule
 
 - `leftover-debug`: a debug print or breakpoint left in non-script code (console.log, debugger, var_dump, dd, breakpoint(), pdb). A log statement that is the module's real logging is not true; a print in a CLI script's main path is not true.
