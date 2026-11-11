@@ -1,0 +1,31 @@
+{
+  "id": "Shahryartariq__zaproom__8c40b41",
+  "source": "git",
+  "repo": "Shahryartariq/zaproom",
+  "sha": "8c40b41a6e257597936fe6d643bfc27b3483bb4a",
+  "parent": "912dd764d5a8b95306664926f9ec722f77cfa01a",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Shahryartariq/zaproom/commit/8c40b41a6e257597936fe6d643bfc27b3483bb4a",
+  "files": [
+    "playwright.config.ts",
+    "src/components/lobby/LiveRooms.tsx",
+    "src/components/room/Call.tsx",
+    "tests/e2e/call.spec.ts",
+    "tests/e2e/fixtures.ts",
+    "tests/e2e/screenshots.spec.ts",
+    "tests/e2e/site.spec.ts",
+    "tests/unit/pairing.test.ts",
+    "tests/unit/profile.test.ts",
+    "tests/unit/rate-limit.test.ts",
+    "tests/unit/rooms.test.ts",
+    "vitest.config.ts",
+    "vitest.config.mts"
+  ],
+  "wave": 2,
+  "signal": "test-skip",
+  "signals": [
+    "test-skip",
+    "test-case"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "id": "Puhita__Hacky__0104f48",
+  "source": "git",
+  "repo": "Puhita/Hacky",
+  "sha": "0104f48eb2b6a53fa5a2f1f39931d1a4e0228052",
+  "parent": "33814f985e4329e104cb86be918bef93523e308a",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/Puhita/Hacky/commit/0104f48eb2b6a53fa5a2f1f39931d1a4e0228052",
+  "files": [
+    "website/script.js",
+    "website/vendor/bootstrap.bundle.min.js"
+  ],
+  "wave": 2,
+  "signal": "html-sink",
+  "signals": [
+    "weak-random",
+    "html-sink"
+  ]
+}

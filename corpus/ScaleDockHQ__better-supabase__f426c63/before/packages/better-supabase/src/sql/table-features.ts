@@ -1,0 +1,257 @@
+import type { BsbTag } from "./bsb-tags.ts";
+import type { TagRenderOptions } from "./tag-statements.ts";
+
+import { commentOnTableSql, parseBsbComment, setBsbTag } from "./bsb-tags.ts";
+import {
+  isRenderedFeature,
+  renderTagBlock,
+  setTagBlock,
+} from "./tag-statements.ts";
+
+/** The per-table features a `@bsb` tag turns on (ADR 0102). */
+export const TABLE_FEATURES = [
+  "realtime",
+  "audit",
+  "audit-reads",
+  "subject",
+  "json",
+  "expose",
+  "encrypted",
+  "lookup",
+  "server",
+  "events",
+  "search",
+  "embedding",
+  "vector-search",
+  "history",
+  "lifecycle",
+  "append-only",
+  "function-writes",
+  "chain",
+  "template",
+  "access",
+  "list",
+  "idempotency",
+] as const;
+
+export type TableFeature = (typeof TABLE_FEATURES)[number];
+
+export function isTableFeature(value: string): value is TableFeature {
+  return TABLE_FEATURES.some((feature) => feature === value);
+}
+
+function escaped(value: string): string {
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
+}
+
+/** `comment on table [schema.]name is '...'` with the quotes `pg-delta` writes. */
+function commentPattern(schema: string, table: string): RegExp {
+  const name = `(?:"?${escaped(schema)}"?\\.)?"?${escaped(table)}"?`;
+
+  return new RegExp(
+    String.raw`comment\s+on\s+table\s+${name}\s+is\s+'((?:[^']|'')*)'\s*;`,
+    "iu",
+  );
+}
+
+/** Whether `sql` creates `table`, in `schema` or unqualified. */
+export function createsTable(
+  sql: string,
+  schema: string,
+  table: string,
+): boolean {
+  const name = `(?:"?${escaped(schema)}"?\\.)?"?${escaped(table)}"?`;
+
+  return new RegExp(
+    String.raw`create\s+table\s+(?:if\s+not\s+exists\s+)?${name}\s*\(`,
+    "iu",
+  ).test(sql);
+}
+
+/** The features the table's comment turns on, in `sql`. */
+export function tableFeatures(
+  sql: string,
+  schema: string,
+  table: string,
+): readonly string[] {
+  const match = commentPattern(schema, table).exec(sql);
+
+  return parseBsbComment(match?.[1]?.replaceAll("''", "'") ?? null).tags.map(
+    (tag) => tag.name,
+  );
+}
+
+/**
+ * `sql` with the `@bsb` tag `feature` on or off in `table`'s comment. The
+ * comment statement is rewritten in place, or appended when the file has none;
+ * the free text stays. Returns `sql` unchanged when the feature is already in
+ * the wanted state.
+ */
+export function setTableFeature(
+  sql: string,
+  schema: string,
+  table: string,
+  feature: TableFeature,
+  enabled: boolean,
+  tag?: BsbTag,
+): string {
+  const pattern = commentPattern(schema, table);
+  const match = pattern.exec(sql);
+  const current = match?.[1]?.replaceAll("''", "'") ?? null;
+
+  // A tag the file already carries keeps its arguments when it is enabled again.
+  const existing = parseBsbComment(current).tags.find(
+    (each) => each.name === feature,
+  );
+
+  const next = setBsbTag(
+    current,
+    feature,
+    enabled ? (tag ?? existing ?? { name: feature, args: {} }) : undefined,
+  );
+
+  if (match === null) {
+    if (!enabled) {
+      return sql;
+    }
+
+    const separator = sql.endsWith("\n") ? "\n" : "\n\n";
+
+    return `${sql}${separator}${commentOnTableSql(`${schema}.${table}`, next)}\n`;
+  }
+
+  if (next === (current ?? "")) {
+    return sql;
+  }
+
+  return sql.replace(pattern, () =>
+    commentOnTableSql(`${schema}.${table}`, next),
+  );
+}
+
+const ANY_COMMENT =
+  /comment\s+on\s+table\s+(?:"?([a-z_][a-z0-9_]*)"?\.)?"?([a-z_][a-z0-9_]*)"?\s+is\s+'((?:[^']|'')*)'\s*;/giu;
+
+/**
+ * The `@bsb` table comments in `sql`, with an unqualified table in `public`.
+ * Comments without tags are left out.
+ */
+export function tableTagComments(
+  sql: string,
+): { schema: string; name: string; comment: string }[] {
+  return [...sql.matchAll(ANY_COMMENT)].flatMap((match) => {
+    const comment = match[3]?.replaceAll("''", "'");
+    const name = match[2];
+
+    return comment !== undefined &&
+      name !== undefined &&
+      parseBsbComment(comment).tags.length > 0
+      ? [{ schema: match[1] ?? "public", name, comment }]
+      : [];
+  });
+}
+
+/**
+ * The statement a feature needs besides its tag: `audit` registers the row
+ * trigger through a static `audit()` call, which pg-delta keeps in the schema
+ * file's diff, and `expose` grants the Data API privileges (row level security
+ * still decides the rows). Other features are read from the tag alone.
+ */
+function featureStatement(
+  feature: TableFeature,
+  schema: string,
+  table: string,
+): string | undefined {
+  if (feature === "audit") {
+    return `select better_supabase.audit('${schema}.${table}');`;
+  }
+
+  if (feature === "append-only") {
+    return `select better_supabase.append_only('${schema}.${table}');`;
+  }
+
+  if (feature === "function-writes") {
+    return `select better_supabase.function_writes('${schema}.${table}');`;
+  }
+
+  if (feature === "chain") {
+    return `select better_supabase.chain('${schema}.${table}');`;
+  }
+
+  if (feature === "template") {
+    return `select better_supabase.template_table('${schema}.${table}'::regclass);`;
+  }
+
+  if (feature === "events") {
+    return `select better_supabase.track_events('${schema}.${table}');`;
+  }
+
+  if (feature === "audit-reads") {
+    // A Data API select can't be logged, so reads go through this function: it
+    // logs the read for the table's subject type (the table name unless the
+    // subject tag names another), then returns the row as the caller.
+    return `create or replace function ${schema}.read_${table}(p_id text, p_purpose text default null)
+returns setof ${schema}.${table}
+language plpgsql
+volatile
+security invoker
+set search_path = ''
+as $$
+begin
+  perform better_supabase.record_subject_read('${table}', p_id, p_purpose, null, 'read_${table}');
+  return query select t.* from ${schema}.${table} t where t.id::text = p_id;
+end;
+$$;`;
+  }
+
+  return feature === "expose"
+    ? `grant select, insert, update, delete on ${schema}.${table} to authenticated;`
+    : undefined;
+}
+
+/**
+ * `sql` with `feature`'s statement present or absent for `table`; `sql` itself
+ * when the feature has none or the file is already in the wanted state.
+ */
+export function setFeatureStatement(
+  sql: string,
+  schema: string,
+  table: string,
+  feature: TableFeature,
+  enabled: boolean,
+  options: TagRenderOptions = {},
+): string {
+  if (isRenderedFeature(feature)) {
+    // The tag's own arguments decide the statements, so they are read from the
+    // comment the file carries.
+    const comment = commentPattern(schema, table).exec(sql)?.[1];
+
+    const tag = parseBsbComment(
+      comment?.replaceAll("''", "'") ?? null,
+    ).tags.find((each) => each.name === feature);
+
+    return setTagBlock(
+      sql,
+      feature,
+      enabled && tag !== undefined
+        ? renderTagBlock(feature, schema, table, tag, options)
+        : undefined,
+    );
+  }
+
+  const statement = featureStatement(feature, schema, table);
+
+  if (statement === undefined) {
+    return sql;
+  }
+
+  const present = sql.includes(statement);
+
+  if (enabled) {
+    return present ? sql : `${sql.replace(/\n*$/u, "")}\n\n${statement}\n`;
+  }
+
+  return present
+    ? sql.replace(`\n${statement}`, "").replace(statement, "")
+    : sql;
+}

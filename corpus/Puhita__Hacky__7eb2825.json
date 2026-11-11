@@ -1,0 +1,25 @@
+{
+  "id": "Puhita__Hacky__7eb2825",
+  "source": "git",
+  "repo": "Puhita/Hacky",
+  "sha": "7eb2825e11e15180d30dd93d9695b00661cc24c0",
+  "parent": "9bd41e14c24984c5e8a1970bdfa83fb877407fde",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Puhita/Hacky/commit/7eb2825e11e15180d30dd93d9695b00661cc24c0",
+  "files": [
+    "packages/extension/media/board.js",
+    "packages/extension/media/sidebar.js",
+    "packages/extension/src/board.test.ts",
+    "packages/extension/src/controller.test.ts",
+    "packages/extension/src/controller.ts",
+    "packages/extension/src/extension.ts",
+    "packages/extension/src/webview.test.ts"
+  ],
+  "wave": 2,
+  "signal": "html-sink",
+  "signals": [
+    "html-sink",
+    "test-case"
+  ]
+}

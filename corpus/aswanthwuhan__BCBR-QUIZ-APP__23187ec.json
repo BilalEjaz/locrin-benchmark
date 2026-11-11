@@ -1,0 +1,22 @@
+{
+  "id": "aswanthwuhan__BCBR-QUIZ-APP__23187ec",
+  "source": "git",
+  "repo": "aswanthwuhan/BCBR-QUIZ-APP",
+  "sha": "23187eccceb0b20c7a8b5f5e43ab3586e5c6d78b",
+  "parent": "3ba07d38710c8f761cc5ef6d79ad05c2cd9ba937",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/aswanthwuhan/BCBR-QUIZ-APP/commit/23187eccceb0b20c7a8b5f5e43ab3586e5c6d78b",
+  "files": [
+    "api/index.ts",
+    "generate_missing_explanations.ts",
+    "generate_parallel.ts",
+    "server.ts",
+    "src/App.tsx"
+  ],
+  "wave": 2,
+  "signal": "supabase-service-role",
+  "signals": [
+    "supabase-service-role"
+  ]
+}

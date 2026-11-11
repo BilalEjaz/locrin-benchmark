@@ -1,0 +1,24 @@
+{
+  "id": "d-zero-dev__tools__1e69228",
+  "source": "git",
+  "repo": "d-zero-dev/tools",
+  "sha": "1e692285f1ef3e0a8a89db695d635c7a2f88ba7c",
+  "parent": "2d7257122d539d7558b6b9b7a72c1f6191f7a9fa",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/d-zero-dev/tools/commit/1e692285f1ef3e0a8a89db695d635c7a2f88ba7c",
+  "files": [
+    "packages/@d-zero/beholder/src/classify-image-scan-error.spec.ts",
+    "packages/@d-zero/beholder/src/classify-image-scan-error.ts",
+    "packages/@d-zero/beholder/src/image-scan-code.ts",
+    "packages/@d-zero/beholder/src/index.ts",
+    "packages/@d-zero/beholder/src/scraper.ts",
+    "packages/@d-zero/beholder/src/types.ts"
+  ],
+  "wave": 2,
+  "signal": "marker",
+  "signals": [
+    "marker",
+    "test-case"
+  ]
+}

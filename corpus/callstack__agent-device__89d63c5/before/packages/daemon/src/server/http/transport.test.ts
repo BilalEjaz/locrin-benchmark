@@ -1,0 +1,339 @@
+import type { DaemonRequest } from '../../core/daemon-request.ts';
+import type { DaemonResponse } from '@agent-device/kernel/contracts';
+import assert from 'node:assert/strict';
+import http from 'node:http';
+import net from 'node:net';
+import { test } from 'vitest';
+import { createSocketServer, listenHttpServer, listenNetServer } from './transport.ts';
+import {
+  clearRequestAbortRegistration,
+  getRequestSignal,
+  registerRequestAbort,
+} from '@agent-device/host-kit/request';
+import { applicationLifecycleExecutionFromRequest } from '../../sessions/application-lifecycle-execution.ts';
+import { closeLoopbackServer, skipWhenLoopbackUnavailable } from '@agent-device/test-kit';
+
+test('Provider-backed integration daemon socket transport frames requests and normalizes malformed input', async (t) => {
+  if (await skipWhenLoopbackUnavailable(t)) {
+    return;
+  }
+
+  const observedRequests: DaemonRequest[] = [];
+  const server = createSocketServer(async (req): Promise<DaemonResponse> => {
+    observedRequests.push(req);
+    return {
+      ok: true,
+      data: {
+        command: req.command,
+        requestId: req.meta?.requestId,
+      },
+    };
+  });
+
+  try {
+    const port = await listenNetServer(server);
+    const client = await connectSocket(port);
+
+    const responses = await writeSocketRequests(client, [
+      '',
+      JSON.stringify({
+        token: 'provider-scenario-token',
+        session: 'default',
+        command: 'session_list',
+        positionals: [],
+        meta: { requestId: 'req-socket-1' },
+        internal: {
+          observationOnly: true,
+          replayPlanStep: true,
+        },
+      }),
+      '{not-json}',
+    ]);
+
+    assert.equal(observedRequests.length, 1);
+    assert.equal(observedRequests[0]?.meta?.requestId, 'req-socket-1');
+    assert.equal(
+      observedRequests[0]?.internal,
+      undefined,
+      'socket clients must not forge daemon-internal request capabilities',
+    );
+    assert.deepEqual(responses[0], {
+      ok: true,
+      data: {
+        command: 'session_list',
+        requestId: 'req-socket-1',
+      },
+    });
+    assert.equal(responses[1]?.ok, false);
+    assert.equal(responses[1]?.error?.code, 'UNKNOWN');
+
+    const clientClosed = new Promise<void>((resolve) => client.once('close', () => resolve()));
+    server.destroyConnections?.();
+    await clientClosed;
+    assert.equal(client.destroyed, true);
+
+    const httpServer = http.createServer((_req, res) => {
+      res.end('ok');
+    });
+    const httpPort = await listenHttpServer(httpServer);
+    assert.equal(typeof httpPort, 'number');
+    await closeLoopbackServer(httpServer);
+  } finally {
+    await closeLoopbackServer(server);
+  }
+});
+
+test('socket transport refuses a non-string positional before dispatch', async (t) => {
+  if (await skipWhenLoopbackUnavailable(t)) {
+    return;
+  }
+  const observedRequests: DaemonRequest[] = [];
+  const server = createSocketServer(async (req): Promise<DaemonResponse> => {
+    observedRequests.push(req);
+    return { ok: true, data: {} };
+  });
+
+  try {
+    const port = await listenNetServer(server);
+    const client = await connectSocket(port);
+    const request = (positionals: unknown[]) =>
+      JSON.stringify({ token: 't', session: 'default', command: 'clipboard', positionals });
+
+    const responses = await writeSocketRequests(
+      client,
+      [request(['write', null]), request(['hi', 5]), request(['write', ''])],
+      3,
+    );
+
+    for (const response of responses.slice(0, 2)) {
+      assert.equal(response?.ok, false);
+      assert.equal(response?.error?.code, 'INVALID_ARGS');
+      assert.equal(response?.error?.details?.reason, 'malformed_request');
+      assert.equal(response?.error?.details?.dispatched, 'no');
+      assert.match(response?.error?.message ?? '', /positionals\[1\]: Expected a string/);
+    }
+    // `""` is a string, so the clear request still reaches its handler.
+    assert.equal(responses[2]?.ok, true);
+    assert.deepEqual(
+      observedRequests.map((req) => req.positionals),
+      [['write', '']],
+    );
+    client.destroy();
+  } finally {
+    await closeLoopbackServer(server);
+  }
+});
+
+// A socket client that vanishes mid-request must cancel that connection's
+// in-flight request via its request-scoped signal — never through a global
+// Apple-runner abort, and never touching another connection's request.
+test('socket disconnect cancels only the disconnected connection in-flight request', async (t) => {
+  if (await skipWhenLoopbackUnavailable(t)) return;
+
+  const disconnectedRequestId = 'req-socket-disconnected';
+  const survivorRequestId = 'req-socket-survivor';
+  let markDisconnectedStarted: () => void = () => {};
+  const disconnectedStarted = new Promise<void>((resolve) => {
+    markDisconnectedStarted = resolve;
+  });
+  let markSurvivorStarted: () => void = () => {};
+  const survivorStarted = new Promise<void>((resolve) => {
+    markSurvivorStarted = resolve;
+  });
+  let releaseSurvivor: () => void = () => {};
+  const survivorReleased = new Promise<void>((resolve) => {
+    releaseSurvivor = resolve;
+  });
+  let resolveDisconnectedDone: () => void = () => {};
+  const disconnectedDone = new Promise<void>((resolve) => {
+    resolveDisconnectedDone = resolve;
+  });
+  let survivorSignalAbortedDuringPeerTeardown = false;
+
+  const server = createSocketServer(async (req: DaemonRequest): Promise<DaemonResponse> => {
+    if (req.meta?.requestId === disconnectedRequestId) {
+      const signal = getRequestSignal(disconnectedRequestId);
+      assert.ok(signal, 'the disconnected request should have a registered signal');
+      markDisconnectedStarted();
+      await waitForAbort(signal);
+      survivorSignalAbortedDuringPeerTeardown =
+        getRequestSignal(survivorRequestId)?.aborted ?? false;
+      resolveDisconnectedDone();
+      releaseSurvivor();
+      return { ok: true, data: {} };
+    }
+    markSurvivorStarted();
+    await survivorReleased;
+    return { ok: true, data: { survived: true } };
+  });
+
+  try {
+    const port = await listenNetServer(server);
+    const survivorClient = await connectSocket(port);
+    survivorClient.write(
+      `${JSON.stringify({
+        token: 'provider-scenario-token',
+        session: 'survivor',
+        command: 'session_list',
+        positionals: [],
+        meta: { requestId: survivorRequestId },
+      })}\n`,
+    );
+    await survivorStarted;
+
+    const disconnectedClient = await connectSocket(port);
+    disconnectedClient.write(
+      `${JSON.stringify({
+        token: 'provider-scenario-token',
+        session: 'disconnected',
+        command: 'session_list',
+        positionals: [],
+        meta: { requestId: disconnectedRequestId },
+      })}\n`,
+    );
+    await disconnectedStarted;
+    disconnectedClient.destroy();
+
+    await disconnectedDone;
+    assert.equal(
+      survivorSignalAbortedDuringPeerTeardown,
+      false,
+      'a peer socket disconnect must not cancel another connection request',
+    );
+    survivorClient.destroy();
+  } finally {
+    await closeLoopbackServer(server);
+  }
+});
+
+/** The deadline an `open` running under `requestId` would carry. */
+function openDeadlineAtMs(requestId: string | undefined): number | undefined {
+  return applicationLifecycleExecutionFromRequest(
+    {
+      token: 'provider-scenario-token',
+      session: 'default',
+      command: 'open',
+      positionals: ['com.example.app'],
+      meta: { requestId },
+    },
+    '/tmp/request.log',
+  ).requestDeadlineAtMs;
+}
+
+test('a socket-admitted open --timeout moves its deadline with the envelope it widens', async (t) => {
+  if (await skipWhenLoopbackUnavailable(t)) return;
+  let deadlineAtMs: number | undefined;
+  const server = createSocketServer(async (req): Promise<DaemonResponse> => {
+    deadlineAtMs = applicationLifecycleExecutionFromRequest(
+      req,
+      '/tmp/request.log',
+    ).requestDeadlineAtMs;
+    return { ok: true, data: {} };
+  });
+  try {
+    const client = await connectSocket(await listenNetServer(server));
+    const sentAtMs = Date.now();
+    await writeSocketRequests(
+      client,
+      [
+        JSON.stringify({
+          token: 'provider-scenario-token',
+          session: 'default',
+          command: 'open',
+          positionals: ['com.example.app'],
+          flags: { timeoutMs: 120_000 },
+          meta: { requestId: 'socket-open-widened-deadline' },
+        }),
+      ],
+      1,
+    );
+    const answeredAtMs = Date.now();
+    client.destroy();
+    assert.ok(deadlineAtMs !== undefined, 'the open must carry a deadline');
+    assert.ok(deadlineAtMs >= sentAtMs + 120_000 && deadlineAtMs <= answeredAtMs + 120_000);
+  } finally {
+    await closeLoopbackServer(server);
+  }
+});
+
+test('an attempt nested under a test request without a client envelope has no deadline', async (t) => {
+  if (await skipWhenLoopbackUnavailable(t)) return;
+  let attemptDeadlineAtMs: number | undefined = Number.NaN;
+  const server = createSocketServer(async (req): Promise<DaemonResponse> => {
+    const registration = registerRequestAbort('socket-test-attempt', req.meta?.requestId);
+    try {
+      attemptDeadlineAtMs = openDeadlineAtMs('socket-test-attempt');
+    } finally {
+      clearRequestAbortRegistration(registration);
+    }
+    return { ok: true, data: {} };
+  });
+  try {
+    const client = await connectSocket(await listenNetServer(server));
+    await writeSocketRequests(
+      client,
+      [
+        JSON.stringify({
+          token: 'provider-scenario-token',
+          session: 'default',
+          command: 'test',
+          positionals: ['flows'],
+          meta: { requestId: 'socket-test-suite' },
+        }),
+      ],
+      1,
+    );
+    client.destroy();
+    assert.equal(attemptDeadlineAtMs, undefined);
+  } finally {
+    await closeLoopbackServer(server);
+  }
+});
+
+async function waitForAbort(signal: AbortSignal): Promise<void> {
+  if (signal.aborted) return;
+  await new Promise<void>((resolve) => {
+    signal.addEventListener('abort', () => resolve(), { once: true });
+  });
+}
+
+async function connectSocket(port: number): Promise<net.Socket> {
+  return await new Promise((resolve, reject) => {
+    const socket = net.createConnection({ host: '127.0.0.1', port });
+    socket.once('connect', () => {
+      socket.off('error', reject);
+      resolve(socket);
+    });
+    socket.once('error', reject);
+  });
+}
+
+async function writeSocketRequests(
+  socket: net.Socket,
+  lines: string[],
+  expectedResponses = 2,
+): Promise<Array<{ ok?: boolean; data?: any; error?: any }>> {
+  return await new Promise((resolve, reject) => {
+    const responses: Array<{ ok?: boolean; data?: any; error?: any }> = [];
+    let buffer = '';
+    socket.setEncoding('utf8');
+    socket.on('data', (chunk) => {
+      buffer += chunk;
+      let idx = buffer.indexOf('\n');
+      while (idx !== -1) {
+        const line = buffer.slice(0, idx).trim();
+        buffer = buffer.slice(idx + 1);
+        if (line) {
+          responses.push(JSON.parse(line));
+        }
+        if (responses.length === expectedResponses) {
+          resolve(responses);
+          return;
+        }
+        idx = buffer.indexOf('\n');
+      }
+    });
+    socket.once('error', reject);
+    socket.write(`${lines.join('\n')}\n`);
+  });
+}

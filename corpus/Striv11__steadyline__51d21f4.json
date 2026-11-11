@@ -1,0 +1,19 @@
+{
+  "id": "Striv11__steadyline__51d21f4",
+  "source": "git",
+  "repo": "Striv11/steadyline",
+  "sha": "51d21f4c6016d9bb965348726f3eefe24b82008e",
+  "parent": "9ba16f08930fa4dd67202f8a56204cf720d10d92",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Striv11/steadyline/commit/51d21f4c6016d9bb965348726f3eefe24b82008e",
+  "files": [
+    "src/importers/importers.test.ts",
+    "src/importers/vitals.ts"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

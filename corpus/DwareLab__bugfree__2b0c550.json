@@ -1,0 +1,36 @@
+{
+  "id": "DwareLab__bugfree__2b0c550",
+  "source": "git",
+  "repo": "DwareLab/bugfree",
+  "sha": "2b0c550affb9e7e684116207584dd903b85558ce",
+  "parent": "17aba8c5058fc6c6dc5d50b84f41b53b47e94710",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/DwareLab/bugfree/commit/2b0c550affb9e7e684116207584dd903b85558ce",
+  "files": [
+    "apps/api/src/alerts.ts",
+    "apps/api/src/app.ts",
+    "apps/api/src/auth.ts",
+    "apps/api/src/config.ts",
+    "apps/api/src/retention.ts",
+    "apps/api/src/routes/portal.ts",
+    "apps/api/src/routes/projects.ts",
+    "apps/api/src/routes/tickets.ts",
+    "apps/api/src/worker-migrations.ts",
+    "apps/web/app/(app)/projects/[projectId]/settings/page.tsx",
+    "apps/web/app/(app)/projects/[projectId]/tickets/page.tsx",
+    "apps/web/app/report/[slug]/[number]/page.tsx",
+    "apps/web/app/report/[slug]/layout.tsx",
+    "apps/web/app/report/[slug]/page.tsx",
+    "apps/web/components/app-shell.tsx",
+    "apps/web/components/portal-shell.tsx",
+    "apps/web/components/tickets.tsx",
+    "apps/web/lib/api.ts",
+    "scripts/deploy-cloudflare.mjs"
+  ],
+  "wave": 2,
+  "signal": "express-cookie",
+  "signals": [
+    "express-cookie"
+  ]
+}

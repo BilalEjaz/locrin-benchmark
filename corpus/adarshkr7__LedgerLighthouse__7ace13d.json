@@ -1,0 +1,26 @@
+{
+  "id": "adarshkr7__LedgerLighthouse__7ace13d",
+  "source": "git",
+  "repo": "adarshkr7/LedgerLighthouse",
+  "sha": "7ace13db2d21a7892f1efeab6df93d3339772021",
+  "parent": "1c47ae18dba77dcbfa0d4964987cb0dc7db81a77",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/adarshkr7/LedgerLighthouse/commit/7ace13db2d21a7892f1efeab6df93d3339772021",
+  "files": [
+    "packages/shared/src/x402/terms.ts",
+    "tools/e2e/src/adversary.ts",
+    "tools/e2e/src/demo.ts",
+    "tools/e2e/src/diagnose.ts",
+    "tools/e2e/src/escrow-flow.ts",
+    "tools/e2e/src/fork-tools.ts",
+    "tools/e2e/src/preflight.ts",
+    "tools/e2e/src/tee-check.ts",
+    "tools/e2e/src/vault-state.ts"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console"
+  ]
+}

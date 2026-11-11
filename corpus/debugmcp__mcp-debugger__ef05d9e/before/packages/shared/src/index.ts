@@ -1,0 +1,323 @@
+/**
+ * @debugmcp/shared - Shared interfaces, types, and utilities for MCP Debugger
+ * 
+ * This package provides the core abstractions and contracts used across
+ * the MCP Debugger ecosystem, enabling language-specific debug adapters
+ * to integrate seamlessly with the main debugger.
+ * 
+ * @packageDocumentation
+ */
+
+// ===== Core Interfaces =====
+
+// Debug Adapter interfaces - Types
+export type {
+  // Main interface
+  IDebugAdapter,
+  
+  // Validation
+  ValidationResult,
+  ValidationError,
+  ValidationWarning,
+  DependencyInfo,
+  
+  // State and configuration
+  AdapterConfig,
+  AdapterCommand,
+  AdapterCapabilities,
+  
+  // Launch configurations
+  GenericLaunchConfig,
+  LaunchConfigDiagnostic,
+  LanguageSpecificLaunchConfig,
+
+  // Features
+  FeatureRequirement,
+  ExceptionBreakpointFilter,
+  
+  // Events
+  AdapterEvents,
+  
+  // Migration
+  ConfigMigration
+} from './interfaces/debug-adapter.js';
+
+// Debug Adapter interfaces - Values (enums and classes)
+export {
+  // State enum
+  AdapterState,
+  
+  // Feature enum
+  DebugFeature,
+  
+  // Error class and enum
+  AdapterError,
+  AdapterErrorCode
+} from './interfaces/debug-adapter.js';
+
+// Adapter Registry interfaces - Types
+export type {
+  // Main interfaces
+  IAdapterRegistry,
+  IAdapterFactory,
+  
+  // Configuration and metadata
+  AdapterDependencies,
+  AdapterMetadata,
+  AdapterModes,
+  AttachMechanism,
+  AttachAddressing,
+  AdapterInfo,
+  AdapterManifestEntry,
+  FactoryLoadResult,
+  AdapterRegistryConfig,
+  
+  // Validation
+  FactoryValidationResult,
+
+  // Doctor presentation (issue #435)
+  ToolchainComponent,
+  ToolchainDescription,
+  ToolchainTargets,
+  DescribeToolchainOptions,
+
+  // Utility types
+  AdapterFactoryMap,
+  ActiveAdapterMap
+} from './interfaces/adapter-registry.js';
+
+// Adapter Registry interfaces - Values
+export {
+  // Implementation helpers
+  BaseAdapterFactory,
+  
+  // Errors
+  AdapterNotFoundError,
+  FactoryValidationError,
+  DuplicateRegistrationError,
+  
+  // Type guards
+  isAdapterFactory,
+  isAdapterRegistry
+} from './interfaces/adapter-registry.js';
+
+// External Dependencies - Types
+export type {
+  // Core interfaces
+  IFileSystem,
+  IChildProcess,
+  IProcessManager,
+  INetworkManager,
+  IServer,
+  ILogger,
+  IProxyManager,
+  IProxyManagerFactory,
+  IEnvironment,
+  
+  // Dependency injection
+  IDependencies,
+  PartialDependencies,
+  
+  // Factories
+  ILoggerFactory,
+  IChildProcessFactory
+} from './interfaces/external-dependencies.js';
+
+// Process interfaces - Types
+export type {
+  // Core process interfaces
+  IProcess,
+  IProcessOptions,
+
+  // Proxy process interfaces
+  IProxyProcessLauncher,
+  IProxyProcess
+} from './interfaces/process-interfaces.js';
+
+// ===== Models =====
+
+// Model types
+export type {
+  // Launch arguments
+  CustomLaunchRequestArguments,
+
+  // Attach configurations
+  GenericAttachConfig,
+  LanguageSpecificAttachConfig,
+
+  // Session types
+  SessionConfig,
+  Breakpoint,
+  FunctionBreakpoint,
+  DebugSession,
+  DebugSessionInfo,
+  SessionStopInfo,
+  SessionStopExceptionInfo,
+  ExceptionBreakMode,
+  SessionOutputEntry,
+  SessionFailureDiagnostics,
+  AttachLocality,
+
+  // Debug info types
+  Variable,
+  StackFrame,
+  DebugLocation
+} from './models/index.js';
+
+// Model values (enums and functions)
+export {
+  // Enums
+  DebugLanguage,
+  SessionLifecycleState,
+  ExecutionState,
+  SessionState,
+  ProcessIdentifierType,
+
+  // State mapping functions
+  isSessionTerminated,
+  isSettledSessionState,
+  isTerminalSessionState,
+  mapLegacyState,
+  mapToLegacyState
+} from './models/index.js';
+
+// ===== Factories =====
+
+export { AdapterFactory } from './factories/adapter-factory.js';
+
+// Adapter Policy interfaces and implementations
+export type {
+  AdapterPolicy,
+  HotReloadArgs,
+  LiveUpdatePolicy,
+  LiveUpdateRequest,
+  ProgramEndContext,
+  ProgramEndExplanation,
+  ChildSessionStrategy,
+  AdapterSpecificState,
+  CommandHandling,
+  AdapterSpawnPayload,
+  AdapterSpawnConfig,
+  LocalVariableExtraction,
+  HandshakeProxy,
+  HandshakeContext,
+  QueuedDapCommand,
+  PendingStopContext,
+  GeneratedFileContext,
+  GeneratedFileCandidate
+} from './interfaces/adapter-policy.js';
+export { BREAKPOINT_STOP_REASONS, USER_BREAK_REASONS } from './interfaces/adapter-policy.js';
+export {
+  DefaultAdapterPolicy,
+  resolveExceptionFilters,
+  launchTargetKeysOf,
+  namesLaunchTarget,
+  emptyLocalVariableExtraction,
+  extractionFromScope
+} from './interfaces/adapter-policy.js';
+export { JsDebugAdapterPolicy, JS_SCOPE_KINDS } from './interfaces/adapter-policy-js.js';
+export {
+  JS_NODE_INTERNALS_SKIP,
+  JS_NODE_MODULES_SKIP,
+  resolveJsLaunchSkipFiles,
+  jsLaunchBlackboxesNodeModules,
+  jsLaunchSkipsNodeInternals,
+  resolveJsLaunchSmartStep,
+  resolveJsLaunchWorkspaceFolder,
+  resolveJsPauseForSourceMap,
+  isJsTranspiledProgram
+} from './interfaces/js-launch-defaults.js';
+export type { JsLaunchSkipInputs, JsLaunchSourceMapInputs, JsLaunchWorkspaceOptions } from './interfaces/js-launch-defaults.js';
+export { PythonAdapterPolicy } from './interfaces/adapter-policy-python.js';
+export { RubyAdapterPolicy } from './interfaces/adapter-policy-ruby.js';
+export { RustAdapterPolicy } from './interfaces/adapter-policy-rust.js';
+export { CppAdapterPolicy } from './interfaces/adapter-policy-cpp.js';
+export { getLldbAttachBehavior } from './interfaces/lldb-policy-shared.js';
+export { CobolAdapterPolicy, COBOL_SCOPE_NAMES, COBOL_RUNTIME_ERROR_FILTER } from './interfaces/adapter-policy-cobol.js';
+export { DartAdapterPolicy, DART_LOCAL_SCOPE_NAMES, DART_BRIDGE_BASENAME, explainFlutterProgramEnd, parseFlutterDeviceMiss, splitFlutterBulletRow } from './interfaces/adapter-policy-dart.js';
+export { DapFrameDecoder, encodeDapMessage } from './dap/dap-framing.js';
+export type { DapFrameDecoderErrorContext, DapFrameDecoderOptions } from './dap/dap-framing.js';
+export { GoAdapterPolicy } from './interfaces/adapter-policy-go.js';
+export { JavaAdapterPolicy } from './interfaces/adapter-policy-java.js';
+export { DotnetAdapterPolicy } from './interfaces/adapter-policy-dotnet.js';
+export { MockAdapterPolicy } from './interfaces/adapter-policy-mock.js';
+export { getPolicyForLanguage } from './interfaces/adapter-policy-map.js';
+
+// DAP Client Behavior interfaces for adapter policies
+export type {
+  DapClientBehavior,
+  DapClientContext,
+  ReverseRequestResult,
+  ChildSessionConfig,
+  ParentStart
+} from './interfaces/dap-client-behavior.js';
+export {
+  NO_DEBUG_TARGET_MARKER,
+  buildNoDebugTargetError
+} from './interfaces/dap-client-behavior.js';
+export type { ChildReport, ChildAdoptionContract } from './interfaces/child-adoption.js';
+
+// Adapter launch coordination helpers
+export type { AdapterLaunchBarrier } from './interfaces/adapter-launch-barrier.js';
+
+// FileSystem abstraction for dependency injection
+export type { FileSystem } from './interfaces/filesystem.js';
+export { NodeFileSystem, setDefaultFileSystem, getDefaultFileSystem } from './interfaces/filesystem.js';
+
+// ===== Re-export VSCode Debug Protocol types for convenience =====
+export type { DebugProtocol } from '@vscode/debugprotocol';
+
+// ===== Logging-safety utilities =====
+// Sanitization helpers shared by the server and adapter packages so that
+// child-process output never reaches logs or tool errors unsanitized.
+export {
+  sanitizeEnvForLogging,
+  sanitizePayloadForLogging,
+  describeDapEventBodyForLog,
+  sanitizeStderr,
+  sanitizeStderrTail
+} from './utils/env-sanitizer.js';
+// Per-token labeled secret redaction for tool results (issue #237). The
+// stderr sanitizer above derives its value corpus from this rule table.
+export {
+  SECRET_VALUE_RULES,
+  SECRET_VALUE_ALTERNATION,
+  REDACTION_NOTICE,
+  redactSecretsInString,
+  isSensitiveName,
+  isTrivialValue,
+  redactVariableValue,
+  redactSecretsDeep,
+  redactStopInfo,
+  buildRedactionNotice
+} from './utils/secret-redaction.js';
+export type { SecretRule, RedactionHit, RedactionResult } from './utils/secret-redaction.js';
+export { LineBuffer } from './utils/line-buffer.js';
+export { isLoopbackHost } from './utils/loopback-host.js';
+// Doctor-row helpers for IAdapterFactory.describeToolchain (issue #435).
+export { toolchainComponent, normalizeToolchainDescription, probeWithinBudget } from './utils/toolchain-description.js';
+// The shared toolchain version probe for validate() (issue #969).
+export {
+  runVersionProbe,
+  VERSION_PROBE_TIMEOUT_MS,
+  VERSION_PROBE_KILL_GRACE_MS,
+  type VersionProbeOptions,
+  type VersionProbeResult
+} from './utils/version-probe.js';
+export { toSourceBreakpoint, toWireSourceBreakpoint, type BreakpointFields, toFunctionBreakpoint, type FunctionBreakpointFields } from './utils/to-source-breakpoint.js';
+export {
+  JS_LOGPOINT_BINDING,
+  parseJsLogMessage,
+  validateJsLogpoint,
+  compileJsLogpoint,
+  type LogMessagePart,
+  type CompiledJsLogpoint
+} from './utils/js-logpoint.js';
+// Argv marker constants shared by spawn-time tagging and the startup orphan
+// reapers (issues #343, #431).
+export {
+  PROXY_BOOTSTRAP_MARKER,
+  JS_DEBUG_ADAPTER_MARKER,
+  OWNER_PID_ARG_PREFIX,
+  SESSION_ID_ARG_PREFIX
+} from './utils/process-markers.js';

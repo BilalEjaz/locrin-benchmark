@@ -1,0 +1,27 @@
+{
+  "id": "Pixerate__poetics__25a0219",
+  "source": "git",
+  "repo": "Pixerate/poetics",
+  "sha": "25a021942e58edb41a3569379b9f4277f8316962",
+  "parent": "977a08f518facefcad6ee20fa66e2993625d9aad",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Pixerate/poetics/commit/25a021942e58edb41a3569379b9f4277f8316962",
+  "files": [
+    "packages/cli/src/backfill.test.ts",
+    "packages/cli/src/backfill.ts",
+    "packages/cli/src/commands.ts",
+    "packages/cli/src/index.ts",
+    "packages/cli/src/run.test.ts",
+    "packages/cli/src/run.ts",
+    "packages/core/src/types.ts",
+    "packages/store/src/index-db.test.ts",
+    "packages/store/src/index-db.ts"
+  ],
+  "wave": 2,
+  "signal": "marker",
+  "signals": [
+    "marker",
+    "test-case"
+  ]
+}

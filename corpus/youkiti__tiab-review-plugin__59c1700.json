@@ -1,0 +1,35 @@
+{
+  "id": "youkiti__tiab-review-plugin__59c1700",
+  "source": "git",
+  "repo": "youkiti/tiab-review-plugin",
+  "sha": "59c1700e2b5314bee17345b83a451c16d0940e62",
+  "parent": "68bf0f15419b9d0641bce4f0a364003992574cb9",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/youkiti/tiab-review-plugin/commit/59c1700e2b5314bee17345b83a451c16d0940e62",
+  "files": [
+    "src/sidepanel/features/fulltext/ai-batch-run.ts",
+    "src/sidepanel/features/fulltext/ai.ts",
+    "src/sidepanel/features/fulltext/assignment-ui.ts",
+    "src/sidepanel/features/fulltext/bulk-run.ts",
+    "src/sidepanel/features/fulltext/checklist.ts",
+    "src/sidepanel/features/fulltext/drive-import/index.ts",
+    "src/sidepanel/features/fulltext/drive-import/validate.ts",
+    "src/sidepanel/features/fulltext/publication-candidates.ts",
+    "src/sidepanel/features/fulltext/reason-editor.ts",
+    "src/sidepanel/features/fulltext/regrant.ts",
+    "src/sidepanel/features/fulltext/results.ts",
+    "src/sidepanel/features/fulltext/tab.ts",
+    "src/sidepanel/session-reset.ts",
+    "src/sidepanel/store/compat.ts",
+    "tests/fulltext-session-reset.test.ts",
+    "tests/session-reset-registry.test.ts",
+    "tests/session-reset.test.ts"
+  ],
+  "wave": 2,
+  "signal": "html-sink",
+  "signals": [
+    "html-sink",
+    "test-case"
+  ]
+}

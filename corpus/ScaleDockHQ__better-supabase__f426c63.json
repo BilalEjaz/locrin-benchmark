@@ -1,0 +1,22 @@
+{
+  "id": "ScaleDockHQ__better-supabase__f426c63",
+  "source": "git",
+  "repo": "ScaleDockHQ/better-supabase",
+  "sha": "f426c63ca0ade5abb8417b1c87a9708be0ecd6a7",
+  "parent": "eb6c04d5124dae69ac3796a497569e93213ae960",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/ScaleDockHQ/better-supabase/commit/f426c63ca0ade5abb8417b1c87a9708be0ecd6a7",
+  "files": [
+    "packages/better-supabase/src/cli/commands/table.ts",
+    "packages/better-supabase/src/sql/table-features.ts",
+    "packages/better-supabase/src/sql/tag-statements.ts",
+    "packages/better-supabase/tests/sql/tag-statements.test.ts"
+  ],
+  "wave": 2,
+  "signal": "supabase-service-role",
+  "signals": [
+    "supabase-service-role",
+    "test-case"
+  ]
+}

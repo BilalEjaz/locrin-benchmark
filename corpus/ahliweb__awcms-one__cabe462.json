@@ -1,0 +1,21 @@
+{
+  "id": "ahliweb__awcms-one__cabe462",
+  "source": "git",
+  "repo": "ahliweb/awcms-one",
+  "sha": "cabe46259cf70d28cbb0608fe3e043db9dddea40",
+  "parent": "3c4cd9e4aa631c1fd52dadf88a8ea5bb1a41f858",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/ahliweb/awcms-one/commit/cabe46259cf70d28cbb0608fe3e043db9dddea40",
+  "files": [
+    "packages/gerbang/audit-dokumen.mjs",
+    "redesign/AWCMS-One Admin dan Publik/support.js",
+    "tests/audit-dokumen.test.mjs"
+  ],
+  "wave": 2,
+  "signal": "html-sink",
+  "signals": [
+    "html-sink",
+    "test-case"
+  ]
+}

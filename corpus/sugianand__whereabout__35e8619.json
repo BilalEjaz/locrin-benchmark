@@ -1,0 +1,24 @@
+{
+  "id": "sugianand__whereabout__35e8619",
+  "source": "git",
+  "repo": "sugianand/whereabout",
+  "sha": "35e86192565fa625f3f4792e5e5f910bff566052",
+  "parent": "95708e89da2e53fe14715e1d3e5ffd8f895c0fc1",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/sugianand/whereabout/commit/35e86192565fa625f3f4792e5e5f910bff566052",
+  "files": [
+    "web/e2e/streak.spec.ts",
+    "web/src/components/CountryStreak.test.tsx",
+    "web/src/components/CountryStreak.tsx",
+    "web/src/lib/game/streakChallenge.test.ts",
+    "web/src/lib/game/streakChallenge.ts"
+  ],
+  "wave": 2,
+  "signal": "test-skip",
+  "signals": [
+    "test-skip",
+    "html-sink",
+    "test-case"
+  ]
+}

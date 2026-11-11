@@ -1,0 +1,25 @@
+{
+  "id": "bintangyoga__figdiff__18e64ea",
+  "source": "git",
+  "repo": "bintangyoga/figdiff",
+  "sha": "18e64ea9e781647cc58ce41c41a3d0fa79933008",
+  "parent": "2cba507be27a7c283b9a73b3092bb6379425008c",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/bintangyoga/figdiff/commit/18e64ea9e781647cc58ce41c41a3d0fa79933008",
+  "files": [
+    "src/action.ts",
+    "src/action/changed-files.ts",
+    "src/action/comment.ts",
+    "src/action/github.ts",
+    "src/action/glob.ts",
+    "src/action/main.ts",
+    "test/action.test.ts"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console",
+    "test-case"
+  ]
+}

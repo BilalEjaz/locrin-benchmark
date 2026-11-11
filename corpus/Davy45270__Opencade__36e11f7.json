@@ -1,0 +1,32 @@
+{
+  "id": "Davy45270__Opencade__36e11f7",
+  "source": "git",
+  "repo": "Davy45270/Opencade",
+  "sha": "36e11f74c0f3c18de21a70836e64bded7a156062",
+  "parent": "105c036fd79606e0b37a329e07cc9cdf663c42ca",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Davy45270/Opencade/commit/36e11f74c0f3c18de21a70836e64bded7a156062",
+  "files": [
+    "scripts/caisses-diversity.js",
+    "scripts/diversity-report.js",
+    "scripts/validate-caisses.js",
+    "src/engines/caisses/engine.ts",
+    "src/engines/caisses/levels.ts",
+    "src/engines/caisses/records.ts",
+    "src/engines/caisses/rules.ts",
+    "src/engines/caisses/solver.ts",
+    "src/engines/caisses/tips.ts",
+    "src/games/caisses/art.ts",
+    "src/games/caisses/scene.ts",
+    "src/games/caisses/sound.ts",
+    "src/games/caisses/thumbnail.ts",
+    "tests/caisses.test.ts",
+    "tests/e2e/caisses.spec.ts"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

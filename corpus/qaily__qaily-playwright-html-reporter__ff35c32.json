@@ -1,0 +1,37 @@
+{
+  "id": "qaily__qaily-playwright-html-reporter__ff35c32",
+  "source": "git",
+  "repo": "qaily/qaily-playwright-html-reporter",
+  "sha": "ff35c32dad14e4e11f74ef41e1578c46d2499af1",
+  "parent": "d74ec470e0879a63dec4ea3ab00f31b2f30c40a8",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/qaily/qaily-playwright-html-reporter/commit/ff35c32dad14e4e11f74ef41e1578c46d2499af1",
+  "files": [
+    "packages/artifacts/src/index.ts",
+    "packages/artifacts/src/service.ts",
+    "packages/artifacts/src/sigv4.ts",
+    "packages/artifacts/src/team-settings.ts",
+    "packages/artifacts/test/sigv4.test.ts",
+    "packages/artifacts/test/team-settings.test.ts",
+    "packages/contracts/src/page.ts",
+    "packages/contracts/src/settings/fields.ts",
+    "packages/contracts/src/settings/resolve.ts",
+    "packages/core/src/data-service.ts",
+    "packages/core/src/rollup-cache.ts",
+    "packages/core/src/settings-service.ts",
+    "packages/core/test/data-service.test.ts",
+    "packages/core/test/settings-service.test.ts",
+    "packages/pages/settings/src/settings-view.ts",
+    "packages/reporter/src/cli.ts",
+    "packages/reporter/src/sync.ts",
+    "packages/reporter/test/server.test.ts",
+    "packages/shell/src/main.ts",
+    "packages/shell/src/shell.ts"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

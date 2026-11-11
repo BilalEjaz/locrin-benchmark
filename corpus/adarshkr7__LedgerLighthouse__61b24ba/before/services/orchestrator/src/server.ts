@@ -1,0 +1,535 @@
+/**
+ * HTTP surface for the orchestrator, so the browser can drive a run.
+ *
+ * The browser deliberately cannot do this itself. `requestSpend` and
+ * `finalizeDecision` are submitted with the **relay key**, which stays on the
+ * server — and, more to the point, a payment loop that needed the browser would
+ * need the user present, which is the thing the ephemeral payer exists to avoid
+ * (ARCHITECTURE.md). The UI opens the goal and funds the payer; everything after
+ * that happens here, unattended.
+ *
+ *   GET  /health
+ *   GET  /config          addresses and modes the UI needs to render honestly
+ *   POST /runs            { goalId, mode } -> SSE stream of PaymentEvents
+ *   POST /sweeps          { goalId } -> returns the payer balance to the owner
+ *   GET  /traces/:goalId  the trace built from the last run for that goal
+ *
+ * `/health` and `/config` answer anyone. Everything else is guarded, and
+ * `/traces/` most of all — see the route for why a run record is a different
+ * kind of thing from a run.
+ */
+
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+
+import { TraceBuilder } from "@ntux402/trace";
+import { DEMO_GOAL_KEYS, findDemoGoal } from "@ntux402/shared";
+import { RateLimiter, corsHeaders, exposedWithoutToken, rejected } from "@ntux402/shared/node";
+import type { Address } from "viem";
+
+import type { IncoHealth } from "./inco/health.js";
+import type { PaymentEvent, PaymentLoop, PaymentResult } from "./pay/payment-loop.js";
+import type { VaultRelay } from "./pay/relay.js";
+import { TraceStore } from "./trace-store.js";
+import type { TraceAnchorClient } from "./pay/anchor.js";
+import type { SignerClient } from "./pay/signer-client.js";
+import { sweepGoal } from "./pay/sweep.js";
+
+export interface OrchestratorServerOptions {
+  readonly loop: PaymentLoop;
+  readonly relay: VaultRelay;
+  readonly vaultAddress: Address;
+  readonly usdcAddress: Address;
+  readonly chainId: number;
+  readonly mockApiUrl: string;
+  /**
+   * Whether Inco can reveal a decision right now. Checked before every run and
+   * served at `/health/inco`. Absent in tests that do not exercise it.
+   */
+  readonly incoHealth?: { check(): Promise<IncoHealth> } | undefined;
+  readonly signerUrl: string;
+  /**
+   * The signer, already carrying its bearer token.
+   *
+   * `signerUrl` above is published to the console for display **only**; this is
+   * the client that can actually talk to it. Kept as the constructed client
+   * rather than a second URL-and-token pair, so there is exactly one place the
+   * `SERVICE_TOKEN` is read and no way for the mint endpoint, the sweep and the
+   * payment loop to disagree about it. The sweep reached the signer by URL
+   * until 2026-08-23 and 401'd against the enclave for it.
+   */
+  readonly signer: SignerClient;
+  /**
+   * Commits each finished trace root on chain. Absent when TRACE_ANCHOR_ADDRESS
+   * is unset, which leaves traces tamper-evident but not time-stamped.
+   */
+  readonly anchors: TraceAnchorClient | undefined;
+  readonly facilitatorUrl: string | undefined;
+  readonly agentSource: "llm" | "scripted";
+  /**
+   * The model behind `agentSource: "llm"`, when there is one.
+   *
+   * Reported so the console can say *which* model read the vendor's text
+   * rather than only that some model did. Undefined for the scripted
+   * stand-in, which is why it is optional rather than a string with a
+   * placeholder: "scripted" is not a model name.
+   */
+  readonly agentModel?: string | undefined;
+  /** Where completed traces are written. Defaults to `.traces`. */
+  readonly traceDir?: string | undefined;
+  readonly log?: (line: string) => void;
+}
+
+/*
+ * The orchestrator is the untrusted component by design — it holds a gas key,
+ * and the vault bounds what it can do. But "bounded" is not "free": a run burns
+ * relay gas, consumes one of the goal's `callsRemaining`, and debits the
+ * confidential budget. An open `POST /runs` therefore lets anyone who learns a
+ * goal id exhaust a goal that someone is about to demo.
+ *
+ * So: loopback bind, origin allowlist, optional token, and a limiter sized to
+ * a human driving a UI rather than a script.
+ */
+const RUN_LIMIT = new RateLimiter({ windowMs: 60_000, max: 20 });
+
+/**
+ * Its own bucket, not `RUN_LIMIT`.
+ *
+ * Downloading three traces should not spend a viewer's budget for starting
+ * runs; the two routes cost different things and bound different risks. Higher
+ * than `RUN_LIMIT` because a trace read is an LRU hit or one small file, and
+ * still low enough that walking the id space is slow rather than instant.
+ */
+const TRACE_LIMIT = new RateLimiter({ windowMs: 60_000, max: 60 });
+
+function send(
+  res: ServerResponse,
+  status: number,
+  body: unknown,
+  cors: Record<string, string> = {},
+): void {
+  const payload = JSON.stringify(body, (_k, v: unknown) =>
+    typeof v === "bigint" ? v.toString() : v,
+  );
+  res.writeHead(status, {
+    ...cors,
+    "content-type": "application/json",
+    "content-length": Buffer.byteLength(payload),
+  });
+  res.end(payload);
+}
+
+/**
+ * Bounded so a hostile body cannot be used to exhaust memory — the signer and
+ * the facilitator both capped theirs and this one did not, which made it the
+ * cheapest process in the set to push over. Generous for what the routes
+ * actually accept: the largest legitimate body is a goal id, a catalog key and
+ * a price override.
+ */
+const MAX_BODY_BYTES = 8 * 1024;
+
+/** Distinguishable from a parse failure, so the two get different statuses. */
+class BodyTooLarge extends Error {}
+
+async function readJson(req: IncomingMessage): Promise<unknown> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of req) {
+    const buf = chunk as Buffer;
+    total += buf.length;
+    if (total > MAX_BODY_BYTES) throw new BodyTooLarge(`body exceeds ${MAX_BODY_BYTES} bytes`);
+    chunks.push(buf);
+  }
+  const text = Buffer.concat(chunks).toString("utf8");
+  return JSON.parse(text === "" ? "null" : text);
+}
+
+/**
+ * Answers a body that could not be read.
+ *
+ * An oversized body is a 413 and a malformed one is a 400: reporting the first
+ * as "not valid JSON" would send an operator hunting for a syntax error in a
+ * payload that was never parsed.
+ */
+function sendBodyError(res: ServerResponse, error: unknown, cors: Record<string, string>): void {
+  if (error instanceof BodyTooLarge) {
+    send(res, 413, { error: error.message }, cors);
+    return;
+  }
+  send(res, 400, { error: "body: not valid JSON" }, cors);
+}
+
+export function createOrchestratorServer(options: OrchestratorServerOptions): Server {
+  const log = options.log ?? (() => {});
+  // Durable and bounded. See trace-store.ts for why this is a directory.
+  const traces = new TraceStore(options.traceDir ?? ".traces");
+
+  return createServer((req, res) => {
+    /*
+     * Computed once, out here rather than inside the async frame, so the
+     * `.catch()` below can reach it too. It could not before, and a crash
+     * therefore answered without CORS headers -- which the browser reports as
+     * an opaque "Failed to fetch" rather than the 500 and its message. That is
+     * precisely the failure this project spent an afternoon misdiagnosing: the
+     * service was up and answering, and the only thing wrong was that the
+     * answer was unreadable.
+     */
+    const cors = corsHeaders(req);
+
+    void (async () => {
+      const path = (req.url ?? "/").split("?")[0] ?? "/";
+
+      if (req.method === "OPTIONS") {
+        res.writeHead(204, cors);
+        res.end();
+        return;
+      }
+
+      if (req.method === "GET" && path === "/health") {
+        send(res, 200, { ok: true, service: "orchestrator" }, cors);
+        return;
+      }
+
+      // Whether a run could finish right now. Open like /health: it reveals a
+      // decision that is already public, and says only whether Inco answered.
+      if (req.method === "GET" && path === "/health/inco") {
+        if (!options.incoHealth) {
+          send(res, 200, { status: "unchecked" }, cors);
+          return;
+        }
+        send(res, 200, await options.incoHealth.check(), cors);
+        return;
+      }
+
+      // Open like /health: the UI needs these addresses to render honestly, and
+      // every one of them is already public on chain.
+      if (req.method === "GET" && path === "/config") {
+        send(
+          res,
+          200,
+          {
+            vaultAddress: options.vaultAddress,
+            usdcAddress: options.usdcAddress,
+            chainId: options.chainId,
+            relayAddress: options.relay.relayAddress,
+            signerUrl: options.signerUrl,
+            mockApiUrl: options.mockApiUrl,
+            // Rendered in the UI so a stubbed run can never be mistaken for a real one.
+            settlement: options.facilitatorUrl ? "live" : "stub",
+            agent: options.agentSource,
+            agentModel: options.agentModel,
+          },
+          cors,
+        );
+        return;
+      }
+
+      /*
+       * The one route here that hands back data rather than doing something.
+       *
+       * It was open, and open is wrong for it. Goal ids are small sequential
+       * integers, so `GET /traces/1`, `/traces/2`, ... walks every run the
+       * process has ever recorded — and a trace carries the vendor's prose, the
+       * model's own reasoning, the payee, the amounts and the resource URLs.
+       * `.gitignore` already says these are meant to be handed to an auditor
+       * deliberately. Serving them to anyone who can reach the port is the
+       * opposite of deliberately.
+       *
+       * Two controls, and they answer different questions. `rejected()` is the
+       * same guard the mutating routes use: the bearer when one is configured,
+       * and a limiter that makes enumeration slow. `exposedWithoutToken()` is
+       * the floor underneath it, because the bearer is opt-in and the useful
+       * default for `/runs` is the dangerous one here — a stranger who starts a
+       * run burns a goal they do not own, and a stranger who reads a trace
+       * keeps it.
+       */
+      if (req.method === "GET" && path.startsWith("/traces/")) {
+        if (rejected(req, res, { limiter: TRACE_LIMIT })) return;
+
+        if (exposedWithoutToken()) {
+          /*
+           * 403, not 401. A 401 with `www-authenticate` invites the caller to
+           * present a credential, and there is no credential that would work:
+           * the operator has not configured one. The fault is this side of the
+           * wire and the message says so.
+           */
+          send(
+            res,
+            403,
+            {
+              error:
+                "refused: traces are run records and this process is bound to a network " +
+                "interface with no SERVICE_TOKEN set. Set one, or bind BIND_HOST to 127.0.0.1.",
+            },
+            cors,
+          );
+          return;
+        }
+
+        const goalId = path.slice("/traces/".length);
+        const trace = traces.get(goalId);
+        if (!trace) {
+          send(res, 404, { error: `no trace recorded for goal ${goalId}` }, cors);
+          return;
+        }
+        send(res, 200, trace, cors);
+        return;
+      }
+
+      /*
+       * Mint the per-goal payer, on the browser's behalf.
+       *
+       * The console used to POST straight to `config.signerUrl`. That worked
+       * only while the signer was an open port on localhost. A signer deployed
+       * to ROFL requires a `SERVICE_TOKEN` bearer, and the only way for the
+       * browser to satisfy that would be to ship the token into the page —
+       * handing every viewer the credential that mints payer keys.
+       *
+       * So the hop moves here, where the token already lives. The browser asks
+       * the orchestrator, the orchestrator asks the signer, and the secret
+       * stays on this side of the wire. `SignerClient.mintPayer` is the same
+       * call the payment loop makes, carrying the same bearer.
+       */
+      if (req.method === "POST" && path === "/payer") {
+        if (rejected(req, res, { limiter: RUN_LIMIT })) return;
+        try {
+          const address = await options.signer.mintPayer();
+          send(res, 201, { address }, cors);
+        } catch (e) {
+          // The signer's own status is not this endpoint's to forward: a 401
+          // from a misconfigured token is an operator fault, not the caller's.
+          send(res, 502, { error: e instanceof Error ? e.message : String(e) }, cors);
+        }
+        return;
+      }
+
+      if (req.method === "POST" && path === "/sweeps") {
+        if (rejected(req, res, { limiter: RUN_LIMIT })) return;
+        let body: unknown;
+        try {
+          body = await readJson(req);
+        } catch (e) {
+          sendBodyError(res, e, cors);
+          return;
+        }
+        const { goalId } = (body ?? {}) as { goalId?: unknown };
+        if (typeof goalId !== "string" || !/^[0-9]{1,32}$/.test(goalId)) {
+          send(res, 400, { error: "goalId: expected a decimal string" }, cors);
+          return;
+        }
+
+        // `options.signer`, not `options.signerUrl`: the client is what carries
+        // the bearer. Handing this the display URL is the bug that made every
+        // sweep against the ROFL signer a 401 — after the console had already
+        // closed the goal on chain.
+        const outcome = await sweepGoal(goalId, { signer: options.signer, relay: options.relay });
+        log(`POST /sweeps goal=${goalId} -> ${outcome.kind}`);
+
+        if (outcome.kind === "settled") {
+          send(res, 200, outcome, cors);
+        } else if (outcome.kind === "refused") {
+          send(res, outcome.status, { error: outcome.reason }, cors);
+        } else {
+          send(res, 502, { error: outcome.reason }, cors);
+        }
+        return;
+      }
+
+      if (req.method === "POST" && path === "/runs") {
+        if (rejected(req, res, { limiter: RUN_LIMIT })) return;
+        let body: unknown;
+        try {
+          body = await readJson(req);
+        } catch (e) {
+          sendBodyError(res, e, cors);
+          return;
+        }
+
+        const { goalId, mode, priceAtomic } = (body ?? {}) as {
+          goalId?: unknown;
+          mode?: unknown;
+          priceAtomic?: unknown;
+        };
+        if (typeof goalId !== "string" || !/^[0-9]+$/.test(goalId)) {
+          send(res, 400, { error: "goalId: expected a decimal string" }, cors);
+          return;
+        }
+        // Validated against the shared catalog rather than a literal union, so
+        // adding a resource is a catalog edit and not a change here. Anything
+        // outside the catalog is rejected — this value becomes a URL path.
+        if (typeof mode !== "string" || findDemoGoal(mode) === undefined) {
+          send(res, 400, { error: `mode: expected one of ${DEMO_GOAL_KEYS.join(", ")}` }, cors);
+          return;
+        }
+
+        // A demo control, forwarded verbatim to the mock vendor and used by
+        // nothing else. It never reaches the policy: the amount the vault sees
+        // comes from the 402 the vendor returns, parsed and re-derived there.
+        if (priceAtomic !== undefined && !/^[0-9]{1,18}$/.test(String(priceAtomic))) {
+          send(res, 400, { error: "priceAtomic: expected a decimal string" }, cors);
+          return;
+        }
+
+        /*
+         * Last check before anything is committed. A run needs Inco to reveal
+         * its decision, and if Inco cannot, `requestSpend` would debit the
+         * budget and leave the run waiting on a decision that never comes.
+         * Refusing here costs nothing and says why.
+         */
+        if (options.incoHealth) {
+          const inco = await options.incoHealth.check();
+          if (inco.status === "unavailable") {
+            log(`POST /runs refused: Inco unavailable (${inco.detail})`);
+            send(
+              res,
+              503,
+              {
+                error:
+                  "Inco cannot reveal decisions right now, so this run would stop at the " +
+                  "confidential evaluation. Nothing was committed or charged. " +
+                  `Inco said: ${inco.detail}`,
+                inco,
+              },
+              cors,
+            );
+            return;
+          }
+        }
+
+        await streamRun(res, {
+          ...options,
+          cors,
+          goalId: BigInt(goalId),
+          mode,
+          ...(priceAtomic === undefined ? {} : { priceAtomic: String(priceAtomic) }),
+          traces,
+          log,
+        });
+        return;
+      }
+
+      send(res, 404, { error: "not found" }, cors);
+    })().catch((e: unknown) => {
+      if (!res.headersSent) {
+        send(res, 500, { error: e instanceof Error ? e.message : String(e) }, cors);
+      }
+      else res.end();
+    });
+  });
+}
+
+/**
+ * The resource URL for a run, which becomes the x402 `resource` field the vault
+ * hashes into `termsHash`. Both the 402 and the paid retry derive it here.
+ */
+export function resourceUrlFor(ctx: {
+  mode: string;
+  mockApiUrl: string;
+  priceAtomic?: string | undefined;
+}): string {
+  // `?price=` is honoured by the mock vendor alone, and only for its overcharge
+  // resource. It never reaches the policy: the amount the vault sees is
+  // re-derived from the 402 that comes back.
+  const query = ctx.priceAtomic ? `?price=${ctx.priceAtomic}` : "";
+  return `${ctx.mockApiUrl}/resource/${ctx.mode}${query}`;
+}
+
+async function streamRun(
+  res: ServerResponse,
+  ctx: OrchestratorServerOptions & {
+    cors: Record<string, string>;
+    goalId: bigint;
+    /** A key from the shared demo catalog; also the resource path segment. */
+    mode: string;
+    /** Demo-only price override, forwarded to the mock vendor. */
+    priceAtomic?: string;
+    traces: TraceStore;
+    log: (line: string) => void;
+  },
+): Promise<void> {
+  res.writeHead(200, {
+    ...ctx.cors,
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+    connection: "keep-alive",
+    // Proxies that buffer would defeat the point of streaming the decision live.
+    "x-accel-buffering": "no",
+  });
+
+  const emit = (event: string, data: unknown) => {
+    res.write(
+      `event: ${event}\ndata: ${JSON.stringify(data, (_k, v: unknown) =>
+        typeof v === "bigint" ? v.toString() : v,
+      )}\n\n`,
+    );
+  };
+
+  const builder = new TraceBuilder({
+    goalId: ctx.goalId,
+    vault: ctx.vaultAddress,
+    chainId: ctx.chainId,
+  });
+
+  const forward = (event: PaymentEvent) => {
+    builder.record(event as unknown as { type: string });
+    emit("payment", event);
+  };
+
+  const url = resourceUrlFor(ctx);
+  ctx.log(`POST /runs goal=${ctx.goalId} mode=${ctx.mode} -> ${url}`);
+
+  // Scoped to this run, not registered on the shared loop. `subscribe()` is
+  // process-wide, so two concurrent runs would each receive the other's events
+  // and each trace would record both goals.
+  //
+  // `fresh` because a POST to /runs is a person asking to buy the thing, not a
+  // retry of an earlier attempt. Without it the process-wide response cache
+  // answered the second run of a resource from memory: `kind: "free"`, no
+  // `requestSpend`, no debit against the encrypted budget — while the catalog
+  // copy invites the viewer to "run it several times and watch the encrypted
+  // budget draw down". The run that demonstrates the product was the one the
+  // cache swallowed.
+  let result: PaymentResult;
+  try {
+    result = await ctx.loop.fetchPaid(url, ctx.goalId, { onEvent: forward, fresh: true });
+  } catch (e) {
+    emit("error", { message: e instanceof Error ? e.message : String(e) });
+    res.end();
+    return;
+  }
+
+  const trace = builder.build();
+  ctx.traces.save(ctx.goalId.toString(), trace);
+
+  /*
+   * Commit the root, when an anchor contract is configured.
+   *
+   * After the save, deliberately: the trace on disk is the artifact, and the
+   * anchor is a commitment *to* it. Anchoring first and then failing to write
+   * the file would leave a root on chain that nothing can be checked against.
+   *
+   * Awaited rather than fired and forgotten, so the SSE stream can report the
+   * outcome while the viewer is still watching — but its failure never fails
+   * the run. The money has moved and the record exists; losing the commitment
+   * is not a reason to report the run as broken.
+   */
+  if (ctx.anchors) {
+    const outcome = await ctx.anchors.anchor(
+      ctx.vaultAddress,
+      ctx.goalId,
+      trace.root,
+      trace.steps.length,
+    );
+    emit("anchor", outcome);
+    ctx.log(
+      outcome.kind === "anchored"
+        ? `anchored goal=${ctx.goalId} root=${trace.root} tx=${outcome.txHash}`
+        : `anchor goal=${ctx.goalId} -> ${outcome.kind}` +
+          ("reason" in outcome ? `: ${outcome.reason}` : ""),
+    );
+  }
+
+  emit("result", result);
+  emit("trace", trace);
+  res.end();
+  ctx.log(`POST /runs goal=${ctx.goalId} mode=${ctx.mode} -> ${result.kind}`);
+}

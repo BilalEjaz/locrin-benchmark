@@ -1,0 +1,24 @@
+{
+  "id": "Withso__zeros__2a6ffd7",
+  "source": "git",
+  "repo": "Withso/zeros",
+  "sha": "2a6ffd71001daf868c85aaddd1c919b5984498e6",
+  "parent": "ee7f70f2d03a1a42a458109971ee60113a8625ba",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/Withso/zeros/commit/2a6ffd71001daf868c85aaddd1c919b5984498e6",
+  "files": [
+    "apps/control-plane/src/cloud/local-commands/clients.integration.test.ts",
+    "scripts/__tests__/ui-smoke-shards.test.ts",
+    "scripts/ci/control-plane-scope.mjs",
+    "scripts/ui-smoke-cloud-chat-edits.mjs",
+    "scripts/ui-smoke-local-commands.mjs",
+    "scripts/ui-smoke/scenarios.mjs"
+  ],
+  "wave": 2,
+  "signal": "test-skip",
+  "signals": [
+    "test-skip",
+    "test-case"
+  ]
+}

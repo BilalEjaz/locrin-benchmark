@@ -1,0 +1,19 @@
+{
+  "id": "overnightworks__design__a1315d0",
+  "source": "git",
+  "repo": "overnightworks/design",
+  "sha": "a1315d083adc6fba58fe4c6793d1b96229f8a3f2",
+  "parent": "57e8786d3531b12f1022635a3e9c20f1ebdecae4",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/overnightworks/design/commit/a1315d083adc6fba58fe4c6793d1b96229f8a3f2",
+  "files": [
+    "tests/e2e/account-menu.spec.ts",
+    "tests/e2e/sign-in.spec.ts"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

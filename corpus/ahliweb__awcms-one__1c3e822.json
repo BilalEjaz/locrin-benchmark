@@ -1,0 +1,22 @@
+{
+  "id": "ahliweb__awcms-one__1c3e822",
+  "source": "git",
+  "repo": "ahliweb/awcms-one",
+  "sha": "1c3e8227cabc3afb6bcb5d6017f921d36caf3178",
+  "parent": "a7ca7d5627433b51ed05b4895b5a7a97e1da3efe",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/ahliweb/awcms-one/commit/1c3e8227cabc3afb6bcb5d6017f921d36caf3178",
+  "files": [
+    "apps/storefront/src/lib/kirim-tunggal.ts",
+    "apps/storefront/src/scripts/akun-notifikasi.ts",
+    "apps/storefront/tests/e2e/akun-notifikasi.e2e.ts",
+    "apps/storefront/tests/e2e/daftar-ketuk-ganda.e2e.ts",
+    "apps/storefront/tests/kirim-tunggal.test.ts"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

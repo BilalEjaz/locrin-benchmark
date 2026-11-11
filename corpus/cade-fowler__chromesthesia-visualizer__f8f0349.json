@@ -1,0 +1,43 @@
+{
+  "id": "cade-fowler__chromesthesia-visualizer__f8f0349",
+  "source": "git",
+  "repo": "cade-fowler/chromesthesia-visualizer",
+  "sha": "f8f034917ba425720d13d6db64eb1350b7847067",
+  "parent": "982b46d611ef01291382f7bb3a8368e81787ae69",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/cade-fowler/chromesthesia-visualizer/commit/f8f034917ba425720d13d6db64eb1350b7847067",
+  "files": [
+    "client/src/App.tsx",
+    "client/src/auth/OwnerContext.tsx",
+    "client/src/auth/RequireOwner.tsx",
+    "client/src/auth/next.test.ts",
+    "client/src/auth/next.ts",
+    "client/src/components/ColorPicker/SpotifyElement/index.tsx",
+    "client/src/components/Login/index.tsx",
+    "client/src/components/Navbar/index.tsx",
+    "client/src/components/databaseAPI.ts",
+    "client/src/main.tsx",
+    "server/src/app.ts",
+    "server/src/auth.test.ts",
+    "server/src/auth.ts",
+    "server/src/index.ts",
+    "server/src/migrations/split-colors.test.ts",
+    "server/src/routes/auth.test.ts",
+    "server/src/routes/auth.ts",
+    "server/src/routes/colors.test.ts",
+    "server/src/routes/colors.ts",
+    "server/src/routes/songs.test.ts",
+    "server/src/routes/songs.ts",
+    "server/src/scripts/hash-password.ts",
+    "server/src/test/auth.ts",
+    "server/src/validation.ts",
+    "shared/src/index.ts"
+  ],
+  "wave": 2,
+  "signal": "express-cookie",
+  "signals": [
+    "express-cookie",
+    "test-case"
+  ]
+}

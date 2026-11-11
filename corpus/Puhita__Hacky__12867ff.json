@@ -1,0 +1,27 @@
+{
+  "id": "Puhita__Hacky__12867ff",
+  "source": "git",
+  "repo": "Puhita/Hacky",
+  "sha": "12867ffe5b14c9b324d2e504e7f14c011ee0a9ed",
+  "parent": "7a61f8942a0663d794ee1f4e739c0b7d5cf6a959",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Puhita/Hacky/commit/12867ffe5b14c9b324d2e504e7f14c011ee0a9ed",
+  "files": [
+    "packages/extension/media/map.js",
+    "packages/extension/media/sidebar.js",
+    "packages/extension/src/api.ts",
+    "packages/extension/src/controller.test.ts",
+    "packages/extension/src/controller.ts",
+    "packages/extension/src/extension.ts",
+    "packages/extension/src/map.test.ts",
+    "packages/extension/test-host/smoke.cjs"
+  ],
+  "wave": 2,
+  "signal": "html-sink",
+  "signals": [
+    "html-sink",
+    "console",
+    "test-case"
+  ]
+}

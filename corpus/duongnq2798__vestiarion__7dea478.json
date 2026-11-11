@@ -1,0 +1,32 @@
+{
+  "id": "duongnq2798__vestiarion__7dea478",
+  "source": "git",
+  "repo": "duongnq2798/vestiarion",
+  "sha": "7dea478175ec5ebc9635617f05e4dcd380c94675",
+  "parent": "9f3636a172e57a8b2e2276e42316bb6f8f7db6ac",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/duongnq2798/vestiarion/commit/7dea478175ec5ebc9635617f05e4dcd380c94675",
+  "files": [
+    "src/lib/jira/acceptance.ts",
+    "src/lib/jira/identities.ts",
+    "src/lib/jira/links.ts",
+    "src/lib/jira/provider.ts",
+    "src/lib/jira/reads.ts",
+    "src/lib/jira/sites.ts",
+    "src/lib/jira/webhooks.ts",
+    "src/lib/jira/workspace.ts",
+    "src/lib/linear/acceptance.ts",
+    "tests/jira-acceptance.test.ts",
+    "tests/jira-flow.test.ts",
+    "tests/jira-sites.test.ts",
+    "tests/support/jira-world.ts",
+    "tests/support/memory-postgrest.ts"
+  ],
+  "wave": 2,
+  "signal": "supabase-service-role",
+  "signals": [
+    "supabase-service-role",
+    "test-case"
+  ]
+}

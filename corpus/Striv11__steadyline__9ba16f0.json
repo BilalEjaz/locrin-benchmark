@@ -1,0 +1,21 @@
+{
+  "id": "Striv11__steadyline__9ba16f0",
+  "source": "git",
+  "repo": "Striv11/steadyline",
+  "sha": "9ba16f08930fa4dd67202f8a56204cf720d10d92",
+  "parent": "8a163f78907d718675c9815fcae898a0e679a4dd",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Striv11/steadyline/commit/9ba16f08930fa4dd67202f8a56204cf720d10d92",
+  "files": [
+    "src/importers/cgm.ts",
+    "src/importers/csv.ts",
+    "src/importers/importers.test.ts",
+    "src/metrics/glucose.ts"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

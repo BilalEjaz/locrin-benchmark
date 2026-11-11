@@ -1,0 +1,38 @@
+{
+  "id": "abdulrdeveloper__secure-auth-tamplate__89396b0",
+  "source": "git",
+  "repo": "abdulrdeveloper/secure-auth-tamplate",
+  "sha": "89396b061738a1ae98cacb52096802f59b55b55d",
+  "parent": "894d0fc16ed7972285051c26735fd6f3492cc2a2",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/abdulrdeveloper/secure-auth-tamplate/commit/89396b061738a1ae98cacb52096802f59b55b55d",
+  "files": [
+    "server.ts",
+    "backend/server.ts",
+    "backend/src/app.ts",
+    "src/config/db.ts",
+    "backend/src/config/db.ts",
+    "src/config/validation.ts",
+    "backend/src/config/validation.ts",
+    "backend/src/controllers/auth.controller.ts",
+    "backend/src/middlewares/auth.middleware.ts",
+    "backend/src/middlewares/validate.middleware.ts",
+    "src/models/user.model.ts",
+    "backend/src/models/user.model.ts",
+    "backend/src/routes/auth.routes.ts",
+    "src/services/mail.service.ts",
+    "backend/src/services/mail.service.ts",
+    "backend/src/services/otp.service.ts",
+    "src/services/redis.service.ts",
+    "backend/src/services/redis.service.ts",
+    "src/app.ts",
+    "src/controllers/auth.controller.ts",
+    "src/routes/auth.routes.ts"
+  ],
+  "wave": 2,
+  "signal": "express-cookie",
+  "signals": [
+    "express-cookie"
+  ]
+}

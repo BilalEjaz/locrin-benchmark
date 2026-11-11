@@ -1,0 +1,34 @@
+{
+  "id": "gm7dha__JuraCAD__5e885c3",
+  "source": "git",
+  "repo": "gm7dha/JuraCAD",
+  "sha": "5e885c3e81aa404a41fea2b4a5013c20d2d8cfbf",
+  "parent": "8d9adb118b7f55ca75c52960c87d15bc1003e41d",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/gm7dha/JuraCAD/commit/5e885c3e81aa404a41fea2b4a5013c20d2d8cfbf",
+  "files": [
+    "scripts/check-claude-extension.mjs",
+    "scripts/smoke-test.mjs",
+    "src/app/HelpDialog.tsx",
+    "src/app/LiveButton.tsx",
+    "src/app/TopBar.tsx",
+    "src/app/liveLink.ts",
+    "src/live/client.ts",
+    "src/live/protocol.ts",
+    "src/mcp/live.ts",
+    "src/mcp/server.ts",
+    "src/mcp/session.ts",
+    "src/mcp/tools.ts",
+    "src/mcp/websocket.ts",
+    "src/model/store.ts",
+    "tests/liveLink.test.ts",
+    "tests/liveProtocol.test.ts"
+  ],
+  "wave": 2,
+  "signal": "weak-hash",
+  "signals": [
+    "weak-hash",
+    "test-case"
+  ]
+}

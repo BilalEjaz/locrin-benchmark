@@ -1,0 +1,34 @@
+{
+  "id": "adarshkr7__LedgerLighthouse__61b24ba",
+  "source": "git",
+  "repo": "adarshkr7/LedgerLighthouse",
+  "sha": "61b24ba38a856ecd563ef5ca49f20d77215beea7",
+  "parent": "7ace13db2d21a7892f1efeab6df93d3339772021",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/adarshkr7/LedgerLighthouse/commit/61b24ba38a856ecd563ef5ca49f20d77215beea7",
+  "files": [
+    "apps/web/src/lib/config.ts",
+    "services/facilitator/src/auth-capture.test.ts",
+    "services/facilitator/src/auth-capture.ts",
+    "services/orchestrator/src/serve.ts",
+    "services/orchestrator/src/server.test.ts",
+    "services/orchestrator/src/server.ts",
+    "services/signer/src/escrow-service.test.ts",
+    "services/signer/src/escrow-service.ts",
+    "tools/e2e/src/adversary.ts",
+    "tools/e2e/src/bench.ts",
+    "tools/e2e/src/demo.ts",
+    "tools/e2e/src/diagnose.ts",
+    "tools/e2e/src/escrow.ts",
+    "tools/e2e/src/fork-tools.ts",
+    "tools/e2e/src/reclaim.ts",
+    "tools/e2e/src/sweep.ts"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console",
+    "test-case"
+  ]
+}

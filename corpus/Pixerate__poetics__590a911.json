@@ -1,0 +1,26 @@
+{
+  "id": "Pixerate__poetics__590a911",
+  "source": "git",
+  "repo": "Pixerate/poetics",
+  "sha": "590a911fc1fc56266de9bb833c064c11d32228f3",
+  "parent": "920351a7bf290bad1196df242963e95379382047",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Pixerate/poetics/commit/590a911fc1fc56266de9bb833c064c11d32228f3",
+  "files": [
+    "packages/adapter-typescript/src/identity.test.ts",
+    "packages/adapter-typescript/src/index.ts",
+    "packages/adapter-typescript/src/indexer.ts",
+    "packages/adapter-typescript/src/normalise.test.ts",
+    "packages/adapter-typescript/src/normalise.ts",
+    "packages/core/src/identity.test.ts",
+    "packages/core/src/identity.ts",
+    "packages/core/src/index.ts"
+  ],
+  "wave": 2,
+  "signal": "weak-hash",
+  "signals": [
+    "weak-hash",
+    "test-case"
+  ]
+}

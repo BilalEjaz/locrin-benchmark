@@ -1,0 +1,27 @@
+{
+  "id": "vecyang1__paseo-plugin-file-inspector-finder__83a300b",
+  "source": "git",
+  "repo": "vecyang1/paseo-plugin-file-inspector-finder",
+  "sha": "83a300b56fca931f95e1fc83801b98eb6c26c8ce",
+  "parent": "7d70811a382f8ec1bc1593e2b88e3fbf164803eb",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/vecyang1/paseo-plugin-file-inspector-finder/commit/83a300b56fca931f95e1fc83801b98eb6c26c8ce",
+  "files": [
+    "client/commit-origin-web.ts",
+    "client/session-ref-text-web.ts",
+    "index.client.tsx",
+    "index.server.ts",
+    "scripts/cross-session-links-e2e.mts",
+    "server/commit-origin.ts",
+    "shared/commit-origin-contracts.ts",
+    "test/commit-origin.test.ts",
+    "test/session-ref-text.test.ts"
+  ],
+  "wave": 2,
+  "signal": "weak-random",
+  "signals": [
+    "weak-random",
+    "test-case"
+  ]
+}

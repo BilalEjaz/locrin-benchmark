@@ -1,0 +1,27 @@
+{
+  "id": "debugmcp__mcp-debugger__59e2cbd",
+  "source": "git",
+  "repo": "debugmcp/mcp-debugger",
+  "sha": "59e2cbdb90ddfe376dc4341c344e9ac80c82f158",
+  "parent": "6b2b82db36a739af3f65e6507354dd274d4711ac",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/debugmcp/mcp-debugger/commit/59e2cbdb90ddfe376dc4341c344e9ac80c82f158",
+  "files": [
+    "tests/fixtures/dev-proxy/startup-backend.mjs",
+    "tests/integration/dev-proxy-eras.test.ts",
+    "tests/unit/dev-proxy/backend-env.test.ts",
+    "tests/unit/dev-proxy/backend-subscriptions.test.ts",
+    "tests/unit/dev-proxy/front-server.test.ts",
+    "tools/dev-proxy/backend-env.mjs",
+    "tools/dev-proxy/backend-subscriptions.mjs",
+    "tools/dev-proxy/dev-proxy.mjs",
+    "tools/dev-proxy/front-server.mjs"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console",
+    "test-case"
+  ]
+}

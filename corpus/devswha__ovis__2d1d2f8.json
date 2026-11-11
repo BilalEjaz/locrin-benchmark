@@ -1,0 +1,22 @@
+{
+  "id": "devswha__ovis__2d1d2f8",
+  "source": "git",
+  "repo": "devswha/ovis",
+  "sha": "2d1d2f848402e40806a2749dee5f1dfd9b5d88af",
+  "parent": "04ba5f9661e24f818ef5c9ef4b20b6716b4d7031",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/devswha/ovis/commit/2d1d2f848402e40806a2749dee5f1dfd9b5d88af",
+  "files": [
+    "scripts/plugin-phone.test.ts",
+    "scripts/plugin.test.ts",
+    "scripts/quiet-port.test.ts",
+    "scripts/quiet-port.ts"
+  ],
+  "wave": 2,
+  "signal": "weak-random",
+  "signals": [
+    "weak-random",
+    "test-case"
+  ]
+}

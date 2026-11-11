@@ -1,0 +1,24 @@
+{
+  "id": "Surfside-Software__tsdraft__73feed4",
+  "source": "git",
+  "repo": "Surfside-Software/tsdraft",
+  "sha": "73feed45d4352f002ce533563135f137e3216801",
+  "parent": "7cf14574ec5381510649fc148dce21980844901f",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Surfside-Software/tsdraft/commit/73feed45d4352f002ce533563135f137e3216801",
+  "files": [
+    "examples/site-plan.ts",
+    "scripts/package-smoke.ts",
+    "src/drawing.ts",
+    "src/dxf.ts",
+    "src/svg.ts",
+    "test/drawing.test.ts",
+    "test/export.test.ts"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console"
+  ]
+}

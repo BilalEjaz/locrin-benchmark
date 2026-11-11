@@ -1,0 +1,20 @@
+{
+  "id": "jesusizq__agent-desk__c84a488",
+  "source": "git",
+  "repo": "jesusizq/agent-desk",
+  "sha": "c84a488e1f8a0e0524b3837f197bc424fba45d8e",
+  "parent": "13fe4adfb26ab867c0043de965bb2c5f21128b26",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/jesusizq/agent-desk/commit/c84a488e1f8a0e0524b3837f197bc424fba45d8e",
+  "files": [
+    "src/core/ports.ts",
+    "test/ports.test.ts"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console",
+    "test-case"
+  ]
+}

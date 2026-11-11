@@ -1,0 +1,25 @@
+{
+  "id": "allisson__blindvault__a9b14e9",
+  "source": "git",
+  "repo": "allisson/blindvault",
+  "sha": "a9b14e9b1693f8a43b98ecbcff84383f019146eb",
+  "parent": "a4adf953e2f35c6da4c2480cc7d3b585435b340c",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/allisson/blindvault/commit/a9b14e9b1693f8a43b98ecbcff84383f019146eb",
+  "files": [
+    "apps/web/e2e/backup-merge.spec.ts",
+    "apps/web/e2e/corrupt.ts",
+    "apps/web/e2e/forgotten-password.spec.ts",
+    "apps/web/src/ui/MergeBackup.tsx",
+    "apps/web/src/ui/ResetPassword.tsx",
+    "apps/web/src/ui/RestoreVault.tsx",
+    "apps/web/src/ui/warnings.test.ts"
+  ],
+  "wave": 2,
+  "signal": "test-skip",
+  "signals": [
+    "test-skip",
+    "test-case"
+  ]
+}

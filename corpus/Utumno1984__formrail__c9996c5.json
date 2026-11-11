@@ -1,0 +1,20 @@
+{
+  "id": "Utumno1984__formrail__c9996c5",
+  "source": "git",
+  "repo": "Utumno1984/formrail",
+  "sha": "c9996c5c349af30ae511b218f3ec68ed5700edf3",
+  "parent": "d6d4e422642a0136cfeddd5e0178b91d84a0f4e8",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/Utumno1984/formrail/commit/c9996c5c349af30ae511b218f3ec68ed5700edf3",
+  "files": [
+    "scripts/docs-coverage.mjs",
+    "scripts/docs-coverage.test.mjs"
+  ],
+  "wave": 2,
+  "signal": "marker",
+  "signals": [
+    "marker",
+    "test-case"
+  ]
+}
