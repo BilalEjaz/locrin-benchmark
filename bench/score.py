@@ -13,6 +13,8 @@ NOT_BENCHMARKED = {
     "vulnerable-dependency": "advisory feed changes daily",
     "boundary-violation": "needs per-repository config",
     "express-route-without-auth": "needs per-repository config",
+    # Fires only on a route behind a middleware that framework.auth_middleware names; the default names none.
+    "express-cors-wildcard-on-authenticated": "needs per-repository config",
 }
 LOCKED = {"secret-exposed"}
 SHIPS_OFF = {"dead-file", "swallowed-error", "injection-sink"}
