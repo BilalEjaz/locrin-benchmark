@@ -57,6 +57,10 @@ _STATUS_LINE = re.compile(r"HTTP/[0-9.]+ (\d{3})")
 _HTTP_STATUS = re.compile(r"\(HTTP (\d{3})\)")
 _TRAILER_LINE = re.compile(r"^[ \t]*co-authored-by:[ \t]*(.*)$", re.IGNORECASE | re.MULTILINE)
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+# How many records a build stops at when --target names none.
+DEFAULT_TARGET = 300
+# The languages the wave-two signals read (bench/signals.py JS_EXTENSIONS).
+SIGNAL_LANGUAGES = ("typescript", "javascript")
 # A GitHub topic: what a repository search can name after topic:.
 _TOPIC = re.compile(r"[a-z0-9][a-z0-9-]*")
 
@@ -633,6 +637,10 @@ def _via_repos(gh, out: Path, a) -> int:
     # once every signal is full. Records a stopped build already wrote count toward their signals.
     targets: dict[str, int] | None = a.signal_targets
     held_signals = _existing_signals(out) if targets is not None else Counter()
+    if a.target is None:
+        # Only under --signals, where the quotas bound the build: the default total would end it at once
+        # over a corpus that already holds wave one.
+        a.target = total + sum(targets.values())
 
     def signal_pick(files: list[dict]):
         got = signals.matched(files)
@@ -836,7 +844,9 @@ def _prune_owner_excess(out_root: Path) -> int:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="build_corpus")
     p.add_argument("--out", default="corpus")
-    p.add_argument("--target", type=int, help="stop once the corpus holds this many records (default 300)")
+    p.add_argument("--target", type=int,
+                   help=f"stop once the corpus holds this many records (default {DEFAULT_TARGET}; with --signals, "
+                        "what the corpus holds plus every signal's quota)")
     p.add_argument("--trailer", action="append")
     p.add_argument("--repo")
     p.add_argument("--sha")
@@ -868,8 +878,8 @@ def main(argv: list[str] | None = None) -> int:
                 or a.signals or a.signal_target or a.topic):
             p.error("--prune-owner-excess goes with --out only")
         return _prune_owner_excess(Path(a.out))
-    if a.target is None:
-        a.target = 300
+    if a.target is None and not a.signals:
+        a.target = DEFAULT_TARGET
     if a.via_repos:
         if a.repo or a.sha or a.check_gone or a.trailer:
             p.error("--via-repos does not go with --repo, --sha, --check-gone or --trailer")
@@ -889,6 +899,14 @@ def main(argv: list[str] | None = None) -> int:
             p.error("--commit-pages must be 1 or more")
         if a.signal_target and not a.signals:
             p.error("--signal-target goes with --signals")
+        if a.signals:
+            # The signals read no PHP or Python file, so a record in either could only be one whose few
+            # JavaScript lines matched: not what wave two is, and not what its quotas were sized for.
+            if a.language is None:
+                a.language = list(SIGNAL_LANGUAGES)
+            elif set(a.language) - set(SIGNAL_LANGUAGES):
+                p.error(f"--signals reads {' and '.join(SIGNAL_LANGUAGES)} only; "
+                        "--language php and --language python do not go with it")
         a.signal_targets = dict(WAVE_TWO_TARGETS) if a.signals else None
         for spec in a.signal_target or []:
             name, sep, count = spec.partition("=")

@@ -115,22 +115,24 @@ Both apply the same checks to every commit. The corpus holds at most 3 records f
 
 ### Wave two: diffs chosen by signal
 
-Sampling agent commits as they come leaves most rules without a number, because most commits never touch what a rule looks at: of wave one's diffs, 2.8 percent add a line that touches cryptography and 0.5 percent set a cookie. Wave two's records carry `"wave": 2` and were kept only when the lines the commit adds matched a signal that still had room:
+Sampling agent commits as they come leaves most rules without a number, because most commits never touch what a rule looks at. Read with the patterns below, none of wave one's 214 diffs sets a cookie, names a weak digest, skips a test or adds a marker comment in a TypeScript or JavaScript file, and 0.9 percent call `Math.random`. Wave two's records carry `"wave": 2` and were kept only when the lines the commit adds matched a signal that still had room:
 
-| Signal | Lines it matches | Rule it feeds | Records at most |
-| --- | --- | --- | --- |
-| `weak-crypto` | a hash, HMAC or cipher constructor, `Math.random(`, the words `md5` or `sha1` | `weak-crypto` | 20 |
-| `express-cookie` | `.cookie(` | `express-cookie-insecure` | 10 |
-| `supabase-service-role` | `service_role` or `serviceRole`, any case | `supabase-service-role-in-client` | 9 |
-| `test-skip` | `.skip`, `.todo`, `xit(`, `xtest(`, `xdescribe(` | `test-newly-skipped` | 12 |
-| `html-sink` | `dangerouslySetInnerHTML`, `.innerHTML`, `.outerHTML`, `insertAdjacentHTML`, `document.write(`, `.html(` | `html-injection` | 12 |
-| `test-case` | `it(` or `test(` in a test file | `test-no-assert` | 20 |
-| `marker` | `TODO`, `FIXME`, `HACK`, `XXX` | `leftover-agent-marker` | 12 |
-| `console` | a `console` debug call or `debugger`, outside test files and the default allowed paths | `leftover-debug` | 15 |
+| Signal | Lines it matches | Files | Rule it feeds | Records at most |
+| --- | --- | --- | --- | --- |
+| `supabase-service-role` | `service_role`, any case | outside the default server paths | `supabase-service-role-in-client` | 9 |
+| `cipher-iv` | `createCipheriv(`, `createDecipheriv(` | any | `weak-crypto` | 6 |
+| `express-cookie` | `.cookie(` | any | `express-cookie-insecure` | 10 |
+| `weak-hash` | the words `md5` or `sha1`, any case | any | `weak-crypto` | 8 |
+| `test-skip` | `.skip` or `.todo` on `it`, `test`, `describe` or `context`; `xit(`, `xtest(`, `xdescribe(` | test files | `test-newly-skipped` | 12 |
+| `marker` | `TODO`, `FIXME`, `HACK`, `XXX` | any | `leftover-agent-marker` | 12 |
+| `weak-random` | `Math.random(` | any | `weak-crypto` | 6 |
+| `html-sink` | `dangerouslySetInnerHTML`, `.innerHTML`, `.outerHTML`, `insertAdjacentHTML`, `document.write(`, `.html(` | any | `html-injection` | 12 |
+| `console` | a `console` debug call, optional chaining included, or `debugger` | outside leftover-debug's test files and the default allowed paths | `leftover-debug` | 15 |
+| `test-case` | a call to `it`, `test`, `fit`, `ftest`, `xit` or `xtest`, with or without `.only`, `.each` and the like | test files | `test-no-assert` | 20 |
 
-Only TypeScript and JavaScript files are read. A commit matching several signals is assigned to the first one in this order with room, and the record lists all it matched under `signals`. `bench/signals.py` holds the patterns.
+Only TypeScript and JavaScript files are read. The order is rarest first as measured on wave one, and a commit matching several signals is assigned to the first one with room; the record lists all it matched under `signals`. `weak-crypto` reads three shapes, and each has its own signal so that `Math.random`, by far the commonest, cannot take the records meant for the other two. `bench/signals.py` holds the patterns and the file filters.
 
-A signal says that a rule's subject appears in the diff. It does not say that the rule fires there: each pattern is wider than what its rule flags. Every one was checked against the engine: the rule's own fixtures were run and each finding in them looked up under the signal, and for test skips the pattern was read against the skip forms the engine's source names. So a wave-two diff measures a rule on the same population a random diff does, the diffs where the rule has anything to say, and both waves are pooled in one score. A rule the signals do not feed is scored on wave-two diffs exactly as on any other.
+A signal says that a rule's subject appears in the diff. It does not say that the rule fires there. Each pattern covers every line its rule can flag, and each file filter is the rule's own, copied from the engine: the test signals read the files the test rules open (`*.test.*`, `*.spec.*`, anything under `__tests__`), the service-role signal skips the paths `framework.server_paths` exempts by default, and the console signal skips what leftover-debug skips. Every one was checked against the engine: the rule's own fixtures were run and each finding in them looked up under its signals, and for test skips the pattern was read against the skip forms the engine's source names. So a wave-two diff measures a rule on the same population a random diff does, the diffs where the rule has anything to say, and both waves are pooled in one score. A rule the signals do not feed is scored on wave-two diffs exactly as on any other.
 
 Two limits, both on purpose. `supabase-service-role` matches the name of the key and never a pasted key, so no diff is chosen for holding a live credential, and that rule's pasted-key shape is measured only where a diff happens to hold one. And three rules have no signal because no diff could move their number: `secret-exposed` (a public corpus must not redistribute live credentials), `supabase-table-without-rls` (it reads SQL migrations, which the corpus does not store) and `express-cors-wildcard-on-authenticated` (it fires only where a repository's own `locrin.toml` names its auth middleware).
 

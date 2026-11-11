@@ -1578,14 +1578,14 @@ def test_a_full_quota_falls_through_to_the_next_matched_signal(tmp_path, monkeyp
     both = signal_commit("const token = Math.random().toString(36);", "console.log(token);")
     gh = FakeGitHub({f"repos/{REPO}/commits/{c['sha']}": both for c in commits})
     monkeypatch.setattr(bc, "GitHub", lambda: gh)
-    assert bc.main(signals_argv(out, "--signal-target", "weak-crypto=1", "--signal-target", "console=1")) == 0
+    assert bc.main(signals_argv(out, "--signal-target", "weak-random=1", "--signal-target", "console=1")) == 0
     diffs = load_corpus(out)
-    assert sorted(d.signal for d in diffs) == ["console", "weak-crypto"]
-    assert all(d.wave == 2 and d.signals == ["weak-crypto", "console"] for d in diffs)
+    assert sorted(d.signal for d in diffs) == ["console", "weak-random"]
+    assert all(d.wave == 2 and d.signals == ["weak-random", "console"] for d in diffs)
     err = capsys.readouterr().err
     # The third matched commit matches the same two signals, and both are full by then.
     assert "signal target 1" in err
-    assert "weak-crypto 1/1" in err and "console 1/1" in err
+    assert "weak-random 1/1" in err and "console 1/1" in err
 
 
 def test_a_commit_that_adds_no_signal_line_is_skipped_as_no_signal(tmp_path, monkeypatch, capsys):
@@ -1646,6 +1646,8 @@ def test_main_via_repos_searches_once_per_topic(tmp_path, monkeypatch):
     ["--via-repos", "--since", "2026-09-01", "--signals", "--signal-target", "marker"],
     ["--via-repos", "--since", "2026-09-01", "--signals", "--signal-target", "marker=-1"],
     ["--via-repos", "--since", "2026-09-01", "--topic", "not a topic"],
+    ["--via-repos", "--since", "2026-09-01", "--signals", "--language", "php"],
+    ["--via-repos", "--since", "2026-09-01", "--signals", "--language", "typescript", "--language", "python"],
 ])
 def test_main_validates_the_signal_and_topic_options_before_calling_gh(tmp_path, monkeypatch, argv):
     gh = FakeGitHub()
@@ -1653,3 +1655,29 @@ def test_main_validates_the_signal_and_topic_options_before_calling_gh(tmp_path,
     with pytest.raises(SystemExit) as err:
         bc.main(["--out", str(tmp_path / "corpus"), *argv])
     assert err.value.code == 2 and gh.calls == []
+
+
+def test_signals_searches_typescript_and_javascript_when_no_language_is_named(tmp_path, monkeypatch):
+    commits = load("commits_list.json")
+    gh = FakeGitHub({f"repos/{REPO}/commits/{c['sha']}": signal_commit("const x = 1;") for c in commits})
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(tmp_path / "corpus"), "--signals"]) == 0
+    languages = [params["q"].split(" ")[0] for path, params in gh.requests if path == "search/repositories"]
+    # The signals read no PHP or Python file, so searching those repositories could only spend calls.
+    assert languages == ["language:TypeScript"] * 5 + ["language:JavaScript"] * 5
+
+
+def test_signals_without_a_target_is_bounded_by_the_quotas_and_not_by_the_default_total(tmp_path, monkeypatch):
+    out = tmp_path / "corpus"
+    commits = load("commits_list.json")
+    write_record(out, *accept(FakeGitHub(), first_item(), seen_repos={}))
+    gh = FakeGitHub({f"repos/{REPO}/commits/{commits[1]['sha']}": signal_commit("// TODO: later")})
+    monkeypatch.setattr(bc, "GitHub", lambda: gh)
+    # The corpus already holds the default total: a wave-one build would stop before reading anything.
+    monkeypatch.setattr(bc, "DEFAULT_TARGET", 1)
+    off = [arg for name in bc.SIGNALS if name != "marker" for arg in ("--signal-target", f"{name}=0")]
+    argv = ["--via-repos", "--since", "2026-03-01", "--out", str(out), "--signals", "--signal-target", "marker=1", *off]
+    assert bc.main(argv) == 0
+    assert sorted((d.wave, d.signal) for d in load_corpus(out)) == [(1, None), (2, "marker")]
+    assert bc.main(["--via-repos", "--since", "2026-03-01", "--out", str(tmp_path / "plain")]) == 0
+    assert len(load_corpus(tmp_path / "plain")) == 1
