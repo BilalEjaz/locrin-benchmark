@@ -1,0 +1,24 @@
+{
+  "diff": "shatxlab__lab__2cd23cb",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/lib/hr/sim/balance.ts",
+      "line": 291,
+      "id": "a1d2c2f9fcbfc7be",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export interface StageDef is used only in balance.ts line 303 (STAGES type); git grep finds no importer at the commit pass two: balance.ts:291 `export interface StageDef {`; git grep -w StageDef at the commit finds only balance.ts:291 and its in-file use at balance.ts:303 (`Readonly<Record<Stage, StageDef>>`), no importer."
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "diff": "sugianand__whereabout__8ae1951",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "web/src/components/HowFar.tsx",
+      "line": 70,
+      "id": "3d99e6aba495d7cb",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: FAR_CHALLENGE_NOTICE is used only inside HowFar.tsx (line 137); git grep -w at the commit finds no other file naming it pass two: git grep -w FAR_CHALLENGE_NOTICE at the commit finds only web/src/components/HowFar.tsx:70 (the export) and :137 `setNotice(linked && !linked.ok ? FAR_CHALLENGE_NOTICE[linked.reason] : null);`; no file imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "web/src/lib/game/farChallenge.ts",
+      "line": 35,
+      "id": "6b7f0e36a017052c",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: FAR_CHALLENGE_PARAM is imported by web/src/components/HowFar.tsx:10 (\"  FAR_CHALLENGE_PARAM,\") and used at lines 77, 84, 85 pass two: imported: web/src/components/HowFar.tsx:10 `FAR_CHALLENGE_PARAM,` in the import that closes at :17 `} from \"@/lib/game/farChallenge\";`, used at :77"
+    },
+    {
+      "rule": "dead-export",
+      "file": "web/src/lib/game/farChallenge.ts",
+      "line": 44,
+      "id": "bc15f4c5e1599ac1",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: type FarChallengeParse has no importer: git grep -w at the commit finds it only in farChallenge.ts, and HowFar.tsx lines 6-14 do not import it pass two: git grep -w FarChallengeParse at the commit finds only web/src/lib/game/farChallenge.ts:44 (the export) and :60 `export function parseFarChallenge(value: string, dealable: readonly string[]): FarChallengeParse {`; no file imports it"
+    },
+    {
+      "rule": "test-newly-skipped",
+      "file": "web/e2e/how-far.spec.ts",
+      "line": 196,
+      "id": "54a91911288bdd5d",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: test.skip((page.viewportSize()?.width ?? 1000) >= 768, \"a phone layout check\") is a runtime viewport gate inside a new test that runs on phone-width projects, not a test marked skipped pass two: conditional viewport gate on a new test, not a disabled test: line 196 is `test.skip((page.viewportSize()?.width ?? 1000) >= 768, \"a phone layout check\");` inside the test body, and web/playwright.config.ts lists a project it runs in: `{ name: \"phone\", use: { ...devices[\"Pixel 7\"] } }`"
+    }
+  ]
+}

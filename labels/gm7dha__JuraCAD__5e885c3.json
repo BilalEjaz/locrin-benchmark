@@ -1,0 +1,96 @@
+{
+  "diff": "gm7dha__JuraCAD__5e885c3",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/live/client.ts",
+      "line": 10,
+      "id": "a493cab137b3e1ef",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: Repo-wide git grep -w at 5e885c3 over the source pathspecs finds BrowserKind only inside src/live/client.ts (lines 10, 16, 50, 74) plus an unrelated own declaration in src/app/install.ts:45; src/app/liveLink.ts:10 imports LiveClient, LiveHost, LiveState, PermissionState, SocketLike but not BrowserKind. pass two: git grep -w BrowserKind at the commit: in src/live/client.ts only lines 10, 16, 50, 74 of the file itself; the other hits are a separate `export type BrowserKind` in src/app/install.ts:45. The importers of ../live/client (src/app/liveLink.ts:10, tests/liveLink.test.ts:20, tests/liveProtocol.test.ts:7) import other names, none by namespace."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/live/client.ts",
+      "line": 39,
+      "id": "4b9429d3726692dc",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: Repo-wide git grep -w at 5e885c3 over the source pathspecs finds SocketFactory only at src/live/client.ts:39 and :101; no import of it anywhere. pass two: git grep -w SocketFactory at the commit finds only src/live/client.ts:39 (the export) and :101 (`private readonly makeSocket: SocketFactory`); no file imports it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/live/protocol.ts",
+      "line": 29,
+      "id": "14d314b79d537458",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: Repo-wide git grep -w at 5e885c3 over the source pathspecs finds SITE_ORIGIN only at src/live/protocol.ts:29 and :44; every importer of ../live/protocol (src/mcp/live.ts:16, server.ts:26, websocket.ts:12, src/live/client.ts:8, tests) names other symbols. pass two: git grep -w SITE_ORIGIN at the commit finds only src/live/protocol.ts:29 (the export) and :44 (`if (origin === SITE_ORIGIN) return true;`); no file imports it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/live/protocol.ts",
+      "line": 62,
+      "id": "574ba728a57fe94d",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: Repo-wide git grep -w at 5e885c3 over the source pathspecs finds RefusedReason only inside src/live/protocol.ts (lines 62, 69, 112, 148); no file imports it. pass two: git grep -w RefusedReason at the commit finds only src/live/protocol.ts lines 62, 69, 112, 148; no file imports it (src/live/client.ts:8 and src/mcp/live.ts:16 import other names from the module)."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/mcp/live.ts",
+      "line": 21,
+      "id": "d69202725819aed5",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: Repo-wide git grep -w at 5e885c3 over the source pathspecs finds LiveConnection only in src/mcp/live.ts; the importers of ./live (src/mcp/server.ts:24, tests/liveLink.test.ts:23, tests/liveProtocol.test.ts:9) import LiveBridge and describeChange only. pass two: git grep -w LiveConnection at the commit finds only src/mcp/live.ts (lines 21, 71, 106, 111, 137, 148, 202); src/mcp/server.ts:24 imports `LiveBridge` and tests/liveProtocol.test.ts:9 imports `describeChange`, nothing imports LiveConnection."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/mcp/session.ts",
+      "line": 33,
+      "id": "f61f7124d4f35b12",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: Repo-wide git grep -w at 5e885c3 over the source pathspecs finds SessionSnapshot only at src/mcp/session.ts:33, :145, :149; importers of session (live.ts:17, server.ts:27, tools.ts:22, featureSpec.ts:18, tests) take Session, LiveLink, LiveStatus. pass two: git grep -w SessionSnapshot at the commit finds only src/mcp/session.ts lines 33, 145, 149; src/mcp/live.ts:17 imports `LiveLink, LiveStatus, Session` and the other importers import `Session` only."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/mcp/websocket.ts",
+      "line": 188,
+      "id": "1c1b9a4a7b5ce153",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: Repo-wide git grep -w at 5e885c3 over the source pathspecs finds WebSocketConnection only in src/mcp/websocket.ts and a comment at src/mcp/live.ts:20; importers take startLiveServer (server.ts:25, tests/liveLink.test.ts:26) and acceptKey, CLOSE, encodeFrame, FrameReader, upgradeProblem (tests/liveProtocol.test.ts:8). pass two: git grep -w WebSocketConnection at the commit finds src/mcp/websocket.ts lines 188, 241, 274 and a comment at src/mcp/live.ts:20; no file imports it (src/mcp/server.ts:25 and tests/liveLink.test.ts:26 import `startLiveServer`, tests/liveProtocol.test.ts:8 imports `acceptKey, CLOSE, encodeFrame, FrameReader, upgradeProblem`)."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/mcp/websocket.ts",
+      "line": 238,
+      "id": "b616421ff93eb402",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: Repo-wide git grep -w at 5e885c3 over the source pathspecs finds LiveServerOptions only in src/mcp/websocket.ts (238, 251); no import names it. pass two: git grep -w LiveServerOptions at the commit finds only src/mcp/websocket.ts:238 (the export) and :251 (`startLiveServer(opts: LiveServerOptions)`); no file imports it."
+    },
+    {
+      "rule": "weak-crypto",
+      "file": "src/mcp/websocket.ts",
+      "line": 18,
+      "id": "948afd05e3e49f03",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: `createHash(\"sha1\").update(key + GUID).digest(\"base64\")` computes the RFC 6455 Sec-WebSocket-Accept handshake value the protocol fixes (GUID at line 14); it is not used for security. pass two: src/mcp/websocket.ts:18 `return createHash(\"sha1\").update(key + GUID).digest(\"base64\");` is `acceptKey`, documented at line 16 as `The Sec-WebSocket-Accept answer to a client's key`: the handshake digest the WebSocket protocol (RFC 6455, named at line 2) fixes as SHA-1, not a security use."
+    }
+  ]
+}

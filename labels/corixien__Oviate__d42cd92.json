@@ -1,0 +1,33 @@
+{
+  "diff": "corixien__Oviate__d42cd92",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/lib/sync.ts",
+      "line": 56,
+      "id": "5e20bf42fb756a44",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export interface SecretPlan: git grep at the commit finds it only in src/lib/sync.ts (lines 56, 63, 64); sync.svelte.ts and sync.test.ts import planSecrets, not SecretPlan pass two: `export interface SecretPlan`: git grep for SecretPlan at the commit finds it only in src/lib/sync.ts (lines 56, 63, 64); sync.svelte.ts:4 and sync.test.ts:3 import planSecrets, not the type"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "server/src/dev-memory.ts",
+      "line": 14,
+      "id": "32670734fc67121c",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Startup message of a dev server script run directly, line 1: '`node src/dev-memory.ts`'; console.log is in listen()'s callback on the script's main path pass two: the startup message of a dev server script, in its main path: `.listen(port, () => console.log(`oviate dev server (memory) on :${port}`))`; dev-memory.ts:1 says it is run as `node src/dev-memory.ts`"
+    }
+  ]
+}

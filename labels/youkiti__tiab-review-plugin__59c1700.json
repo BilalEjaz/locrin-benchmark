@@ -1,0 +1,132 @@
+{
+  "diff": "youkiti__tiab-review-plugin__59c1700",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/sidepanel/features/fulltext/ai-batch-run.ts",
+      "line": 23,
+      "id": "8b2909e71043862d",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export interface AiBatchRun` is referenced only in ai-batch-run.ts itself (line 32 `run: AiBatchRun;`); git grep finds no importer in the repository. pass two: `export interface AiBatchRun` is used only inside its own file (ai-batch-run.ts:32 `run: AiBatchRun;`); git grep -w AiBatchRun at the commit finds no other file. ai.ts:21 imports only `executeAiBatchRun` and tests/fulltext-session-reset.test.ts:5 only `AiBatchRunDeps, AiBatchRunParams`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/sidepanel/features/fulltext/bulk-run.ts",
+      "line": 31,
+      "id": "ecae6ba3fd746cdd",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export type PendingFulltextWrite` is referenced only in bulk-run.ts (lines 36, 56); git grep finds no importer; tab.ts:68 imports only createBulkWriter, BulkRun, BulkWriterDeps. pass two: `export type PendingFulltextWrite` is used only at bulk-run.ts:36 and bulk-run.ts:56; git grep -w at the commit finds no other file. tab.ts:68 imports `createBulkWriter, type BulkRun, type BulkWriterDeps` and tests/fulltext-session-reset.test.ts:6-7 import `createBulkWriter` and `BulkWriterDeps`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/sidepanel/features/fulltext/bulk-run.ts",
+      "line": 33,
+      "id": "55415aaf4b3c752a",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export interface BulkWriter` is referenced only in bulk-run.ts (line 44 return type); git grep finds no importer in the repository. pass two: `export interface BulkWriter` is used only at bulk-run.ts:44 (`createBulkWriter(...): BulkWriter`); git grep -w at the commit finds no other file. tab.ts:68 imports `createBulkWriter, type BulkRun, type BulkWriterDeps` and tests/fulltext-session-reset.test.ts:6-7 import `createBulkWriter` and `BulkWriterDeps`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/sidepanel/session-reset.ts",
+      "line": 11,
+      "id": "af82206e020683e5",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export type SessionResetHandler` is referenced only inside session-reset.ts (lines 13, 16); git grep finds no importer in the repository. pass two: `export type SessionResetHandler` is used only at session-reset.ts:13 and session-reset.ts:16; git grep -w at the commit finds no other file. tab.ts:67 imports `registerSessionReset, type SessionResetReason`, compat.ts:13 imports `runSessionResets`, and the two test files import the functions and `SessionResetReason`."
+    },
+    {
+      "rule": "test-no-assert",
+      "file": "tests/session-reset-registry.test.ts",
+      "line": 27,
+      "id": "fd8c6ec62abd8b6b",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Body `withCleanRegistry(() => {...})` calls assert.deepEqual and assert.equal (lines 28-30). pass two: The test body is the callback wrapped by `withCleanRegistry` (session-reset-registry.test.ts:16-25, which runs `fn();` at line 20) and it does assert: line 28 `assert.deepEqual(_getSessionResetNamesForTest(), []);` and lines 29-30 `assert.equal(runSessionResets(...), false);`."
+    },
+    {
+      "rule": "test-no-assert",
+      "file": "tests/session-reset-registry.test.ts",
+      "line": 33,
+      "id": "4d8da50c82e5e839",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Body inside withCleanRegistry calls assert.deepEqual (lines 39-40). pass two: The test body is the callback wrapped by `withCleanRegistry` (session-reset-registry.test.ts:16-25, which runs `fn();` at line 20) and it does assert: line 39 `assert.deepEqual(calls, ['a:back', 'b:back', 'a:logout', 'b:logout']);` and line 40."
+    },
+    {
+      "rule": "test-no-assert",
+      "file": "tests/session-reset-registry.test.ts",
+      "line": 43,
+      "id": "f8184d78233d8ad3",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Body inside withCleanRegistry calls assert.deepEqual (lines 49-50). pass two: The test body is the callback wrapped by `withCleanRegistry` (session-reset-registry.test.ts:16-25, which runs `fn();` at line 20) and it does assert: line 49 `assert.deepEqual(calls, ['a-new', 'b']);` and line 50."
+    },
+    {
+      "rule": "test-no-assert",
+      "file": "tests/session-reset-registry.test.ts",
+      "line": 53,
+      "id": "6b4fe9f808cb4f16",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Body inside withCleanRegistry calls assert.deepEqual, assert.equal and assert.match (lines 63-70). pass two: The test body is the callback wrapped by `withCleanRegistry` (session-reset-registry.test.ts:16-25, which runs `fn();` at line 20) and it does assert: line 63 `assert.deepEqual(calls, ['first', 'last']);`, line 65 `assert.equal(aborted, true);`, lines 69-70."
+    },
+    {
+      "rule": "test-no-assert",
+      "file": "tests/session-reset-registry.test.ts",
+      "line": 73,
+      "id": "4b0ef0b005ab11fc",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Body inside withCleanRegistry calls assert.equal (lines 76, 78, 81). pass two: The test body is the callback wrapped by `withCleanRegistry` (session-reset-registry.test.ts:16-25, which runs `fn();` at line 20) and it does assert: line 76 `assert.equal(runSessionResets('back'), false);`, lines 78 and 81."
+    },
+    {
+      "rule": "test-no-assert",
+      "file": "tests/session-reset-registry.test.ts",
+      "line": 84,
+      "id": "5cd2859a16bfa2a7",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Body inside withCleanRegistry calls assert.deepEqual (line 89). pass two: The test body is the callback wrapped by `withCleanRegistry` (session-reset-registry.test.ts:16-25, which runs `fn();` at line 20) and it does assert: line 89 `assert.deepEqual(seen, ['back', 'logout']);`."
+    },
+    {
+      "rule": "unused-import",
+      "file": "src/sidepanel/features/fulltext/ai.ts",
+      "line": 46,
+      "id": "2e7c0a97b589ac70",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: Binding `describeDriveAccessError` (ai.ts:46) appears elsewhere in ai.ts only in a comment (line 680); its use moved to ai-batch-run.ts with this change. pass two: The binding `describeDriveAccessError` (ai.ts:46) has no use left in ai.ts: its only other mention is inside the comment at ai.ts:680, and the change moved its call to ai-batch-run.ts:96. The other two bindings of the same import statement are still used (`extractDriveFileId` at ai.ts:677, `downloadDriveFile` at ai.ts:683); the verdict is on the reported binding."
+    },
+    {
+      "rule": "unused-import",
+      "file": "src/sidepanel/features/fulltext/tab.ts",
+      "line": 63,
+      "id": "6bc203071d214c62",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: Binding `flushCandidateBuffer` (tab.ts:63) has no other occurrence in tab.ts after the change; the parent used it (4 occurrences), and the call moved to bulk-run.ts. pass two: The binding `flushCandidateBuffer` (tab.ts:63) appears nowhere else in tab.ts: the change removed both calls and moved the logic to bulk-run.ts:66. The other bindings of the same import statement are still used (`discoverCandidatesForRerun` at tab.ts:1005, `nextCandidateFlushThreshold` at tab.ts:1029); the verdict is on the reported binding."
+    },
+    {
+      "rule": "unused-import",
+      "file": "tests/session-reset.test.ts",
+      "line": 22,
+      "id": "0f602a7ab944f0a2",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: Binding `runSessionResets` (session-reset.test.ts:22) has no other occurrence in the file; the test drives resets through compat (e.g. line 248 `compat.resetForBack()`). pass two: The binding `runSessionResets` (tests/session-reset.test.ts:22), added by this change, appears nowhere else in the file; the tests reach it only through `compat.resetForBack()` and `compat.resetForLogout()`. The other bindings of the same import statement are used (`registerSessionReset` at line 240, `_getSessionResetNamesForTest` at line 351, `_clearSessionResetsForTest` at line 235); the verdict is on the reported binding."
+    }
+  ]
+}

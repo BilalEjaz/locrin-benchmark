@@ -1,0 +1,87 @@
+{
+  "diff": "ScaleDockHQ__better-supabase__4118ecc",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "packages/better-supabase/src/list/buckets/index.ts",
+      "line": 7,
+      "id": "031a81fb5221ee2b",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: BucketUnit is exported from src/list/buckets/index.ts, a public entry: package.json adds \"./list/buckets\" -> \"./src/list/buckets/index.ts\" and tsdown.config.ts adds \"list/buckets/index\" pass two: `export type BucketUnit` is public API of a package entry point: packages/better-supabase/tsdown.config.ts line 281 lists `\"list/buckets/index\",` among the library entries and packages/better-supabase/package.json line 357 exports `\"./list/buckets\"` from `./src/list/buckets/index.ts`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/better-supabase/src/list/buckets/index.ts",
+      "line": 10,
+      "id": "ca214c7d2144ae8a",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: DateBucketArgs is exported from src/list/buckets/index.ts, a public entry: package.json adds \"./list/buckets\" -> \"./src/list/buckets/index.ts\" and tsdown.config.ts adds \"list/buckets/index\" pass two: `export interface DateBucketArgs` is public API of a package entry point: packages/better-supabase/tsdown.config.ts line 281 lists `\"list/buckets/index\",` and packages/better-supabase/package.json line 357 exports `\"./list/buckets\"` from `./src/list/buckets/index.ts`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/better-supabase/src/list/buckets/index.ts",
+      "line": 19,
+      "id": "b8a64fd7298d20f6",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: DateBucket is exported from src/list/buckets/index.ts, a public entry: package.json adds \"./list/buckets\" -> \"./src/list/buckets/index.ts\" and tsdown.config.ts adds \"list/buckets/index\" pass two: `export interface DateBucket` is public API of a package entry point: packages/better-supabase/tsdown.config.ts line 281 lists `\"list/buckets/index\",` and packages/better-supabase/package.json line 357 exports `\"./list/buckets\"` from `./src/list/buckets/index.ts`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/better-supabase/src/list/buckets/index.ts",
+      "line": 31,
+      "id": "85a33bf6b8f4bedd",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: ListDateBucketsOptions is exported from src/list/buckets/index.ts, a public entry: package.json adds \"./list/buckets\" -> \"./src/list/buckets/index.ts\" and tsdown.config.ts adds \"list/buckets/index\" pass two: `export interface ListDateBucketsOptions` is public API of a package entry point: packages/better-supabase/tsdown.config.ts line 281 lists `\"list/buckets/index\",` and packages/better-supabase/package.json line 357 exports `\"./list/buckets\"` from `./src/list/buckets/index.ts`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/better-supabase/src/list/index.ts",
+      "line": 41,
+      "id": "9dbd30d77ceaedf2",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: ListFreeSort is re-exported from src/list/index.ts, the package entry \"./list\" in package.json (\"types\": \"./dist/list/index.d.ts\") and \"list/index\" in tsdown.config.ts pass two: `ListFreeSort,` is a type re-export in a package entry point: packages/better-supabase/tsdown.config.ts line 280 lists `\"list/index\",` and packages/better-supabase/package.json line 352 exports `\"./list\"` from `./src/list/index.ts`; src/list/order/index.ts line 9 also imports the type, `import type { ListFreeSort, ListOrder } from \"../list-query.ts\";`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/better-supabase/src/list/index.ts",
+      "line": 43,
+      "id": "e518d103e6191a7e",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: ListRelationFacet is re-exported from src/list/index.ts, the package entry \"./list\" in package.json (\"types\": \"./dist/list/index.d.ts\") and \"list/index\" in tsdown.config.ts pass two: `ListRelationFacet,` is a type re-export in a package entry point: packages/better-supabase/tsdown.config.ts line 280 lists `\"list/index\",` and packages/better-supabase/package.json line 352 exports `\"./list\"` from `./src/list/index.ts`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/better-supabase/src/list/order/index.ts",
+      "line": 52,
+      "id": "eb04182118403a3c",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: FreeSortConfig is exported from src/list/order/index.ts, a public entry: package.json adds \"./list/order\" -> \"./src/list/order/index.ts\" and tsdown.config.ts adds \"list/order/index\" pass two: `export interface FreeSortConfig` is public API of a package entry point: packages/better-supabase/tsdown.config.ts line 283 lists `\"list/order/index\",` and packages/better-supabase/package.json line 362 exports `\"./list/order\"` from `./src/list/order/index.ts`."
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "packages/better-supabase/src/sql/tag-statements.ts",
+      "line": 478,
+      "id": "3cc8b47ace5b7a58",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: line 478 is generated SQL text \"grant execute on function ${fn}(...) to authenticated, service_role;\" from a CLI SQL renderer, a Postgres role grant, not a service-role key in client code pass two: Line 478 is SQL text inside the template string bucketsBlock returns, `grant execute on function ${fn}(text, text, timestamptz, timestamptz, jsonb) to authenticated, service_role;`: `service_role` is a Postgres role name in a rendered GRANT, not a service-role key and not a Supabase client."
+    }
+  ]
+}

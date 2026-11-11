@@ -1,0 +1,69 @@
+{
+  "diff": "Puhita__Hacky__12867ff",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "packages/extension/src/api.ts",
+      "line": 57,
+      "id": "b721f8f4b511d1ff",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export type MapOwner: git grep at the commit finds no use outside src/api.ts; controller.ts:9 imports only MapState pass two: `export type MapOwner`: git grep for MapOwner at the commit finds it only in packages/extension/src/api.ts; controller.ts:9 imports MapState only"
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/extension/src/api.ts",
+      "line": 58,
+      "id": "d8849676c459a1b7",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export type MapChat: git grep at the commit finds no use outside src/api.ts pass two: `export type MapChat`: git grep for MapChat at the commit finds it only in packages/extension/src/api.ts; controller.ts:9 imports MapState only"
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/extension/src/api.ts",
+      "line": 72,
+      "id": "2f27df5ce6cd8a7f",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export type MapThread: git grep at the commit finds no use outside src/api.ts pass two: `export type MapThread`: git grep for MapThread at the commit finds it only in packages/extension/src/api.ts; controller.ts:9 imports MapState only"
+    },
+    {
+      "rule": "dead-file",
+      "file": "packages/extension/media/map.js",
+      "line": 1,
+      "id": "92149108406e4bdc",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Webview script loaded by extension.ts html(): '<script nonce=\"${nonce}\" src=\"${uri(`${name}.js`)}\">' with openMap passing name \"map\"; map.test.ts:10 also reads '../media/map.js' pass two: the webview script the extension loads: extension.ts:75 `panel.webview.html = this.html(panel.webview, mediaUri, \"map\");` feeds extension.ts:97 `src=\"${uri(`${name}.js`)}\"`, and map.test.ts:10 reads \"../media/map.js\""
+    },
+    {
+      "rule": "injection-sink",
+      "file": "packages/extension/src/map.test.ts",
+      "line": 17,
+      "id": "84aa397a0f6fd9aa",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: window.eval(SCRIPT) in a jsdom test; SCRIPT is readFileSync of the repo's own '../media/map.js' (line 10), no user-controlled input pass two: `window.eval(SCRIPT)` in a jsdom test; SCRIPT is the repository's own file, map.test.ts:10 `readFileSync(join(dirname(fileURLToPath(import.meta.url)), \"../media/map.js\"), \"utf8\")`, not user input"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/extension/test-host/smoke.cjs",
+      "line": 28,
+      "id": "85986c5f072670b2",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: VS Code smoke-test runner's progress report 'The map opened in an editor tab, once.'; the same run() already reports this way at line 9 and 17 (console.log(\"Sidebar opened and the extension activated.\")) pass two: progress line in the main path of the VS Code smoke script (`exports.run`), which test-host/run.mjs:16 runs as `extensionTestsPath: join(here, \"smoke.cjs\")`; same kind of report as smoke.cjs:17"
+    }
+  ]
+}

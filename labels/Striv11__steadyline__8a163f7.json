@@ -1,0 +1,24 @@
+{
+  "diff": "Striv11__steadyline__8a163f7",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/logging/templates.ts",
+      "line": 5,
+      "id": "9c0fe9bf11d9a5e9",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export interface Template {` in new templates.ts; git grep -w Template at 8a163f7 finds no other file using it; its importers logging.test.ts:6 and ui/log-view.ts:7 import only conditionKeys, templatesFor, TEMPLATE_CONDITION_KEYS pass two: `export interface Template {`: git grep -w Template at 8a163f7 matches only src/logging/templates.ts; the importers take other names: src/ui/log-view.ts:7 `import { conditionKeys, templatesFor } from '../logging/templates';` and src/logging/logging.test.ts:6 `import { conditionKeys, templatesFor, TEMPLATE_CONDITION_KEYS } from './templates';`"
+    }
+  ]
+}

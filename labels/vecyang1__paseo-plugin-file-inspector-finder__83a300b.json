@@ -1,0 +1,231 @@
+{
+  "diff": "vecyang1__paseo-plugin-file-inspector-finder__83a300b",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "client/commit-origin-web.ts",
+      "line": 25,
+      "id": "7fc482246ba6c1e9",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `CommitOriginWebClient` appears only in client/commit-origin-web.ts (25, 307); index.client.tsx:71 imports only installCommitOriginPills; test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export interface CommitOriginWebClient {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only client/commit-origin-web.ts:25 and :307 (parameter type of installCommitOriginPills); index.client.tsx:71 imports only `installCommitOriginPills`, test/commit-origin.test.ts:25-32 does not import it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "client/commit-origin-web.ts",
+      "line": 97,
+      "id": "c138ec88e766e2f9",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `CommitPillView` appears only in client/commit-origin-web.ts (97, 127); test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export interface CommitPillView {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only client/commit-origin-web.ts:97 and :127 (return type of describeCommitPill); no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "client/commit-origin-web.ts",
+      "line": 177,
+      "id": "27e840d2cf83fe9e",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `CommitOriginEnhancerState` appears only in client/commit-origin-web.ts (177, 185, 227); test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export interface CommitOriginEnhancerState {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only client/commit-origin-web.ts:177, :185 and :227; no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "client/session-ref-text-web.ts",
+      "line": 22,
+      "id": "eb722fb59c875b90",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `SESSION_REF_HIGHLIGHT` appears only in client/session-ref-text-web.ts (22, 35, 195, 196, 311); index.client.tsx:72 imports only installSessionRefText; test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export const SESSION_REF_HIGHLIGHT = \"paseo-finder-session-ref\";`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only client/session-ref-text-web.ts:22, :35, :195, :196, :311; test/session-ref-text.test.ts:5-9 imports describeSessionRef, findSessionRefMatches, hitTestRects only."
+    },
+    {
+      "rule": "dead-export",
+      "file": "client/session-ref-text-web.ts",
+      "line": 62,
+      "id": "8b8dff4115f7e748",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `SessionRefMatch` appears only in client/session-ref-text-web.ts (62, 74, 75); test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export interface SessionRefMatch {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only client/session-ref-text-web.ts:62, :74, :75; no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "client/session-ref-text-web.ts",
+      "line": 87,
+      "id": "d67a5c37c60415f8",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `RectLike` appears only in client/session-ref-text-web.ts (87, 95); test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export interface RectLike {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only client/session-ref-text-web.ts:87 and :95; no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "server/commit-origin.ts",
+      "line": 106,
+      "id": "0a6713265905c7ee",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `GitCommitHit` appears only in server/commit-origin.ts; index.server.ts:69 imports only handleResolveCommitOrigin; test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export interface GitCommitHit {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only server/commit-origin.ts (:106, :113, :114, :648, :656, :791, :808); test/commit-origin.test.ts:10-24 does not import it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "server/commit-origin.ts",
+      "line": 135,
+      "id": "54c252e89a87c7db",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `MentionStrength` appears only in server/commit-origin.ts; test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export type MentionStrength = \"proof\" | \"strong\" | \"weak\";`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only server/commit-origin.ts (:135, :137, :146, :166, :173, :234); no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "server/commit-origin.ts",
+      "line": 161,
+      "id": "89675f6f433ba708",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `STRONG_LAG_MAX_MS` appears only in server/commit-origin.ts; test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export const STRONG_LAG_MAX_MS = 30_000;`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only server/commit-origin.ts (:161, :181, :206, :233, :262); test/commit-origin.test.ts:10-24 imports the two ATTRIBUTION_WINDOW constants but not this one."
+    },
+    {
+      "rule": "dead-export",
+      "file": "server/commit-origin.ts",
+      "line": 163,
+      "id": "f54ef4247e4e8795",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `SessionMention` appears only in server/commit-origin.ts; test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export interface SessionMention {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only server/commit-origin.ts (:163, :188, :193, :878); no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "server/commit-origin.ts",
+      "line": 169,
+      "id": "6f5d7244ee7562c5",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `CommitOriginPick` appears only in server/commit-origin.ts; test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export interface CommitOriginPick {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only server/commit-origin.ts:169 and :190; no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "server/commit-origin.ts",
+      "line": 225,
+      "id": "41f2de1f57fad1cd",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `MentionProbe` appears only in server/commit-origin.ts; test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export interface MentionProbe {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only server/commit-origin.ts:225, :245, :860; no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "server/commit-origin.ts",
+      "line": 231,
+      "id": "60ba2abaf6e07dd5",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `FirstMention` appears only in server/commit-origin.ts; test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export interface FirstMention {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only server/commit-origin.ts (:231, :246, :248, :858, :880); no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "server/commit-origin.ts",
+      "line": 281,
+      "id": "cce6df642adc5cff",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `firstMentionMs` outside server/commit-origin.ts occurs only as an object key in test/commit-origin.test.ts:106-109; the test's import list (lines 10-24) does not name the function pass two: `export async function firstMentionMs(`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs finds the function only at its definition server/commit-origin.ts:281; every other hit is the unrelated `firstMentionMs` property (server/commit-origin.ts:165, :171, :886; object keys at test/commit-origin.test.ts:106-158), and the import list at test/commit-origin.test.ts:10-24 does not name it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "server/commit-origin.ts",
+      "line": 292,
+      "id": "3d526ffcb5e866a5",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `CommitOriginAgent` appears only in server/commit-origin.ts; test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export interface CommitOriginAgent {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only server/commit-origin.ts (:292, :351, :353, :393, :409, :486, :686, :757, :767, :809); no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "server/commit-origin.ts",
+      "line": 351,
+      "id": "dbe202c45e0834a8",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `loadCommitOriginAgents` appears only in server/commit-origin.ts (351, 763); test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export async function loadCommitOriginAgents(paseoDir: string)`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only server/commit-origin.ts:351 and the in-file call at :763; no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "server/commit-origin.ts",
+      "line": 393,
+      "id": "6a31f95b84904fee",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `isActiveAt` appears only in server/commit-origin.ts (393, 829); test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export function isActiveAt(agent: CommitOriginAgent, atMs: number): boolean {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only server/commit-origin.ts:393 and the in-file call at :829; no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "server/commit-origin.ts",
+      "line": 408,
+      "id": "96f23a2c311e9060",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `transcriptPathsFor` appears only in server/commit-origin.ts (408, 832); test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export async function transcriptPathsFor(`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only server/commit-origin.ts:408 and the in-file call at :832; no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "server/commit-origin.ts",
+      "line": 486,
+      "id": "45f7c5d2d2b3f54e",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `discoverRepos` appears only in server/commit-origin.ts (486, 769); test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export async function discoverRepos(env: CommitOriginEnv, agents: CommitOriginAgent[])`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only server/commit-origin.ts:486 and the in-file call at :769; no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "server/commit-origin.ts",
+      "line": 679,
+      "id": "37f367cf34c03c86",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `CommitOriginResolver` appears only in server/commit-origin.ts; test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export interface CommitOriginResolver {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only server/commit-origin.ts (:679, :755, :950, :956, :1003); index.server.ts:69 imports only `handleResolveCommitOrigin`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "shared/commit-origin-contracts.ts",
+      "line": 9,
+      "id": "79c8626a0dfd2e61",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `CommitOriginSessionSchema` appears only in shared/commit-origin-contracts.ts (9, 21, 45); client/commit-origin-web.ts:10-15 and server/commit-origin.ts:24-29 import COMMIT_SHA_TOKEN_RE, CommitOriginResult, CommitOriginSession, resolveCommitOriginRpc; test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export const CommitOriginSessionSchema = z.object({`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only shared/commit-origin-contracts.ts:9, :21, :45; importers of the module (client/commit-origin-web.ts:10-15, server/commit-origin.ts:24-29, index.server.ts:70, test/commit-origin.test.ts:33) take other names."
+    },
+    {
+      "rule": "dead-export",
+      "file": "shared/commit-origin-contracts.ts",
+      "line": 23,
+      "id": "308246f9a3bdf53d",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `CommitOriginStatusSchema` appears only in shared/commit-origin-contracts.ts (23, 35, 39); test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export const CommitOriginStatusSchema = z.enum([`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only shared/commit-origin-contracts.ts:23, :35, :39; no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "shared/commit-origin-contracts.ts",
+      "line": 35,
+      "id": "d8d729d3991262f3",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `CommitOriginStatus` appears only in shared/commit-origin-contracts.ts (35 only); importers of the module name other symbols (client/commit-origin-web.ts:10-15, server/commit-origin.ts:24-29, index.server.ts:70); test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export type CommitOriginStatus = z.infer<typeof CommitOriginStatusSchema>;`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only its own definition at shared/commit-origin-contracts.ts:35; nothing uses or imports it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "shared/commit-origin-contracts.ts",
+      "line": 37,
+      "id": "d2d144d12b9810dd",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at 83a300b over ts/tsx/js/mjs/cjs/mts: `CommitOriginResultSchema` appears only in shared/commit-origin-contracts.ts (37, 60, 71); test/commit-origin.test.ts:10-33 and test/session-ref-text.test.ts:5-9 import other names; no namespace import of the module pass two: `export const CommitOriginResultSchema = z.object({`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only shared/commit-origin-contracts.ts:37, :60, :71; importers take the `CommitOriginResult` type, not the schema."
+    }
+  ]
+}

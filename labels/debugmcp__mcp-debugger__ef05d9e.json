@@ -1,0 +1,24 @@
+{
+  "diff": "debugmcp__mcp-debugger__ef05d9e",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "packages/shared/src/index.ts",
+      "line": 206,
+      "id": "1df3fca8144466ea",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: StopTopFrameLine has an importer: src/session/session-manager-core.ts:10 \"import type { ..., StopTopFrameLine } from '@debugmcp/shared'\", and packages/shared/package.json names the package \"@debugmcp/shared\" pass two: the re-exported `StopTopFrameLine` has an importer: src/session/session-manager-core.ts:10 `import type { Breakpoint, FunctionBreakpoint, ProgramEndExplanation, SessionStopInfo, StackFrame, StopTopFrameLine } from '@debugmcp/shared';`, and packages/shared/package.json names the package `\"name\": \"@debugmcp/shared\"` with this index as its entry (`\"main\": \"./dist/index.js\"`)"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "diff": "oladannyel__planna__b80feb0",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "playwright.config.ts",
+      "line": 70,
+      "id": "067d1b0d2aac251b",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: playwright.config.ts runs in the Node test runner; line 70 is const required = [\"API_URL\", \"ANON_KEY\", \"SERVICE_ROLE_KEY\"], key names checked in `supabase status -o env` output, no client code pass two: Line 70 is `const required = [\"API_URL\", \"ANON_KEY\", \"SERVICE_ROLE_KEY\"] as const;`, key names of the `supabase status -o env` output, in a Playwright config that runs in Node (line 1 `import { execFileSync } from \"node:child_process\";`), not in a client."
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "playwright.config.ts",
+      "line": 80,
+      "id": "e96fad4afd0e4819",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: playwright.config.ts runs in the Node test runner; SUPABASE_SERVICE_ROLE_KEY: status.SERVICE_ROLE_KEY! goes into the webServer env of the local stack, not into client code pass two: Line 80 is `SUPABASE_SERVICE_ROLE_KEY: status.SERVICE_ROLE_KEY!,` in localStackEnv, whose result is the web server process's environment (line 136 `env: localStackEnv(),`); playwright.config.ts runs in Node (line 1 `import { execFileSync } from \"node:child_process\";`), not in a client."
+    }
+  ]
+}

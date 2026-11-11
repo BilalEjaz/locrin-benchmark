@@ -1,0 +1,24 @@
+{
+  "diff": "callstack__agent-device__89d63c5",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "packages/contracts/src/daemon-http.ts",
+      "line": 75,
+      "id": "19c019525c5668d6",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: DAEMON_REQUEST_MAX_BYTES is imported at the commit: packages/daemon-client/src/daemon-client-rpc.ts:16 \"import { DAEMON_REQUEST_MAX_BYTES } from '@agent-device/contracts/daemon-http'\" (also daemon/src/server/http/transport.ts:23). pass two: DAEMON_REQUEST_MAX_BYTES has importers at the commit: packages/daemon-client/src/daemon-client-rpc.ts:16 `import { DAEMON_REQUEST_MAX_BYTES } from '@agent-device/contracts/daemon-http';` and packages/daemon/src/server/http/transport.ts:23 the same import."
+    }
+  ]
+}

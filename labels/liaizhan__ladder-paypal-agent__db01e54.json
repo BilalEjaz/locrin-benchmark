@@ -1,0 +1,69 @@
+{
+  "diff": "liaizhan__ladder-paypal-agent__db01e54",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/ledger.ts",
+      "line": 18,
+      "id": "aa2dbb0691cfa897",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export type Lang: git grep -w Lang at the commit finds no use outside src/ledger.ts pass two: New file; a whole-word git grep for Lang at the commit finds it only in src/ledger.ts (lines 18, 27, 49); the only imports of ledger.ts are src/index.ts:5-17 (countChat, detectLang, isFinal, listDays, listOrders, newOrderRecord, publicOrder, saveOrder, updateOrder, type ChatEvent, type KVNamespace) and test/core.test.ts:8 `import { applyEvents, detectLang, emptyDay, newOrderRecord, publicOrder, sumDays } from '../src/ledger.ts';`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/ledger.ts",
+      "line": 20,
+      "id": "eba888f16eb94da8",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export interface OrderRecord: no importer; src/index.ts:2-17 imports from ledger.ts do not name it, test/core.test.ts:6 neither pass two: New file; git grep OrderRecord at the commit finds the type name only inside src/ledger.ts (the hits elsewhere are `newOrderRecord`); the only imports of ledger.ts are src/index.ts:5-17 (countChat, detectLang, isFinal, listDays, listOrders, newOrderRecord, publicOrder, saveOrder, updateOrder, type ChatEvent, type KVNamespace) and test/core.test.ts:8 `import { applyEvents, detectLang, emptyDay, newOrderRecord, publicOrder, sumDays } from '../src/ledger.ts';`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/ledger.ts",
+      "line": 33,
+      "id": "2a73210db0aa6f2b",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export interface DayStats: git grep -w DayStats finds no use outside src/ledger.ts pass two: New file; git grep DayStats at the commit finds it only in src/ledger.ts (lines 33, 110, 116, 139, 140, 153, 155, 160); the only imports of ledger.ts are src/index.ts:5-17 (countChat, detectLang, isFinal, listDays, listOrders, newOrderRecord, publicOrder, saveOrder, updateOrder, type ChatEvent, type KVNamespace) and test/core.test.ts:8 `import { applyEvents, detectLang, emptyDay, newOrderRecord, publicOrder, sumDays } from '../src/ledger.ts';`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/ledger.ts",
+      "line": 86,
+      "id": "05d5fad76fbdc55f",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export async function getOrder: used only by updateOrder in the same file; no importer in src/index.ts or test/core.test.ts pass two: New file; a whole-word git grep for getOrder at the commit finds only the declaration at src/ledger.ts:86 and the in-file call at src/ledger.ts:92 `const rec = await getOrder(kv, id);`; no other file imports it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/pass.ts",
+      "line": 67,
+      "id": "f2b47b3be29b1bdf",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export interface Recommendation: git grep -w Recommendation finds no use outside src/pass.ts pass two: Added by this change; git grep finds the `Recommendation` type only in src/pass.ts (lines 67, 73, 77); the importers take functions only: src/index.ts:4 `import { expiryFrom, signPass, signRecommendation, verifyPass, verifyRecommendation } from './pass.ts';` and test/core.test.ts:7 `import { expiryFrom, signPass, verifyPass, signRecommendation, verifyRecommendation } from '../src/pass.ts';`."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "src/index.ts",
+      "line": 38,
+      "id": "1377538019fe06ad",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log(JSON.stringify({ event: 'ledger_error', ... })) is the Worker's structured logging, the same style the parent already used at src/index.ts:112 (event: 'error'); not a debug print pass two: Structured error logging of the Worker, not a debug print: src/index.ts:38 `ctx.waitUntil(work.catch((err) => console.log(JSON.stringify({ event: 'ledger_error', message: String(err) }))));` is the catch handler for background ledger writes and uses the same JSON event form as the request error log at src/index.ts:189 `console.log(JSON.stringify({ event: 'error', path: pathname, message: String(err) }));`."
+    }
+  ]
+}

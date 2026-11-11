@@ -1,0 +1,96 @@
+{
+  "diff": "nata-t__klin__15c6c52",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "website/src/lib/site.ts",
+      "line": 3,
+      "id": "58c425608aa0c004",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: VERSION is imported: website/src/components/landing/Footer.astro:2 import { NPM, REPO, VERSION } from \"../../lib/site\" pass two: VERSION is imported at website/src/components/landing/Footer.astro:2 `import { NPM, REPO, VERSION } from \"../../lib/site\"`, Hero.astro:3 and Nav.astro:2."
+    },
+    {
+      "rule": "dead-export",
+      "file": "website/src/lib/site.ts",
+      "line": 4,
+      "id": "3965cd67ed1d4ff0",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: REPO is imported: website/src/components/landing/Footer.astro:2 import { NPM, REPO, VERSION } from \"../../lib/site\" (also Nav.astro:2) pass two: REPO is imported at website/src/components/landing/Footer.astro:2 `import { NPM, REPO, VERSION } from \"../../lib/site\"` and Nav.astro:2 `import { REPO, STEPS, VERSION } from \"../../lib/site\"`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "website/src/lib/site.ts",
+      "line": 5,
+      "id": "619647c6f2df8ad4",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: NPM is imported: website/src/components/landing/Footer.astro:2 import { NPM, REPO, VERSION } from \"../../lib/site\" pass two: NPM is imported at website/src/components/landing/Footer.astro:2 `import { NPM, REPO, VERSION } from \"../../lib/site\"` and used at Footer.astro:24 `<a href={NPM} rel=\"noopener\">npm</a>`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "website/src/lib/site.ts",
+      "line": 20,
+      "id": "cd81cf35b1c4bfc3",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: INSTALL is imported: website/src/components/landing/Hero.astro:3 import { INSTALL, VERSION } from \"../../lib/site\" pass two: INSTALL is imported at website/src/components/landing/Hero.astro:3 `import { INSTALL, VERSION } from \"../../lib/site\"` and again at Hero.astro:77 `import { INSTALL } from \"../../lib/site\"`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "website/src/wizard/glyphs.ts",
+      "line": 53,
+      "id": "96ec7f6ebf15928b",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export function isGeometric: git grep at the commit finds it only at glyphs.ts:53, and no .astro or .mdx file under website mentions it; hero-field.ts:3 imports only drawGeometric, FONT_STACK pass two: `export function isGeometric(ch: string) {` has no importer and no use: git grep isGeometric at the commit finds only glyphs.ts:53; website/src/scripts/hero-field.ts:3 imports only `{ drawGeometric, FONT_STACK }` from ../wizard/glyphs."
+    },
+    {
+      "rule": "dead-file",
+      "file": "website/src/wizard/shims/process.ts",
+      "line": 1,
+      "id": "94a75544214c3ae6",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: named by the Vite plugin in website/cli-bridge.mjs:53, which injects `import { process } from ${JSON.stringify(`${shims}/process.ts`)}` into CLI modules; cli-bridge is loaded by astro.config.mjs (`plugins: [cliBridge()]`) pass two: Named by the build config: website/cli-bridge.mjs:53 `return { code: `import { process } from ${JSON.stringify(`${shims}/process.ts`)};\n${code}`, map: null }` injects an import of it into every CLI module, astro.config.mjs:110 registers that plugin with `plugins: [cliBridge()],`, and website/src/scripts/hero-field.ts:1 pulls a CLI module in with `import { Canvas } from \"@cli/ui/canvas\"`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "website/src/scripts/motion.ts",
+      "line": 18,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export let lenis: Lenis | null = null`: git grep at the commit and a scan of website .astro/.mdx find no importer; Landing.astro:49 only does side-effect `import \"../scripts/motion\"` pass two: `export let lenis: Lenis | null = null` has no importer: git grep for lenis at the commit finds it only inside motion.ts (lines 18, 21, 22, 23, 177); the one importer of the file is the bare `import \"../scripts/motion\"` at website/src/layouts/Landing.astro:49."
+    },
+    {
+      "rule": "dead-export",
+      "file": "website/src/scripts/motion.ts",
+      "line": 135,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export async function copyText(`: git grep finds it only in motion.ts (135, 161, 174) and no .astro/.mdx file under website mentions it, no importer pass two: `export async function copyText(text: string, button?: HTMLElement | null) {` has no importer: git grep copyText at the commit finds only motion.ts:135, 161 and 174; the one importer of the file is the bare `import \"../scripts/motion\"` at website/src/layouts/Landing.astro:49."
+    },
+    {
+      "rule": "dead-export",
+      "file": "website/src/wizard/shims/process.ts",
+      "line": 6,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const terminalSize = { columns: 112, rows: 36 }`: git grep finds it only in process.ts (6, 23, 26), no .astro/.mdx mention; cli-bridge.mjs:53 injects only `{ process }` pass two: `export const terminalSize = { columns: 112, rows: 36 }` has no importer: git grep terminalSize at the commit finds only process.ts:6, 23 and 26; the import website/cli-bridge.mjs:53 injects takes only `{ process }`."
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "diff": "Puhita__Hacky__0104f48",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-file",
+      "file": "website/vendor/bootstrap.bundle.min.js",
+      "line": 1,
+      "id": "bcddb996794c1a3c",
+      "pass1": "not-applicable",
+      "pass2": "not-applicable",
+      "note": "pass one: Vendored Bootstrap: line 1-4 is the banner '* Bootstrap v5.3.3 (https://getbootstrap.com/)'; commit message says 'Bootstrap 5.3.3 bundled in website/vendor' pass two: vendored library committed with the change: line 2 of the file reads `* Bootstrap v5.3.3 (https://getbootstrap.com/)` and it sits under website/vendor/"
+    }
+  ]
+}

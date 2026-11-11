@@ -1,0 +1,24 @@
+{
+  "diff": "actions-marketplace-validations__Nari-Ab_agent-roast__388e60c",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "leftover-debug",
+      "file": "src/cli.ts",
+      "line": 316,
+      "id": "a515519ae383e26a",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: `console.log(result.output);` prints the check command's report: it is the CLI's real output, and package.json names this file's build as the binary (\"agent-roast\": \"dist/cli.js\"). pass two: src/cli.ts:316 `console.log(result.output);` is in the action handler of `.command(\"check\")` (line 286) of the commander program (line 1 `import { Command } from \"commander\";`; package.json at the commit has `\"bin\": {\"agent-roast\": \"dist/cli.js\"}`): it prints the command's result, a print in a CLI's main path, not a debug print."
+    }
+  ]
+}

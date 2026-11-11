@@ -1,0 +1,24 @@
+{
+  "diff": "Davy45270__Opencade__2fad843",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/engines/dedale/labyrinth.ts",
+      "line": 24,
+      "id": "07f9dfb5bee0f618",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: labyrinth.ts:24 'export const placementSalts' (export added by this diff); git grep at the commit finds placementSalts only in labyrinth.ts itself (line 27 labyrinthSeed); importers of './labyrinth' (engine.ts:2, solver.ts:2, lessons.ts:1, art.ts:3, tests/dedale-mechanics.ts:1, tests/variety-e.ts:4) do not name it; not an entry point pass two: The change turned `const placementSalts` into `export const placementSalts = [...]` (labyrinth.ts:24); git grep at the commit finds the name only there and at labyrinth.ts:27 (`labyrinthSeed` reading it), no file imports it, and scripts/validate-dedale.js:119 reads only `mod.walk` from the module."
+    }
+  ]
+}

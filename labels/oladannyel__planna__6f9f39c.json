@@ -1,0 +1,24 @@
+{
+  "diff": "oladannyel__planna__6f9f39c",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "src/lib/env.ts",
+      "line": 74,
+      "id": "f1c07eb653beed07",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: SUPABASE_SERVICE_ROLE_KEY: \"your-service-role-key\" is the example placeholder the app refuses at startup, not a key; env.ts is server-only: src/lib/supabase/client.ts:5 says it reads public vars \"rather than importing `@/lib/env`\", importers are route.ts, actions.ts, admin.ts pass two: Line 74 is `SUPABASE_SERVICE_ROLE_KEY: \"your-service-role-key\",`, the variable's name and its .env.local.example value in the PLACEHOLDERS map (line 71) that rejectPlaceholders compares against the environment (line 81, `source[name] === placeholder`); no key is used and no client is made, and the module reads the server environment (line 108 `export const env = readEnv(process.env);`)."
+    }
+  ]
+}

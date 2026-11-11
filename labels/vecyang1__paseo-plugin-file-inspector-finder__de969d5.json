@@ -1,0 +1,78 @@
+{
+  "diff": "vecyang1__paseo-plugin-file-inspector-finder__de969d5",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "client/metro-registry.ts",
+      "line": 11,
+      "id": "c12ef19ab902f44b",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at de969d5 over ts/tsx/js/mjs/cjs/mts: `MetroModuleRecord` outside client/metro-registry.ts is only a local type in client/session-time-web.ts:685; importers of the module (client/markdown-mermaid-web.ts:28, test/mermaid-enhancer.test.ts:3) name other symbols pass two: `export interface MetroModuleRecord {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits client/metro-registry.ts:11, :17, :55 and a separate local `type MetroModuleRecord` at client/session-time-web.ts:685; importers of the module (client/markdown-mermaid-web.ts:28, test/mermaid-enhancer.test.ts:3) take MetroWindow, requireMetroExport, getMetroModuleMap only."
+    },
+    {
+      "rule": "dead-export",
+      "file": "client/metro-registry.ts",
+      "line": 17,
+      "id": "55516c67ec49b0e0",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at de969d5 over ts/tsx/js/mjs/cjs/mts: `MetroModuleMap` outside client/metro-registry.ts is only a local type in client/markdown-table-web.ts:481; importers (client/markdown-mermaid-web.ts:28, test/mermaid-enhancer.test.ts:3) name MetroWindow, requireMetroExport, getMetroModuleMap pass two: `export type MetroModuleMap = Map<number, MetroModuleRecord>;`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits client/metro-registry.ts itself and a separate local `type MetroModuleMap` at client/markdown-table-web.ts:481; no file imports the name from metro-registry."
+    },
+    {
+      "rule": "dead-export",
+      "file": "client/metro-registry.ts",
+      "line": 64,
+      "id": "b8f45b7819c906e1",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at de969d5 over ts/tsx/js/mjs/cjs/mts: `MetroExportHit` has no occurrence outside client/metro-registry.ts pass two: `export interface MetroExportHit {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only client/metro-registry.ts:64 and :74 (return type of requireMetroExport); no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "shared/mermaid-policy.ts",
+      "line": 152,
+      "id": "6b4e12ee68eb3c92",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at de969d5 over ts/tsx/js/mjs/cjs/mts: `MERMAID_LANGUAGE_ALIASES` has no occurrence outside shared/mermaid-policy.ts; importers client/markdown-mermaid-web.ts:20-27, client/mermaid-settings-section.tsx:16, test/mermaid-policy.test.ts:3-9 name other symbols pass two: `export const MERMAID_LANGUAGE_ALIASES = new Set([\"mmd\", \"mermaidjs\", \"mermaid-js\"]);`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only shared/mermaid-policy.ts:152 and :197; test/mermaid-policy.test.ts:3-9 and client/markdown-mermaid-web.ts:21-27 import other names."
+    },
+    {
+      "rule": "dead-export",
+      "file": "shared/mermaid-policy.ts",
+      "line": 179,
+      "id": "f1203d179ad8d5d5",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at de969d5 over ts/tsx/js/mjs/cjs/mts: `looksLikeMermaid` has no occurrence outside shared/mermaid-policy.ts pass two: `export function looksLikeMermaid(code: string): boolean {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only shared/mermaid-policy.ts:179 and the in-file call at :198; no file imports the name."
+    },
+    {
+      "rule": "dead-export",
+      "file": "shared/mermaid-policy.ts",
+      "line": 185,
+      "id": "4d32e6d67b192440",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -nw at de969d5 over ts/tsx/js/mjs/cjs/mts: `MermaidFenceDecision` has no occurrence outside shared/mermaid-policy.ts pass two: `export interface MermaidFenceDecision {`: git grep -w at the commit over ts/tsx/js/jsx/mjs/cjs hits only shared/mermaid-policy.ts:185 and :194 (return type of resolveMermaidFence); no file imports the name."
+    },
+    {
+      "rule": "injection-sink",
+      "file": "shared/mermaid-policy.ts",
+      "line": 79,
+      "id": "04073e10af581dab",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: line 79 `const hit = guard.pattern.exec(code);` is RegExp.prototype.exec on a GUARDS regex (array declared at line 58), not a shell, query, eval or HTML sink pass two: `const hit = guard.pattern.exec(code);` is RegExp.prototype.exec on the GUARDS patterns (shared/mermaid-policy.ts:58-65), a regex match, not a query, shell, eval or HTML sink."
+    }
+  ]
+}

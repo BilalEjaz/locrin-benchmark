@@ -1,0 +1,105 @@
+{
+  "diff": "Striv11__steadyline__9ba16f0",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/importers/cgm.ts",
+      "line": 15,
+      "id": "072ed93c0ad21232",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export type CgmFormat` in new cgm.ts; git grep at 9ba16f0 finds no reference outside cgm.ts, and the only importer importers.test.ts:3 takes `{ importCgm, parseTimestamp }`; not an entry point pass two: `export type CgmFormat = 'dexcom' | 'libre';`: git grep -w CgmFormat at 9ba16f0 matches only src/importers/cgm.ts; the file's only importer is src/importers/importers.test.ts:3 `import { importCgm, parseTimestamp } from './cgm';`"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/importers/cgm.ts",
+      "line": 17,
+      "id": "11145bc6a22f2c9e",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export interface CgmImportOptions` in new cgm.ts; git grep at 9ba16f0 finds no reference outside cgm.ts, and the only importer importers.test.ts:3 takes `{ importCgm, parseTimestamp }`; not an entry point pass two: `export interface CgmImportOptions {`: git grep -w CgmImportOptions at 9ba16f0 matches only src/importers/cgm.ts; the file's only importer is src/importers/importers.test.ts:3 `import { importCgm, parseTimestamp } from './cgm';`"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/importers/cgm.ts",
+      "line": 24,
+      "id": "69f32491c99972d2",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export interface RowIssue` in new cgm.ts; git grep at 9ba16f0 finds no reference outside cgm.ts, and the only importer importers.test.ts:3 takes `{ importCgm, parseTimestamp }`; not an entry point pass two: `export interface RowIssue {`: git grep -w RowIssue at 9ba16f0 matches only src/importers/cgm.ts; the file's only importer is src/importers/importers.test.ts:3 `import { importCgm, parseTimestamp } from './cgm';`"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/importers/cgm.ts",
+      "line": 29,
+      "id": "7468b767d1371e06",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export interface CgmImportReport` in new cgm.ts; git grep at 9ba16f0 finds no reference outside cgm.ts, and the only importer importers.test.ts:3 takes `{ importCgm, parseTimestamp }`; not an entry point pass two: `export interface CgmImportReport {`: git grep -w CgmImportReport at 9ba16f0 matches only src/importers/cgm.ts; the file's only importer is src/importers/importers.test.ts:3 `import { importCgm, parseTimestamp } from './cgm';`"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/importers/cgm.ts",
+      "line": 41,
+      "id": "eda42d0ca0622402",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export const MAX_LISTED_ERRORS` in new cgm.ts; git grep at 9ba16f0 finds no reference outside cgm.ts, and the only importer importers.test.ts:3 takes `{ importCgm, parseTimestamp }`; not an entry point pass two: `export const MAX_LISTED_ERRORS = 50;`: git grep -w MAX_LISTED_ERRORS at 9ba16f0 matches only src/importers/cgm.ts; the file's only importer is src/importers/importers.test.ts:3 `import { importCgm, parseTimestamp } from './cgm';`"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/importers/cgm.ts",
+      "line": 43,
+      "id": "02719c0c534a91c6",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export const GLUCOSE_MIN` in new cgm.ts; git grep at 9ba16f0 finds no reference outside cgm.ts, and the only importer importers.test.ts:3 takes `{ importCgm, parseTimestamp }`; not an entry point pass two: `export const GLUCOSE_MIN = 20;`: git grep -w GLUCOSE_MIN at 9ba16f0 matches only src/importers/cgm.ts; the file's only importer is src/importers/importers.test.ts:3 `import { importCgm, parseTimestamp } from './cgm';`"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/importers/cgm.ts",
+      "line": 44,
+      "id": "59af4941ada873a0",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export const GLUCOSE_MAX` in new cgm.ts; git grep at 9ba16f0 finds no reference outside cgm.ts, and the only importer importers.test.ts:3 takes `{ importCgm, parseTimestamp }`; not an entry point pass two: `export const GLUCOSE_MAX = 800;`: git grep -w GLUCOSE_MAX at 9ba16f0 matches only src/importers/cgm.ts; the file's only importer is src/importers/importers.test.ts:3 `import { importCgm, parseTimestamp } from './cgm';`"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/importers/cgm.ts",
+      "line": 58,
+      "id": "ad03f73d913a8ba4",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export function detectHeader` in new cgm.ts; git grep at 9ba16f0 finds no reference outside cgm.ts, and the only importer importers.test.ts:3 takes `{ importCgm, parseTimestamp }`; not an entry point pass two: `export function detectHeader(fields: string[]): Layout | null {`: git grep -w detectHeader at 9ba16f0 matches only src/importers/cgm.ts; the file's only importer is src/importers/importers.test.ts:3 `import { importCgm, parseTimestamp } from './cgm';`"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/importers/cgm.ts",
+      "line": 126,
+      "id": "57ca48e0bbdbe211",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export async function* streamCgm` in new cgm.ts; git grep at 9ba16f0 finds no reference outside cgm.ts, and the only importer importers.test.ts:3 takes `{ importCgm, parseTimestamp }`; not an entry point pass two: `export async function* streamCgm(`: git grep -w streamCgm at 9ba16f0 matches only src/importers/cgm.ts; the file's only importer is src/importers/importers.test.ts:3 `import { importCgm, parseTimestamp } from './cgm';`"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/importers/cgm.ts",
+      "line": 206,
+      "id": "5c140b08755f995c",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export function newReport` in new cgm.ts; git grep at 9ba16f0 finds no reference outside cgm.ts, and the only importer importers.test.ts:3 takes `{ importCgm, parseTimestamp }`; not an entry point pass two: `export function newReport(): CgmImportReport {`: git grep -w newReport at 9ba16f0 matches only src/importers/cgm.ts; the file's only importer is src/importers/importers.test.ts:3 `import { importCgm, parseTimestamp } from './cgm';`"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "diff": "nrjycyd__vitepress-plugin-filelist__9e7dfc3",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-file",
+      "file": "demo/e2e/.vitepress/config.ts",
+      "line": 1,
+      "id": "e68f8c8f1577eeeb",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: VitePress site config loaded by convention from <srcDir>/.vitepress/config.ts; demo/package.json adds \"build:e2e\": \"vitepress build e2e\" and \"preview:e2e\": \"vitepress preview e2e --port 4173\", so it is an entry point pass two: A site config file, which is an entry point: the file is `<site>/.vitepress/config.ts` with `export default defineConfig({` (line 6), and demo/package.json gains `\"build:e2e\": \"vitepress build e2e\"` and `\"preview:e2e\": \"vitepress preview e2e --port 4173\"` in this commit, which build and serve that site."
+    },
+    {
+      "rule": "dead-file",
+      "file": "demo/e2e/.vitepress/theme/index.ts",
+      "line": 1,
+      "id": "3d094b92eebba6e7",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: VitePress theme entry loaded by convention from .vitepress/theme/index.ts of the e2e site that demo/package.json \"build:e2e\": \"vitepress build e2e\" builds; an entry point pass two: The theme entry of the fixture site, loaded by path convention and not by import: the file is `demo/e2e/.vitepress/theme/index.ts` (`export { default } from '../../../docs/.vitepress/theme'`), beside the site config demo/e2e/.vitepress/config.ts that demo/package.json's `\"build:e2e\": \"vitepress build e2e\"` builds; src/client/index.ts:31 documents the same path (`// .vitepress/theme/index.ts`) as where a site's theme goes."
+    },
+    {
+      "rule": "dead-file",
+      "file": "e2e/mock-openlist.mjs",
+      "line": 1,
+      "id": "d7043237d1492c16",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: named by playwright.config.ts line 29: command: 'node e2e/mock-openlist.mjs' in webServer; a script the test config runs, an entry point pass two: An entry point names it: playwright.config.ts:29 `command: 'node e2e/mock-openlist.mjs',` starts it as a web server for the browser tests."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "e2e/mock-openlist.mjs",
+      "line": 72,
+      "id": "0f38d20500a66697",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: line 72 'server.listen(PORT, () => console.log(`mock OpenList on ${ORIGIN}`))' is the startup message in the main path of a script run with node (playwright.config.ts line 29) pass two: A startup line in a script's main path, not a debug print: `server.listen(PORT, () => console.log(`mock OpenList on ${ORIGIN}`))` is the last top-level statement of a file run as `node e2e/mock-openlist.mjs` (playwright.config.ts:29)."
+    },
+    {
+      "rule": "test-newly-skipped",
+      "file": "e2e/filelist.spec.ts",
+      "line": 184,
+      "id": "e2726e4513202883",
+      "pass1": "true",
+      "pass2": "false-positive",
+      "note": "pass one: line 184 'test.skip(!streams(info), 'Safari cannot stream to disk')' marks the new test skipped on the webkit project pass two: `test.skip(!streams(info), 'Safari cannot stream to disk')` is a conditional guard inside a test this change adds, not a test marked skip: line 49 `const streams = (info: TestInfo) => info.project.name !== 'webkit'`, so the test runs in the `chromium` and `mobile` projects (playwright.config.ts:21 and 23) and is skipped only in `webkit`."
+    }
+  ]
+}

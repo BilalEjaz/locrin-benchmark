@@ -1,0 +1,33 @@
+{
+  "diff": "ScaleDockHQ__better-supabase__f426c63",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "packages/better-supabase/src/sql/tag-statements.ts",
+      "line": 417,
+      "id": "3bb51abe9644921d",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: line 417 is generated SQL text \"grant execute on function ${fn}(${idType}[]) to authenticated, service_role;\" rendered by the CLI, a Postgres role grant, not a service-role key in client code pass two: Line 417 is SQL text inside the template string rpcBlock returns, `grant execute on function ${fn}(${idType}[]) to authenticated, service_role;`: `service_role` is a Postgres role name in a rendered GRANT, not a service-role key and not a Supabase client."
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "packages/better-supabase/src/sql/tag-statements.ts",
+      "line": 483,
+      "id": "8c7a5bcf348f339a",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: line 483 is generated SQL text \"grant execute on function ${fn}(${idType}) to authenticated, service_role;\" rendered by the CLI, a Postgres role grant, not a service-role key in client code pass two: Line 483 is SQL text inside the template string copyBlock returns, `grant execute on function ${fn}(${idType}) to authenticated, service_role;`: `service_role` is a Postgres role name in a rendered GRANT, not a service-role key and not a Supabase client."
+    }
+  ]
+}

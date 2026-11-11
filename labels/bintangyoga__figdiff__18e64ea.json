@@ -1,0 +1,51 @@
+{
+  "diff": "bintangyoga__figdiff__18e64ea",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/action/comment.ts",
+      "line": 24,
+      "id": "773cc45e82ff6374",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: 'export interface CommentContext' (comment.ts:24): git grep at the commit finds it only in comment.ts (lines 24, 83), no importer; comment.ts is not an entry point pass two: git grep for CommentContext at the commit finds only src/action/comment.ts:24 (the declaration) and src/action/comment.ts:83 (`export function buildComment(results: FileResult[], ctx: CommentContext): string {`); nothing imports it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/action/main.ts",
+      "line": 12,
+      "id": "e18f7a67052d498b",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: 'export interface ActionDeps' (main.ts:12): git grep at the commit finds it only in main.ts (lines 12, 29, 51, 67), no importer; src/action.ts:2 imports only runAction pass two: git grep for ActionDeps at the commit finds only src/action/main.ts lines 12, 29, 51 and 67; src/action.ts:2 and test/action.test.ts:9 import only `runAction` from main.js."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/action/main.ts",
+      "line": 21,
+      "id": "c422732251707194",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: 'export interface ActionResult' (main.ts:21): git grep at the commit finds it only in main.ts (lines 21, 67, 70), no importer; src/action.ts:2 and test/action.test.ts:9 import only runAction pass two: git grep for ActionResult at the commit finds only src/action/main.ts lines 21, 67 and 70; src/action.ts:2 and test/action.test.ts:9 import only `runAction` from main.js."
+    },
+    {
+      "rule": "dead-file",
+      "file": "src/action.ts",
+      "line": 1,
+      "id": "d542ccf28b6b8398",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: src/action.ts is an entry point: package.json bin '\"figdiff-action\": \"dist/action.js\"' and action.yml runs 'node \"$RUNNER_TEMP/figdiff/node_modules/figdiff/dist/action.js\"'; line 1 is '#!/usr/bin/env node' pass two: An entry point names it: package.json bin has `\"figdiff-action\": \"dist/action.js\"` and tsconfig.json has `\"outDir\": \"dist\"`, `\"rootDir\": \"src\"`, so that is this file's build output; action.yml line 54 runs `node \"$RUNNER_TEMP/figdiff/node_modules/figdiff/dist/action.js\"`; line 1 is `#!/usr/bin/env node`."
+    }
+  ]
+}

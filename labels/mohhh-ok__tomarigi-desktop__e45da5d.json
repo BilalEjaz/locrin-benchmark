@@ -1,0 +1,51 @@
+{
+  "diff": "mohhh-ok__tomarigi-desktop__e45da5d",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-file",
+      "file": "tools/chick-scan-measure.ts",
+      "line": 1,
+      "id": "d7f980a3bedaa199",
+      "pass1": "false-positive",
+      "pass2": "true",
+      "note": "pass one: standalone CLI script, not a module: line 4 `// Usage: bun tools/chick-scan-measure.ts <path to the parent's .jsonl>`, and tools/README.md at the commit documents the run at line 37 `bun tools/chick-scan-measure.ts ~/.claude/projects/...` pass two: no importer and no entry point names it: git grep chick-scan-measure over the source files at the commit matches only lines 4 and 74 of the file itself, and the scripts of package.json at the commit (dev, build:verify, dev:web, build, preview, tauri, typecheck, test, gen:locales, verify:locales, prepare) do not mention it; it is run by hand (`bun tools/chick-scan-measure.ts`, line 4)"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "tools/chick-scan-measure.ts",
+      "line": 86,
+      "id": "f5f3ae553acae385",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at top level of the CLI measuring script (line 4 `// Usage: bun tools/chick-scan-measure.ts ...`); printing the measurements is its main-path output pass two: tools/chick-scan-measure.ts is a CLI script (line 4 `// Usage: bun tools/chick-scan-measure.ts <path to the parent's .jsonl>`, line 72 `const parentPath = process.argv[2];`); line 86 `console.log(`rss before: ${mb(peakRss)}`)` is its measurement output at top level"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "tools/chick-scan-measure.ts",
+      "line": 95,
+      "id": "b245308f41a8b6a7",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at top level of the CLI measuring script (line 4 `// Usage: bun tools/chick-scan-measure.ts ...`); printing the measurements is its main-path output pass two: tools/chick-scan-measure.ts is a CLI script (line 4 `// Usage: bun tools/chick-scan-measure.ts <path to the parent's .jsonl>`, line 72 `const parentPath = process.argv[2];`); line 95 `console.log(`${label} scan: ${ms.toFixed(0)}ms, ${chicks.length} chicks, ...`)` is its measurement output in the top-level loop"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "tools/chick-scan-measure.ts",
+      "line": 97,
+      "id": "9cd9f92e2e21dd7f",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at top level of the CLI measuring script (line 4 `// Usage: bun tools/chick-scan-measure.ts ...`); printing the measurements is its main-path output pass two: tools/chick-scan-measure.ts is a CLI script (line 4 `// Usage: bun tools/chick-scan-measure.ts <path to the parent's .jsonl>`, line 72 `const parentPath = process.argv[2];`); line 97 `console.log(`  working: ${c.view.id.split(\"/\").pop()} ${c.view.name}`)` lists the working chicks in the top-level loop"
+    }
+  ]
+}

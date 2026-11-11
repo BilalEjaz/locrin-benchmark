@@ -1,0 +1,33 @@
+{
+  "diff": "tinbase__tinbase__e7a514b",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "src/storage/handler.ts",
+      "line": 1040,
+      "id": "d68302fefef56a76",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: handler.ts is the server's storage API (header: \"storage-api-compatible endpoints (/storage/v1/*)\"), constructed server-side at src/index.ts:252 \"new StorageHandler(db, ...)\"; no service-role key in client code. pass two: Server code, and a role name rather than a service-role key: the header comment at src/storage/handler.ts:2-3 reads `storage-api-compatible endpoints (/storage/v1/*) for supabase-js's StorageClient`, src/index.ts:252 builds it with `new StorageHandler(` inside createBackend, and line 1040 only tests `ctx.role === 'service_role'`."
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "src/storage/handler.ts",
+      "line": 1058,
+      "id": "bedfc420d1dbded3",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Server-side request context { role: 'service_role' } built when redeeming a signed upload token inside the storage server (StorageHandler, constructed at src/index.ts:252); not client code. pass two: Server code, and a role name rather than a service-role key: src/index.ts:252 builds the handler with `new StorageHandler(` inside createBackend, and line 1058 is `? { role: 'service_role', claims: { role: 'service_role' } }`, the request context for a token whose `claims.service === true`."
+    }
+  ]
+}

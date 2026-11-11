@@ -1,0 +1,96 @@
+{
+  "diff": "ahliweb__awcms-one__cabe462",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-file",
+      "file": "redesign/AWCMS-One Admin dan Publik/support.js",
+      "line": 1,
+      "id": "b03658392137b562",
+      "pass1": "not-applicable",
+      "pass2": "not-applicable",
+      "note": "pass one: generated code committed with the change: support.js line 1 reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" pass two: generated code the diff did not author: line 1 of the file reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" and the commit adds the whole 1911-line bundle as a design-tool export"
+    },
+    {
+      "rule": "html-injection",
+      "file": "redesign/AWCMS-One Admin dan Publik/support.js",
+      "line": 470,
+      "id": "ea06cf6ace3c6cda",
+      "pass1": "not-applicable",
+      "pass2": "not-applicable",
+      "note": "pass one: generated code committed with the change: support.js line 1 reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" pass two: generated code the diff did not author: line 1 of the file reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" and the commit adds the whole 1911-line bundle as a design-tool export"
+    },
+    {
+      "rule": "injection-sink",
+      "file": "redesign/AWCMS-One Admin dan Publik/support.js",
+      "line": 844,
+      "id": "95a3f3dfba47f052",
+      "pass1": "not-applicable",
+      "pass2": "not-applicable",
+      "note": "pass one: generated code committed with the change: support.js line 1 reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" pass two: generated code the diff did not author: line 1 of the file reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" and the commit adds the whole 1911-line bundle as a design-tool export"
+    },
+    {
+      "rule": "injection-sink",
+      "file": "redesign/AWCMS-One Admin dan Publik/support.js",
+      "line": 1218,
+      "id": "05a59c10ddb70bdf",
+      "pass1": "not-applicable",
+      "pass2": "not-applicable",
+      "note": "pass one: generated code committed with the change: support.js line 1 reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" pass two: generated code the diff did not author: line 1 of the file reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" and the commit adds the whole 1911-line bundle as a design-tool export"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "redesign/AWCMS-One Admin dan Publik/support.js",
+      "line": 79,
+      "id": "a9eebb02a50f8dbc",
+      "pass1": "not-applicable",
+      "pass2": "not-applicable",
+      "note": "pass one: generated code committed with the change: support.js line 1 reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" pass two: generated code the diff did not author: line 1 of the file reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" and the commit adds the whole 1911-line bundle as a design-tool export"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "redesign/AWCMS-One Admin dan Publik/support.js",
+      "line": 138,
+      "id": "8402661a0deecd2b",
+      "pass1": "not-applicable",
+      "pass2": "not-applicable",
+      "note": "pass one: generated code committed with the change: support.js line 1 reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" pass two: generated code the diff did not author: line 1 of the file reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" and the commit adds the whole 1911-line bundle as a design-tool export"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "redesign/AWCMS-One Admin dan Publik/support.js",
+      "line": 1377,
+      "id": "9b434097a793e5fe",
+      "pass1": "not-applicable",
+      "pass2": "not-applicable",
+      "note": "pass one: generated code committed with the change: support.js line 1 reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" pass two: generated code the diff did not author: line 1 of the file reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" and the commit adds the whole 1911-line bundle as a design-tool export"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "redesign/AWCMS-One Admin dan Publik/support.js",
+      "line": 1388,
+      "id": "41be7c59441e969f",
+      "pass1": "not-applicable",
+      "pass2": "not-applicable",
+      "note": "pass one: generated code committed with the change: support.js line 1 reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" pass two: generated code the diff did not author: line 1 of the file reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" and the commit adds the whole 1911-line bundle as a design-tool export"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "redesign/AWCMS-One Admin dan Publik/support.js",
+      "line": 1867,
+      "id": "50d56f54347edb3c",
+      "pass1": "not-applicable",
+      "pass2": "not-applicable",
+      "note": "pass one: generated code committed with the change: support.js line 1 reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" pass two: generated code the diff did not author: line 1 of the file reads \"// GENERATED from dc-runtime/src/*.ts \u2014 do not edit. Rebuild with `cd dc-runtime && bun run build`.\" and the commit adds the whole 1911-line bundle as a design-tool export"
+    }
+  ]
+}
