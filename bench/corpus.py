@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+
+from bench.signals import SIGNALS
 
 ALLOWED_LICENCES = {"MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC"}
 LANGUAGES = {"typescript", "javascript", "php", "python"}
@@ -45,6 +47,11 @@ class Diff:
     language: str
     url: str
     files: list[str]
+    # Wave one sampled agent commits as they came; a wave-two record was kept because the lines it adds
+    # matched `signal`, one of the `signals` they match (bench/signals.py).
+    wave: int = 1
+    signal: str | None = None
+    signals: list[str] = field(default_factory=list)
 
 
 def language_of(path: str) -> str | None:
@@ -131,9 +138,21 @@ def _load_one(path: Path) -> Diff:
         for sub in ("before", "after"):
             if not (path.parent / raw["id"] / sub).is_dir():
                 raise CorpusError(f"{path.name}: tree source needs {raw['id']}/{sub}/")
+    wave = raw.get("wave", 1)
+    signal, signals = raw.get("signal"), raw.get("signals", [])
+    if type(wave) is not int or wave not in (1, 2):
+        raise CorpusError(f"{path.name}: wave must be 1 or 2, got {wave!r}")
+    if wave == 1 and (signal is not None or signals != []):
+        raise CorpusError(f"{path.name}: a wave 1 record names no signal")
+    if wave == 2:
+        if not isinstance(signals, list) or not signals or any(s not in SIGNALS for s in signals):
+            raise CorpusError(f"{path.name}: a wave 2 record's signals must be a list of {', '.join(SIGNALS)}")
+        if signal not in signals:
+            raise CorpusError(f"{path.name}: signal {signal!r} is not one of the record's signals {signals}")
     return Diff(
         id=raw["id"], source=raw["source"], repo=raw["repo"], sha=raw["sha"], parent=raw["parent"],
         licence=raw["licence"], language=raw["language"], url=raw["url"], files=list(raw["files"]),
+        wave=wave, signal=signal, signals=list(signals),
     )
 
 

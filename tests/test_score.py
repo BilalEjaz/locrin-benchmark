@@ -592,3 +592,10 @@ def test_repository_of_a_git_diff_is_its_name_and_a_tree_diff_is_its_own():
     tree = bench.corpus.Diff("fx-01-tree", "tree", None, None, None, "MIT", "typescript", "fixture", ["x.ts"])
     assert bench.score.repository_of(git) == "acme/w"
     assert bench.score.repository_of(tree) == "tree:fx-01-tree"
+
+
+def test_a_rule_that_only_fires_under_a_repository_config_is_not_benchmarked():
+    # The harness writes one locrin.toml for every repository, naming no auth middleware and no boundaries,
+    # so these three can never fire in it: a zero for them is not a measurement.
+    needs = {rule for rule, why in bench.score.NOT_BENCHMARKED.items() if why == "needs per-repository config"}
+    assert needs == {"boundary-violation", "express-route-without-auth", "express-cors-wildcard-on-authenticated"}

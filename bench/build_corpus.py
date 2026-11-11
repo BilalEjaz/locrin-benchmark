@@ -26,6 +26,8 @@ from pathlib import Path
 
 from bench.corpus import ALLOWED_LICENCES, CorpusError, _valid_file, _valid_id, _valid_repo, language_of, load_corpus
 from bench.materialise import SKIPPED_EXTENSIONS
+from bench import signals
+from bench.signals import SIGNALS, WAVE_TWO_TARGETS
 
 TRAILERS = ["Co-Authored-By: Claude", "Co-authored-by: Codex", "Co-authored-by: Copilot", "Co-authored-by: Cursor"]
 MAX_FILES = 30
@@ -55,6 +57,8 @@ _STATUS_LINE = re.compile(r"HTTP/[0-9.]+ (\d{3})")
 _HTTP_STATUS = re.compile(r"\(HTTP (\d{3})\)")
 _TRAILER_LINE = re.compile(r"^[ \t]*co-authored-by:[ \t]*(.*)$", re.IGNORECASE | re.MULTILINE)
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+# A GitHub topic: what a repository search can name after topic:.
+_TOPIC = re.compile(r"[a-z0-9][a-z0-9-]*")
 
 
 class BuildError(Exception):
@@ -190,15 +194,17 @@ def candidates(gh, trailer: str, per_page: int = 100, pages: int = 3) -> list[di
     return items
 
 
-def repo_query(language: str, licence: str, since: str) -> str:
-    """The search/repositories query for one corpus language and one licence key."""
-    return (f"language:{GITHUB_LANGUAGES[language]} license:{licence} pushed:>={since} "
-            "fork:false archived:false is:public")
+def repo_query(language: str, licence: str, since: str, topic: str | None = None) -> str:
+    """The search/repositories query for one corpus language and one licence key, narrowed to a topic when given."""
+    q = (f"language:{GITHUB_LANGUAGES[language]} license:{licence} pushed:>={since} "
+         "fork:false archived:false is:public")
+    return f"{q} topic:{topic}" if topic else q
 
 
-def repositories(gh, language: str, licence: str, since: str, per_page: int = 100, pages: int = 10):
+def repositories(gh, language: str, licence: str, since: str, per_page: int = 100, pages: int = 10,
+                 topic: str | None = None):
     """Repositories for one language and licence, most recently updated first, one search page at a time."""
-    q = repo_query(language, licence, since)
+    q = repo_query(language, licence, since, topic)
     for page in range(1, pages + 1):
         doc = gh.get("search/repositories", {"q": q, "sort": "updated", "order": "desc", "per_page": per_page,
                                              "page": page})
@@ -388,13 +394,18 @@ def _owner_count(seen_repos: dict[str, int], owner: str) -> int:
 
 
 def accept(gh, item: dict, seen_repos: dict[str, int], language_skip=None, meta_cache: dict | None = None,
-           owners: dict[str, int] | None = None):
+           owners: dict[str, int] | None = None, signal_pick=None):
     """A (record, before, after) triple for an acceptable commit, or None with the reason on stderr.
 
     language_skip, when given, takes the commit's corpus language and returns a skip reason
     or None. It runs before any file is fetched and before the repository cap counts the
     commit, so a commit in an unwanted language costs two calls at most. meta_cache, when
     given, holds repository metadata by lower-cased name so each repository is read once.
+
+    signal_pick, when given, takes the commit's files as the commits API lists them, patches
+    included, and returns either a skip reason or (assigned signal, every matched signal). It
+    runs straight after language_skip, so a commit no signal wants costs no contents call
+    either, and a kept one is recorded as wave 2 with both.
 
     The owner cap (PER_OWNER) is checked next to the repository cap, before any file is
     fetched. Owner counts come from seen_repos, or from owners (lower-cased owner to record
@@ -460,6 +471,10 @@ def accept(gh, item: dict, seen_repos: dict[str, int], language_skip=None, meta_
     if reason:
         _skip(repo, sha, f"{reason}: {language}", reason)
         return None
+    picked = signal_pick(files) if signal_pick is not None else None
+    if isinstance(picked, str):
+        _skip(repo, sha, picked)
+        return None
     parent = commit["parents"][0]["sha"]
     names: list[str] = []
     want_before: list[str] = []
@@ -509,6 +524,8 @@ def accept(gh, item: dict, seen_repos: dict[str, int], language_skip=None, meta_
         "url": f"https://github.com/{repo}/commit/{sha}",
         "files": names,
     }
+    if picked is not None:
+        rec.update(wave=2, signal=picked[0], signals=list(picked[1]))
     seen_repos[repo.lower()] = seen_repos.get(repo.lower(), 0) + 1
     if owners is not None:
         owners[_owner(repo)] = owners.get(_owner(repo), 0) + 1
@@ -579,6 +596,20 @@ def _existing_languages(out_root: Path) -> Counter[str]:
     return counts
 
 
+def _existing_signals(out_root: Path) -> Counter[str]:
+    """How many wave-two records in out_root each signal already holds. A wave-one record counts for none."""
+    counts: Counter[str] = Counter()
+    if Path(out_root).is_dir():
+        for p in Path(out_root).glob("*.json"):
+            try:
+                raw = json.loads(p.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                continue
+            if isinstance(raw, dict) and raw.get("wave") == 2 and isinstance(raw.get("signal"), str):
+                counts[raw["signal"]] += 1
+    return counts
+
+
 def _via_repos(gh, out: Path, a) -> int:
     """The repository-first build: search repositories per language and licence, list their commits, accept matches."""
     existing = _existing(out)
@@ -598,6 +629,28 @@ def _via_repos(gh, out: Path, a) -> int:
     def full(language: str) -> bool:
         return a.language_target is not None and held[language] >= a.language_target
 
+    # With --signals a commit is kept only when a signal it matches still has room, and the build is over
+    # once every signal is full. Records a stopped build already wrote count toward their signals.
+    targets: dict[str, int] | None = a.signal_targets
+    held_signals = _existing_signals(out) if targets is not None else Counter()
+
+    def signal_pick(files: list[dict]):
+        got = signals.matched(files)
+        if not got:
+            return "no signal"
+        name = signals.pick(got, held_signals, targets)
+        return (name, got) if name else "signal target"
+
+    # Passed to accept() only when the filter is on, so a wave-one build calls it exactly as it always has.
+    wave_two = {"signal_pick": signal_pick} if targets is not None else {}
+
+    def done_building() -> bool:
+        return total >= a.target or (targets is not None and all(held_signals[n] >= k for n, k in targets.items()))
+
+    def found(language: str, licence: str):
+        for topic in a.topic or [None]:
+            yield from repositories(gh, language, licence, a.since, topic=topic)
+
     def language_skip(language: str) -> str | None:
         # Checked inside accept() before any file is fetched, so an unwanted language costs no contents calls.
         return ("language not selected" if language not in languages
@@ -607,20 +660,25 @@ def _via_repos(gh, out: Path, a) -> int:
         print(f"examined {len(examined)} repositories, {matched_total} commits with an agent trailer", file=sys.stderr)
         print(f"wrote {sum(written.values())} records: "
               + ", ".join(f"{lang} {written[lang]}" for lang in languages), file=sys.stderr)
+        if targets is not None:
+            print("signals held: " + ", ".join(f"{n} {held_signals[n]}/{k}" for n, k in targets.items() if k),
+                  file=sys.stderr)
         if SKIPS:
             print("skipped: " + "; ".join(f"{kind} {n}" for kind, n in SKIPS.most_common()), file=sys.stderr)
 
     try:
         for language in languages:
+            if done_building():
+                break
             if full(language):
                 print(f"{language} already holds {held[language]} records, the language target", file=sys.stderr)
                 continue
             for licence in LICENCE_KEYS:
-                if total >= a.target or full(language):
+                if done_building() or full(language):
                     break
                 try:
-                    for repo in repositories(gh, language, licence, a.since):
-                        if total >= a.target or full(language):
+                    for repo in found(language, licence):
+                        if done_building() or full(language):
                             break
                         name = repo.get("full_name") if isinstance(repo, dict) else None
                         if not isinstance(name, str) or not _valid_repo(name) or name.lower() in examined:
@@ -648,7 +706,7 @@ def _via_repos(gh, out: Path, a) -> int:
                         matched_total += len(matched)
                         accepted = 0
                         for c in matched:
-                            if (total >= a.target or full(language) or seen.get(name.lower(), 0) >= PER_REPO
+                            if (done_building() or full(language) or seen.get(name.lower(), 0) >= PER_REPO
                                     or _owner_count(seen, _owner(name)) >= PER_OWNER):
                                 break
                             if c["sha"] in done:
@@ -657,11 +715,14 @@ def _via_repos(gh, out: Path, a) -> int:
                             done.add(c["sha"])
                             item = {"sha": c["sha"], "repository": {"full_name": name}, "parents": c.get("parents") or []}
                             try:
-                                got = accept(gh, item, seen, language_skip=language_skip, meta_cache=meta_cache)
+                                got = accept(gh, item, seen, language_skip=language_skip, meta_cache=meta_cache,
+                                             **wave_two)
                                 if got is None:
                                     continue
                                 lang = got[0]["language"]
                                 print(write_record(out, *got))
+                                if targets is not None:
+                                    held_signals[got[0]["signal"]] += 1
                             except RateLimitError:
                                 raise
                             except (BuildError, OSError) as e:
@@ -790,12 +851,21 @@ def main(argv: list[str] | None = None) -> int:
                    help="with --via-repos: stop accepting a language once the corpus holds this many records of it")
     p.add_argument("--commit-pages", type=int,
                    help="with --via-repos: pages of 100 commits to list per repository (default 1)")
+    p.add_argument("--signals", action="store_true",
+                   help="with --via-repos: keep a commit only when the lines it adds match a wave-two signal "
+                        "that still has room (bench/signals.py)")
+    p.add_argument("--signal-target", action="append", metavar="NAME=K",
+                   help="with --signals: let signal NAME hold K records instead of its default, repeatable; "
+                        "K=0 turns the signal off")
+    p.add_argument("--topic", action="append",
+                   help="with --via-repos: search repositories carrying this GitHub topic, repeatable")
     p.add_argument("--prune-owner-excess", action="store_true",
                    help=f"delete the records in --out past {PER_OWNER} per owner, keeping the smallest ids")
     a = p.parse_args(argv)
     if a.prune_owner_excess:
         if (a.target is not None or a.trailer or a.repo or a.sha or a.check_gone or a.via_repos or a.since
-                or a.language or a.language_target is not None or a.commit_pages is not None):
+                or a.language or a.language_target is not None or a.commit_pages is not None
+                or a.signals or a.signal_target or a.topic):
             p.error("--prune-owner-excess goes with --out only")
         return _prune_owner_excess(Path(a.out))
     if a.target is None:
@@ -817,9 +887,23 @@ def main(argv: list[str] | None = None) -> int:
             a.commit_pages = 1
         elif a.commit_pages < 1:
             p.error("--commit-pages must be 1 or more")
+        if a.signal_target and not a.signals:
+            p.error("--signal-target goes with --signals")
+        a.signal_targets = dict(WAVE_TWO_TARGETS) if a.signals else None
+        for spec in a.signal_target or []:
+            name, sep, count = spec.partition("=")
+            if not sep or name not in SIGNALS or not count.isdigit():
+                p.error(f"--signal-target must be NAME=K with NAME one of {', '.join(SIGNALS)} and K 0 or more, "
+                        f"got {spec!r}")
+            a.signal_targets[name] = int(count)
+        for topic in a.topic or []:
+            if not _TOPIC.fullmatch(topic):
+                p.error(f"--topic must be a GitHub topic (lower-case letters, digits and hyphens), got {topic!r}")
         return _via_repos(GitHub(), Path(a.out), a)
-    if a.since or a.language or a.language_target is not None or a.commit_pages is not None:
-        p.error("--since, --language, --language-target and --commit-pages go with --via-repos")
+    if (a.since or a.language or a.language_target is not None or a.commit_pages is not None
+            or a.signals or a.signal_target or a.topic):
+        p.error("--since, --language, --language-target, --commit-pages, --signals, --signal-target and --topic "
+                "go with --via-repos")
     if a.check_gone:
         return _check_gone(GitHub(), Path(a.out))
     if bool(a.repo) != bool(a.sha):

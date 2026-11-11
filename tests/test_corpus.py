@@ -284,3 +284,31 @@ def test_load_corpus_rejects_ids_that_differ_only_by_case(tmp_path):
         pytest.skip("case-insensitive filesystem kept one file")
     with pytest.raises(CorpusError, match="differ only by case"):
         load_corpus(tmp_path)
+
+
+def test_a_record_without_wave_keys_loads_as_wave_one(tmp_path):
+    write(tmp_path, good())
+    (d,) = load_corpus(tmp_path)
+    assert (d.wave, d.signal, d.signals) == (1, None, [])
+
+
+def test_a_wave_two_record_loads_its_signal(tmp_path):
+    write(tmp_path, good(wave=2, signal="marker", signals=["marker", "console"]))
+    (d,) = load_corpus(tmp_path)
+    assert (d.wave, d.signal, d.signals) == (2, "marker", ["marker", "console"])
+
+
+@pytest.mark.parametrize("over", [
+    {"wave": 2},
+    {"wave": 2, "signal": "nonsense", "signals": ["nonsense"]},
+    {"wave": 2, "signal": "marker", "signals": ["console"]},
+    {"wave": 2, "signal": "marker", "signals": "marker"},
+    {"wave": 3, "signal": "marker", "signals": ["marker"]},
+    {"wave": "2", "signal": "marker", "signals": ["marker"]},
+    {"signal": "marker", "signals": ["marker"]},
+    {"wave": 1, "signals": ["marker"]},
+])
+def test_a_record_whose_wave_and_signals_do_not_agree_is_refused(tmp_path, over):
+    write(tmp_path, good(**over))
+    with pytest.raises(CorpusError, match="wave|signal"):
+        load_corpus(tmp_path)
