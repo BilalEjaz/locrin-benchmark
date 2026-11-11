@@ -1,0 +1,18 @@
+{
+  "id": "vecyang1__paseo-plugin-file-inspector-finder__0924ffa",
+  "source": "git",
+  "repo": "vecyang1/paseo-plugin-file-inspector-finder",
+  "sha": "0924ffafcce8332ad0a97fc9c0a98ff39dfbe1bf",
+  "parent": "c0937724ceaf03c8b3eb196e4085c138f5effb53",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/vecyang1/paseo-plugin-file-inspector-finder/commit/0924ffafcce8332ad0a97fc9c0a98ff39dfbe1bf",
+  "files": [
+    "test/metro-registry.test.ts"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

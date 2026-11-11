@@ -1,0 +1,29 @@
+{
+  "id": "mohhh-ok__tomarigi-desktop__8ea42f3",
+  "source": "git",
+  "repo": "mohhh-ok/tomarigi-desktop",
+  "sha": "8ea42f39b2fa7815a70449b973e9128992ddc1ff",
+  "parent": "dac28ac8fcdff6b6fd7ac438866de747f1f0f69b",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/mohhh-ok/tomarigi-desktop/commit/8ea42f39b2fa7815a70449b973e9128992ddc1ff",
+  "files": [
+    "src/lib/ai-judge.ts",
+    "src/lib/judge.ts",
+    "src/lib/local-judge.ts",
+    "src/lib/openai-judge.ts",
+    "tests/judge-body.test.ts",
+    "tests/llm-transport.test.ts",
+    "tools/llm-regression/cases.ts",
+    "tools/llm-regression/needs-run.ts",
+    "tools/llm-regression/run.ts",
+    "tools/llm-regression/transport.ts",
+    "tools/turn-verdict-probe.ts"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console",
+    "test-case"
+  ]
+}

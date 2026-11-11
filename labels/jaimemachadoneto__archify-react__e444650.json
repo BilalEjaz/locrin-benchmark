@@ -1,0 +1,78 @@
+{
+  "diff": "jaimemachadoneto__archify-react__e444650",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/diagram/components/FlowEdge.tsx",
+      "line": 6,
+      "id": "f7dad5caa5ae5d7f",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep at the commit finds DiagramEdgeData only in FlowEdge.tsx (lines 6 and 13); src/diagram/index.ts re-exports only ./spec and ./validate. pass two: git grep for DiagramEdgeData at the commit finds only src/diagram/components/FlowEdge.tsx:6 (the export) and :13 (a use in the same file); src/diagram/index.ts holds only `export * from \"./spec\";` and `export * from \"./validate\";`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/diagram/components/Lane.tsx",
+      "line": 4,
+      "id": "b82e59a4df68b8d1",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep at the commit finds LaneNodeData only in Lane.tsx (lines 4 and 8); WorkflowDiagram.tsx:8 imports only Lane and LaneFlowNode. pass two: git grep for LaneNodeData at the commit finds only src/diagram/components/Lane.tsx:4 (the export) and :8 (a use in the same file); no other file imports it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/diagram/components/Node.tsx",
+      "line": 5,
+      "id": "0d3d7785d4fe8dc5",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep at the commit finds DiagramNodeData only in Node.tsx (lines 5 and 12); WorkflowDiagram.tsx:7 imports only Node and DiagramFlowNode. pass two: git grep for DiagramNodeData at the commit finds only src/diagram/components/Node.tsx:5 (the export) and :12 (a use in the same file); no other file imports it."
+    },
+    {
+      "rule": "dead-file",
+      "file": "src/diagram/Demo.tsx",
+      "line": 1,
+      "id": "f3c501ec1f969ad0",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: New file; git grep for Demo at the commit matches only Demo.tsx itself; index.html loads /src/main.tsx, package.json exports ./dist/index.js, src/diagram/index.ts re-exports only ./spec and ./validate. pass two: git grep for Demo at the commit finds matches only inside src/diagram/Demo.tsx itself; src/main.tsx:6 imports `App from \"./App\"`, vite.lib.config.ts names `entry: \"src/diagram/index.ts\"`, and no package.json script names the file."
+    },
+    {
+      "rule": "leftover-agent-marker",
+      "file": "src/diagram/components/Edge.tsx",
+      "line": 14,
+      "id": "a51cd8aaa9c494d5",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: \"// TODO: Task 6 draws the line from the path of the layout and moves the dot along it.\" added in a new file. pass two: Line 14 is `// TODO: Task 6 draws the line from the path of the layout and moves the dot along it.` in a file the change added."
+    },
+    {
+      "rule": "leftover-agent-marker",
+      "file": "src/diagram/components/FlowEdge.tsx",
+      "line": 23,
+      "id": "b49b7f59f15208ea",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: \"// TODO: Task 6 moves the dot along the path (data.animated) in components/Edge.tsx.\" added in a new file. pass two: Line 23 is `// TODO: Task 6 moves the dot along the path (data.animated) in components/Edge.tsx.` in a file the change added."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/diagram/WorkflowDiagram.tsx",
+      "line": 11,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: \"export interface WorkflowDiagramProps {\" in a new file; git grep at the commit finds WorkflowDiagramProps only in WorkflowDiagram.tsx (lines 11, 26), and index.ts re-exports only ./spec and ./validate. pass two: `export interface WorkflowDiagramProps {` in a file the change added: git grep for WorkflowDiagramProps at the commit finds only WorkflowDiagram.tsx:11 and :26 (a use in the same file), and Demo.tsx:2 and WorkflowDiagram.test.tsx:4 import only the default export."
+    }
+  ]
+}

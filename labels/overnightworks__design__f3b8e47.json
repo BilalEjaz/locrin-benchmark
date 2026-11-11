@@ -1,0 +1,24 @@
+{
+  "diff": "overnightworks__design__f3b8e47",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "html-injection",
+      "file": "tests/e2e/main.ts",
+      "line": 66,
+      "id": "046f97e544bd9ee7",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: the interpolated ${link.href} and ${link.label} come only from the constant 'const legalLinks = [{ label: 'Imprint', href: '/imprint' }, { label: 'Privacy', href: '/privacy' }]' at lines 13-16 of this e2e harness; nothing variable reaches innerHTML pass two: the interpolated `${link.href}` and `${link.label}` come only from the module constant at lines 13-16, `const legalLinks = [ { label: 'Imprint', href: '/imprint' }, { label: 'Privacy', href: '/privacy' } ]`, in an e2e fixture page; no external or user data flows into the innerHTML string"
+    }
+  ]
+}

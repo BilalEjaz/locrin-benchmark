@@ -1,0 +1,240 @@
+{
+  "diff": "alilibx__kerstel__6f5648b",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 27,
+      "id": "fea90424aa448cce",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: SyncDeps: git grep -w at the commit finds it only in packages/cli/src/commands/sync.ts (lines 27, 65, 85...); index.ts:10 and test/sync.test.ts:7 import only syncCommand pass two: `export interface SyncDeps {`: git grep -w SyncDeps at the commit finds it only in packages/cli/src/commands/sync.ts; packages/cli/src/index.ts:10 and packages/cli/test/sync.test.ts:7 import only `syncCommand` from this file."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/cli/src/sync/crypto.ts",
+      "line": 24,
+      "id": "4486b613d31a9343",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: PAD: git grep -w at the commit finds it only at crypto.ts:24 and its in-file use at crypto.ts:157; test/sync.test.ts:11-22 and commands/sync.ts:5-13 import other names pass two: `export const PAD = 256;`: git grep -w PAD at the commit finds only crypto.ts:24 and its own use at crypto.ts:157; no import of PAD anywhere."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/cli/src/sync/crypto.ts",
+      "line": 87,
+      "id": "f3b22a1c71f1c58a",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: KeyContext: git grep -w at the commit finds it only in crypto.ts (lines 87, 93, 101, 109); no other file imports it pass two: `export interface KeyContext {`: git grep -w KeyContext at the commit finds only packages/cli/src/sync/crypto.ts (lines 87, 93, 101, 109); no importer."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/cli/src/sync/crypto.ts",
+      "line": 141,
+      "id": "5eea3bf7694799f7",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: RecordContext: git grep -w at the commit finds it only in crypto.ts (lines 141, 147, 154, 161); no other file imports it pass two: `export interface RecordContext {`: git grep -w RecordContext at the commit finds only packages/cli/src/sync/crypto.ts (lines 141, 147, 154, 161); no importer."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/cli/src/sync/crypto.ts",
+      "line": 171,
+      "id": "ccde1e55a17278fc",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: DeviceName: git grep -w at the commit finds it only in crypto.ts (lines 171, 179, 183); no other file imports it pass two: `export interface DeviceName {`: git grep -w DeviceName at the commit finds only packages/cli/src/sync/crypto.ts (lines 171, 179, 183); no importer."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/cli/src/sync/crypto.ts",
+      "line": 193,
+      "id": "327f464ec96ae390",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: same: no import of it anywhere; crypto importers commands/sync.ts:5-13 and test/sync.test.ts:11-22 list other names, and git grep for 'same(' hits only crypto.ts:193 pass two: `export function same(a: Buffer, b: Buffer): boolean {`: git grep -w same at the commit finds no import of it from sync/crypto and no call to it; the importers of sync/crypto (commands/sync.ts:5-13, sync/engine.ts:5, sync/state.ts:3, test/sync.test.ts:11-22) do not list it, and the only other identifier named same is a local at packages/cli/src/vault/projects.ts:112 (`const same = rows.filter(...)`)."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/cli/src/sync/engine.ts",
+      "line": 140,
+      "id": "82f02dad578ac345",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: pull: only called inside engine.ts (lines 150, 155, 239); commands/sync.ts:14 imports conflictValue, describe, openConflicts, push, settle, syncOnce and test/sync.test.ts:23 imports SYNC_BACKUP_SCOPE pass two: `export async function pull(...)`: called only inside engine.ts (lines 150, 155, 239); the importers of ../sync/engine are commands/sync.ts:14 (`conflictValue, describe, openConflicts, push, settle, syncOnce, type SyncContext, type SyncReport`) and test/sync.test.ts:23 (`SYNC_BACKUP_SCOPE`), neither imports pull."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/cli/src/sync/http.ts",
+      "line": 35,
+      "id": "c1ea29a8ef27e6b3",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: ClientOptions: git grep -w at the commit finds it only at http.ts:35 and http.ts:44; commands/sync.ts:15 and test/sync.test.ts:24 import syncClient, SyncHttpError, Fetch pass two: `export interface ClientOptions {`: git grep -w ClientOptions at the commit finds only packages/cli/src/sync/http.ts lines 35 and 44; no importer."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 74,
+      "id": "71105bf78d6d5c14",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:74 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `console.log(USAGE);` under `if (sub === \"--help\" || sub === \"help\")`, the help text."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 79,
+      "id": "9a87e24facbfa83f",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:79 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `console.log(USAGE);` after `fail(`Unknown sync command \"${sub}\".`)`, the usage text."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 108,
+      "id": "f44e17ea553815b4",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:108 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `console.log(\"Kerstel sync, end-to-end encrypted. The server stores ciphertext only.\");`, the setup summary shown before the upload question."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 109,
+      "id": "cc3ea063166a8234",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:109 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `console.log(`  Server       ${server}`);`, part of the setup summary shown before the upload question."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 110,
+      "id": "46432ba6c1b26588",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:110 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `console.log(`  Vault        new, ${plural(secrets.length, \"secret\")} in ${plural(scopes.size, \"scope\")}`);`; packages/cli/test/sync.test.ts:210 asserts on it (`expect(out).toContain(\"2 secrets in 2 scopes\")`)."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 111,
+      "id": "cf62e695ada24260",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:111 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `console.log(`  This device  ${device.name} ${dim(\"(the name is sealed; the server never sees it)\")}`);`, part of the setup summary."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 196,
+      "id": "81d5d932f92c69ef",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:196 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `console.log(USAGE);` after `fail(`Unknown option ${arg}.`)`, the usage text."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 264,
+      "id": "d62eb0f5fb15efc1",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:264 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `for (const ref of conflicts) console.log(`  ${describe(ref)}`);`, the list of conflicting keys; packages/cli/test/sync.test.ts:297 asserts on it (`expect(first.out).toContain(\"ks:app/DB\")`)."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 265,
+      "id": "81fa058f3bda0ff8",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:265 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `console.log(`Run ${cliName()} sync in a terminal to choose, or ${cliName()} sync --keep local|remote.`);`, the instruction that follows the conflict list."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 305,
+      "id": "b5c11b4664cad4c2",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:305 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `console.log(`Server        ${config.server}`);`, the `sync status` report; packages/cli/test/sync.test.ts:215 asserts on it."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 306,
+      "id": "044623c7873a38f7",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:306 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `console.log(`Last sync     ${when(lastOk)}`);`, the `sync status` report."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 307,
+      "id": "ee304f4ad7ad4f61",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:307 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `console.log(`Pending       ${plural(pending, \"change\")} to push`);`, the `sync status` report; packages/cli/test/sync.test.ts:216 asserts on it."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 308,
+      "id": "f7c09ee5a5e52a75",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:308 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `console.log(`Conflicts     ${conflicts === 0 ? \"none\" : yellow(...)}`);`, the `sync status` report."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 309,
+      "id": "6ff878cc4a8a368d",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:309 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `if (lastError) console.log(yellow(`Last error    ${lastError}`));`, the `sync status` report."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "packages/cli/src/commands/sync.ts",
+      "line": 339,
+      "id": "46bdad32e58f829a",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at sync.ts:339 is the ks sync CLI command's user-facing output (usage, status lines, device list), the command's real output path, not a leftover debug print pass two: user-facing output of the `ks sync` CLI command, not a debug print: packages/cli/src/index.ts:131-132 `case \"sync\": return await syncCommand(args);` dispatches to this function; the line is `console.log(`${label}  ${dim(fingerprint(d.signPub))}  added ${when(d.addedAt)}  last seen ${when(d.lastSeen)}${me}`)`, one row of the `sync devices` listing; packages/cli/test/sync.test.ts:218 asserts on it (`expect(list.out).toContain(\"this device\")`)."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/cli/src/vault/store.ts",
+      "line": 34,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: 'export interface SyncRow {' added by the change; git grep -w SyncRow at the commit hits only packages/cli/src/vault/store.ts, nothing imports it pass two: `export interface SyncRow {` is added by the change and git grep -w SyncRow at the commit finds it only inside packages/cli/src/vault/store.ts (lines 34, 54, 55, 164); no file imports it."
+    },
+    {
+      "rule": "dead-export",
+      "file": "packages/cli/src/vault/store.ts",
+      "line": 50,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: 'export interface SyncTable {' added by the change; git grep -w SyncTable at the commit hits only packages/cli/src/vault/store.ts, nothing imports it pass two: `export interface SyncTable {` is added by the change and git grep -w SyncTable at the commit finds it only inside packages/cli/src/vault/store.ts (lines 50, 93, 173); no file imports it."
+    }
+  ]
+}

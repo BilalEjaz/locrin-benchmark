@@ -1,0 +1,21 @@
+export type { ChangeFinding, ChangeFindingKind, ChangeReport } from "./change.ts";
+export { checkChange } from "./change.ts";
+export { formatChanges } from "./changes.ts";
+export type { CommandSpec } from "./commands.ts";
+export { COMMANDS } from "./commands.ts";
+// Config and scope live in the store; re-exported so existing imports keep working.
+export type { CoverageThresholds, PoeticsConfig, Scope } from "@poetics/store";
+export { filesInScope, readConfig } from "@poetics/store";
+export type { CoverageMetrics, CoverageReport, Ratio } from "./coverage.ts";
+export { METRICS, areaOf, computeCoverage, coverageFor, formatCoverage } from "./coverage.ts";
+export type { Declaration } from "./declarations.ts";
+export { declarationsIn, discoverDeclarations } from "./declarations.ts";
+export type { Drift, DriftFinding, DriftKind } from "./drift.ts";
+export { DRIFT_SEVERITY, compareCodeWithStore } from "./drift.ts";
+export { formatLog, formatWhy } from "./history.ts";
+export type { Io } from "./run.ts";
+export { VERSION, run } from "./run.ts";
+export type { RehashEntry, RehashPlan } from "./rehash.ts";
+export { applyRehash, planRehash, unitHashes } from "./rehash.ts";
+export type { IndexOptions, IndexPlan, PlannedMove, PlannedRelink, PlannedVersion } from "./indexing.ts";
+export { applyIndex, formatIndexPlan, hasWrites, planIndex } from "./indexing.ts";

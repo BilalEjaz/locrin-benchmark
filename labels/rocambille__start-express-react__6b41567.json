@@ -1,0 +1,33 @@
+{
+  "diff": "rocambille__start-express-react__6b41567",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "express-cookie-insecure",
+      "file": "tests/express/modules/auth/contract-assertions.test.ts",
+      "line": 38,
+      "id": "269bc5a87ce874ae",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: test fixture, not the app server: contract-assertions.test.ts line 38 `res.cookie(\"__Host-auth\", \"token\", { path: \"/\", ...options })` sits in serverSetting(), a throwaway express() app the tests build to prove sessionCookieIsSet rejects bad cookie options (lines 64 and 76 call it with sameSite \"lax\" and without httpOnly on purpose) pass two: test fixture, not server code: line 38 `res.cookie(\"__Host-auth\", \"token\", { path: \"/\", ...options }).send(\"ok\")` sits in `serverSetting`, an in-process app built only for supertest in a vitest file; the flags arrive through the `...options` spread (lines 64-68 pass `httpOnly: true, secure: true`, line 76 passes `secure: true` and omits httpOnly on purpose so that `rejects.toThrow(/httponly/)` at line 80 can prove the assertion fails)"
+    },
+    {
+      "rule": "express-cookie-insecure",
+      "file": "tests/express/modules/auth/contract-assertions.test.ts",
+      "line": 38,
+      "id": "6cb1cd9ff7a5f61b",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: test fixture, not the app server: contract-assertions.test.ts line 38 `res.cookie(\"__Host-auth\", \"token\", { path: \"/\", ...options })` sits in serverSetting(), a throwaway express() app the tests build to prove sessionCookieIsSet rejects bad cookie options (lines 64 and 76 call it with sameSite \"lax\" and without httpOnly on purpose) pass two: test fixture, not server code: line 38 `res.cookie(\"__Host-auth\", \"token\", { path: \"/\", ...options }).send(\"ok\")` sits in `serverSetting`, an in-process app built only for supertest in a vitest file; the flags arrive through the `...options` spread (lines 64-68 pass `httpOnly: true, secure: true`, line 76 passes `secure: true` and omits httpOnly on purpose so that `rejects.toThrow(/httponly/)` at line 80 can prove the assertion fails)"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "debugmcp__mcp-debugger__ef05d9e",
+  "source": "git",
+  "repo": "debugmcp/mcp-debugger",
+  "sha": "ef05d9e07481990e0a6a538ea231369883ae7308",
+  "parent": "32b7d98da76fa25d5b4e496fff37e18b3b8f9947",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/debugmcp/mcp-debugger/commit/ef05d9e07481990e0a6a538ea231369883ae7308",
+  "files": [
+    "packages/shared/src/index.ts",
+    "packages/shared/src/interfaces/adapter-policy-js.ts",
+    "packages/shared/src/interfaces/adapter-policy.ts",
+    "src/session/session-manager-core.ts",
+    "tests/adapters/javascript/integration/javascript-subprocess-attach.test.ts",
+    "tests/adapters/javascript/integration/javascript-subprocess-cascade.test.ts",
+    "tests/adapters/javascript/integration/javascript-subprocess-tree.test.ts",
+    "tests/core/unit/session/session-manager-child-sessions.test.ts",
+    "tests/core/unit/session/session-manager-integration.test.ts",
+    "tests/unit/shared/adapter-policy-js.test.ts"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console",
+    "test-case"
+  ]
+}

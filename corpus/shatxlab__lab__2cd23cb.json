@@ -1,0 +1,30 @@
+{
+  "id": "shatxlab__lab__2cd23cb",
+  "source": "git",
+  "repo": "shatxlab/lab",
+  "sha": "2cd23cbaa26c7aa072fbb94a9133831fa79aab60",
+  "parent": "716133c2452df67706c9ecafef9eae062ab4b9f1",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/shatxlab/lab/commit/2cd23cbaa26c7aa072fbb94a9133831fa79aab60",
+  "files": [
+    "scripts/hr/playthrough.ts",
+    "src/components/hr/HrApp.tsx",
+    "src/components/hr/RunView.tsx",
+    "src/lib/hr/career.ts",
+    "src/lib/hr/i18n.ts",
+    "src/lib/hr/render/draw.ts",
+    "src/lib/hr/sim/balance.ts",
+    "src/lib/hr/sim/run.ts",
+    "src/lib/hr/sim/types.ts",
+    "tests/hr/career.test.ts",
+    "tests/hr/hr-app.test.tsx",
+    "tests/hr/run.test.ts"
+  ],
+  "wave": 2,
+  "signal": "weak-random",
+  "signals": [
+    "weak-random",
+    "test-case"
+  ]
+}

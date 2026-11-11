@@ -1,0 +1,31 @@
+{
+  "id": "ScaleDockHQ__better-supabase__4118ecc",
+  "source": "git",
+  "repo": "ScaleDockHQ/better-supabase",
+  "sha": "4118ecc7168b3e6b9ab4b9c13d6fc0bf5ac9572e",
+  "parent": "b2176c34bef14d2b29c05e597e28884f25641c87",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/ScaleDockHQ/better-supabase/commit/4118ecc7168b3e6b9ab4b9c13d6fc0bf5ac9572e",
+  "files": [
+    "packages/better-supabase/src/cli/commands/table.ts",
+    "packages/better-supabase/src/list/buckets/index.ts",
+    "packages/better-supabase/src/list/index.ts",
+    "packages/better-supabase/src/list/list-params.ts",
+    "packages/better-supabase/src/list/list-query.ts",
+    "packages/better-supabase/src/list/order/index.ts",
+    "packages/better-supabase/src/sql/table-features.ts",
+    "packages/better-supabase/src/sql/tag-statements.ts",
+    "packages/better-supabase/tests/list/buckets/index.test.ts",
+    "packages/better-supabase/tests/list/list-extras.test.ts",
+    "packages/better-supabase/tests/list/list.test-d.ts",
+    "packages/better-supabase/tests/sql/tag-statements.test.ts",
+    "packages/better-supabase/tsdown.config.ts"
+  ],
+  "wave": 2,
+  "signal": "supabase-service-role",
+  "signals": [
+    "supabase-service-role",
+    "test-case"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "whileloophq__whileui__a6c9935",
+  "source": "git",
+  "repo": "whileloophq/whileui",
+  "sha": "a6c9935a46da44c315292635b8a7c4d44025e4ac",
+  "parent": "d1a1f7427035f7d2682fbd7ce21b8fe614dc0b72",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/whileloophq/whileui/commit/a6c9935a46da44c315292635b8a7c4d44025e4ac",
+  "files": [
+    "apps/showcase/catalog/App.tsx",
+    "e2e/accessibility-tree.spec.ts",
+    "packages/ui/src/components/alert/alert.test.tsx",
+    "packages/ui/src/components/alert/alert.tsx"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

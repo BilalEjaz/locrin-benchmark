@@ -1,0 +1,23 @@
+{
+  "id": "earayu__Mingle__977e185",
+  "source": "git",
+  "repo": "earayu/Mingle",
+  "sha": "977e185ecb4a7d131a3f14e31a1a66306c2f5c14",
+  "parent": "c0dd52ee6eb449d65a6dc7b54115b37c00822d1d",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/earayu/Mingle/commit/977e185ecb4a7d131a3f14e31a1a66306c2f5c14",
+  "files": [
+    "spikes/oar-session.mjs",
+    "src/channels/channel.ts",
+    "src/cli/main.ts",
+    "src/version.ts",
+    "test/schema.test.ts"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console",
+    "test-case"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "diff": "Von-Payments__vonpay-samples__3ccc9b5",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-file",
+      "file": "checkout-nextjs/lib/orders.ts",
+      "line": 1,
+      "id": "02a8e0794feb208f",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: imported by checkout-nextjs/app/api/checkout/route.ts:3 and app/confirm/page.tsx:4 as \"@/lib/orders\"; checkout-nextjs/tsconfig.json maps \"@/*\" to \"./*\" pass two: Imported through the tsconfig alias (\"paths\": {\"@/*\": [\"./*\"]} in checkout-nextjs/tsconfig.json): checkout-nextjs/app/api/checkout/route.ts:3 `import { CHECKOUT_COOKIE, saveOrder } from \"@/lib/orders\";` and checkout-nextjs/app/confirm/page.tsx:4 `import { CHECKOUT_COOKIE, getOrderBySession } from \"@/lib/orders\";`."
+    },
+    {
+      "rule": "dead-file",
+      "file": "platform-integrator-nextjs/lib/orders.ts",
+      "line": 1,
+      "id": "90f431add0117968",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: imported by platform-integrator-nextjs/app/api/charge/route.ts:5 and app/tenants/[merchantId]/confirm/page.tsx:5 as \"@/lib/orders\"; tsconfig.json maps \"@/*\" to \"./*\" pass two: Imported through the tsconfig alias (\"paths\": {\"@/*\": [\"./*\"]} in platform-integrator-nextjs/tsconfig.json): platform-integrator-nextjs/app/api/charge/route.ts:5 `import { saveOrder } from \"@/lib/orders\";` and platform-integrator-nextjs/app/tenants/[merchantId]/confirm/page.tsx:5 `import { getOrderBySession } from \"@/lib/orders\";`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "checkout-nextjs/lib/orders.ts",
+      "line": 10,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: \"export interface OrderRecord {\" in a new file: git grep for OrderRecord at the commit finds no importer, only uses inside this file (checkout-express/server.ts:62 declares its own) pass two: New file; `export interface OrderRecord {` has no importer: git grep OrderRecord at the commit finds it under checkout-nextjs only in lib/orders.ts itself (lines 10, 21, 23, 25, 29), and the two importers of the file take only `CHECKOUT_COOKIE, saveOrder` (app/api/checkout/route.ts:3) and `CHECKOUT_COOKIE, getOrderBySession` (app/confirm/page.tsx:4)."
+    },
+    {
+      "rule": "dead-export",
+      "file": "platform-integrator-nextjs/lib/orders.ts",
+      "line": 10,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: \"export interface OrderRecord {\" in a new file: git grep for OrderRecord at the commit finds no importer, only uses inside this file pass two: New file; `export interface OrderRecord {` has no importer: git grep OrderRecord at the commit finds it under platform-integrator-nextjs only in lib/orders.ts itself (lines 10, 20, 22, 24, 28), and the two importers of the file take only `saveOrder` (app/api/charge/route.ts:5) and `getOrderBySession` (app/tenants/[merchantId]/confirm/page.tsx:5)."
+    }
+  ]
+}

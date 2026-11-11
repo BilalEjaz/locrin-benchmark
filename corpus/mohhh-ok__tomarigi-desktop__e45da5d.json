@@ -1,0 +1,22 @@
+{
+  "id": "mohhh-ok__tomarigi-desktop__e45da5d",
+  "source": "git",
+  "repo": "mohhh-ok/tomarigi-desktop",
+  "sha": "e45da5d2f967ac1f4784d6bbb72b55e4bb823a7e",
+  "parent": "4be13393a36cacd8bd496d1b88b1d2ee246452ad",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/mohhh-ok/tomarigi-desktop/commit/e45da5d2f967ac1f4784d6bbb72b55e4bb823a7e",
+  "files": [
+    "src/lib/session-chicks.ts",
+    "src/lib/session-types.ts",
+    "tests/chick-callers.test.ts",
+    "tools/chick-scan-measure.ts"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console",
+    "test-case"
+  ]
+}

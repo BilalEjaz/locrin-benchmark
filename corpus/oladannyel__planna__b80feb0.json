@@ -1,0 +1,18 @@
+{
+  "id": "oladannyel__planna__b80feb0",
+  "source": "git",
+  "repo": "oladannyel/planna",
+  "sha": "b80feb03b5f1599bcdae8e390ec15f6f56c52794",
+  "parent": "c28ac63de510fd51750032d0e7cbbb91fc61983e",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/oladannyel/planna/commit/b80feb03b5f1599bcdae8e390ec15f6f56c52794",
+  "files": [
+    "playwright.config.ts"
+  ],
+  "wave": 2,
+  "signal": "supabase-service-role",
+  "signals": [
+    "supabase-service-role"
+  ]
+}

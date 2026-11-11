@@ -1,0 +1,25 @@
+{
+  "id": "actions-marketplace-validations__Nari-Ab_agent-roast__0ae6295",
+  "source": "git",
+  "repo": "actions-marketplace-validations/Nari-Ab_agent-roast",
+  "sha": "0ae62955fdf53ec8eabd1eb1f303c7084c4a8bde",
+  "parent": "9c87c3a53baa2fcf32d3a6ab237968584eb10f53",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/actions-marketplace-validations/Nari-Ab_agent-roast/commit/0ae62955fdf53ec8eabd1eb1f303c7084c4a8bde",
+  "files": [
+    "scripts/smoke.mjs",
+    "src/cli.ts",
+    "src/hook.ts",
+    "src/index.ts",
+    "src/mcp.ts",
+    "tests/distribution.test.ts",
+    "tests/mcp.test.ts"
+  ],
+  "wave": 2,
+  "signal": "test-skip",
+  "signals": [
+    "test-skip",
+    "test-case"
+  ]
+}

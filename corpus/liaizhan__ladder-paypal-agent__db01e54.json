@@ -1,0 +1,26 @@
+{
+  "id": "liaizhan__ladder-paypal-agent__db01e54",
+  "source": "git",
+  "repo": "liaizhan/ladder-paypal-agent",
+  "sha": "db01e54eeb2ee21d928b4319ab4206afe7b1965a",
+  "parent": "b3eedececd8a5e8a78fc69f9b653cf372c3f92ca",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/liaizhan/ladder-paypal-agent/commit/db01e54eeb2ee21d928b4319ab4206afe7b1965a",
+  "files": [
+    "src/dashboard.ts",
+    "src/index.ts",
+    "src/ledger.ts",
+    "src/page.ts",
+    "src/pass.ts",
+    "src/paypal.ts",
+    "src/safety.ts",
+    "test/core.test.ts"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console",
+    "test-case"
+  ]
+}

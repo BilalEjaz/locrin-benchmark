@@ -1,0 +1,30 @@
+{
+  "id": "corixien__Oviate__d42cd92",
+  "source": "git",
+  "repo": "corixien/Oviate",
+  "sha": "d42cd92dd8f70102314e31d61c88f33c976e2dbb",
+  "parent": "b0ca47b5fda9adbfd79c4c3145445221fe8e2cc2",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/corixien/Oviate/commit/d42cd92dd8f70102314e31d61c88f33c976e2dbb",
+  "files": [
+    "server/src/app.test.ts",
+    "server/src/app.ts",
+    "server/src/db.ts",
+    "server/src/dev-memory.ts",
+    "server/src/index.ts",
+    "server/src/vault.ts",
+    "src/lib/api.ts",
+    "src/lib/chart/renderer.ts",
+    "src/lib/sync.svelte.ts",
+    "src/lib/sync.test.ts",
+    "src/lib/sync.ts"
+  ],
+  "wave": 2,
+  "signal": "cipher-iv",
+  "signals": [
+    "cipher-iv",
+    "console",
+    "test-case"
+  ]
+}

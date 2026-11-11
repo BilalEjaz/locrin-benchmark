@@ -1,0 +1,25 @@
+{
+  "id": "nata-t__klin__15c6c52",
+  "source": "git",
+  "repo": "nata-t/klin",
+  "sha": "15c6c52fc7b1957d1a5d5100d1f1a38ac59eb3b0",
+  "parent": "f70a10e5a553c5473ea925a13934fe43f3c4c7c7",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/nata-t/klin/commit/15c6c52fc7b1957d1a5d5100d1f1a38ac59eb3b0",
+  "files": [
+    "website/astro.config.mjs",
+    "website/cli-bridge.mjs",
+    "website/src/lib/site.ts",
+    "website/src/scripts/hero-field.ts",
+    "website/src/scripts/motion.ts",
+    "website/src/wizard/glyphs.ts",
+    "website/src/wizard/shims/process.ts"
+  ],
+  "wave": 2,
+  "signal": "marker",
+  "signals": [
+    "marker",
+    "weak-random"
+  ]
+}

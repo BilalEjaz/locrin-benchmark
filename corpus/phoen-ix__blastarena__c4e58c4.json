@@ -1,0 +1,25 @@
+{
+  "id": "phoen-ix__blastarena__c4e58c4",
+  "source": "git",
+  "repo": "phoen-ix/blastarena",
+  "sha": "c4e58c4d49fcb8ca3b2a52bcbf5c184f2e0f0099",
+  "parent": "c4c8c24dcb8118b3c344afc385ecb1b88c73b919",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/phoen-ix/blastarena/commit/c4e58c4d49fcb8ca3b2a52bcbf5c184f2e0f0099",
+  "files": [
+    "backend/src/app.ts",
+    "backend/src/middleware/csrf.ts",
+    "backend/src/routes/auth.ts",
+    "frontend/src/network/AuthManager.ts",
+    "frontend/tests/network/authRefresh.test.ts",
+    "tests/backend/middleware/csrf.test.ts",
+    "tests/backend/routes/auth.test.ts"
+  ],
+  "wave": 2,
+  "signal": "express-cookie",
+  "signals": [
+    "express-cookie",
+    "test-case"
+  ]
+}

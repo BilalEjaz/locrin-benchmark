@@ -1,0 +1,51 @@
+{
+  "diff": "Striv11__steadyline__51d21f4",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/importers/vitals.ts",
+      "line": 17,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export interface VitalsImportOptions {` new file; git grep at 51d21f4 finds no reference outside vitals.ts; the only importer of ./vitals is importers.test.ts:149/164/183 `const { importVitals, vitalKey } = await import('./vitals')`, which takes neither pass two: `export interface VitalsImportOptions {`: new file; git grep -w VitalsImportOptions at 51d21f4 matches only src/importers/vitals.ts; the file's only importers are src/importers/importers.test.ts:149 and :183 `const { importVitals } = await import('./vitals');` and :164 `const { importVitals, vitalKey } = await import('./vitals');`, which bind neither this name nor the namespace"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/importers/vitals.ts",
+      "line": 25,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export interface VitalsImportReport {` new file; git grep at 51d21f4 finds no reference outside vitals.ts; the only importer of ./vitals is importers.test.ts:149/164/183 `const { importVitals, vitalKey } = await import('./vitals')`, which takes neither pass two: `export interface VitalsImportReport {`: new file; git grep -w VitalsImportReport at 51d21f4 matches only src/importers/vitals.ts; the file's only importers are src/importers/importers.test.ts:149 and :183 `const { importVitals } = await import('./vitals');` and :164 `const { importVitals, vitalKey } = await import('./vitals');`, which bind neither this name nor the namespace"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/importers/vitals.ts",
+      "line": 79,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export function newVitalsReport(): VitalsImportReport {` new file; git grep at 51d21f4 finds no reference outside vitals.ts; the only importer of ./vitals is importers.test.ts:149/164/183 `const { importVitals, vitalKey } = await import('./vitals')`, which takes neither pass two: `export function newVitalsReport(): VitalsImportReport {`: new file; git grep -w newVitalsReport at 51d21f4 matches only src/importers/vitals.ts; the file's only importers are src/importers/importers.test.ts:149 and :183 `const { importVitals } = await import('./vitals');` and :164 `const { importVitals, vitalKey } = await import('./vitals');`, which bind neither this name nor the namespace"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/importers/vitals.ts",
+      "line": 92,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export async function* streamVitals(` new file; git grep at 51d21f4 finds no reference outside vitals.ts; the only importer of ./vitals is importers.test.ts:149/164/183 `const { importVitals, vitalKey } = await import('./vitals')`, which takes neither pass two: `export async function* streamVitals(`: new file; git grep -w streamVitals at 51d21f4 matches only src/importers/vitals.ts; the file's only importers are src/importers/importers.test.ts:149 and :183 `const { importVitals } = await import('./vitals');` and :164 `const { importVitals, vitalKey } = await import('./vitals');`, which bind neither this name nor the namespace"
+    }
+  ]
+}

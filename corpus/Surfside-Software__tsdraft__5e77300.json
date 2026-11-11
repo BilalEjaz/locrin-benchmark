@@ -1,0 +1,25 @@
+{
+  "id": "Surfside-Software__tsdraft__5e77300",
+  "source": "git",
+  "repo": "Surfside-Software/tsdraft",
+  "sha": "5e773007d13bfeda2d296ece3c6cb45cdec8ae51",
+  "parent": "e0bcbf6515b1b21ddb4169f5c855e88f5d283f95",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Surfside-Software/tsdraft/commit/5e773007d13bfeda2d296ece3c6cb45cdec8ae51",
+  "files": [
+    "examples/lib/drafting.ts",
+    "examples/site-plan.ts",
+    "scripts/readme-drawing.ts",
+    "src/index.ts",
+    "src/paper.ts",
+    "src/rules.ts",
+    "test/rules.test.ts"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console",
+    "test-case"
+  ]
+}

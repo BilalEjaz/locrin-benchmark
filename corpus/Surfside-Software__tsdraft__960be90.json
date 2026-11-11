@@ -1,0 +1,20 @@
+{
+  "id": "Surfside-Software__tsdraft__960be90",
+  "source": "git",
+  "repo": "Surfside-Software/tsdraft",
+  "sha": "960be90f961b9da62d1e1639a9b7d6d7300c9ddf",
+  "parent": "01ef4e1b76211dc6377f5fe90925d00d38d1aec3",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Surfside-Software/tsdraft/commit/960be90f961b9da62d1e1639a9b7d6d7300c9ddf",
+  "files": [
+    "examples/lib/drafting.ts",
+    "examples/outdoor-kitchen.ts",
+    "scripts/readme-drawing.ts"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console"
+  ]
+}

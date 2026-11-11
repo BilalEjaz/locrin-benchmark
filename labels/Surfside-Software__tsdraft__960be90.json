@@ -1,0 +1,105 @@
+{
+  "diff": "Surfside-Software__tsdraft__960be90",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "examples/lib/drafting.ts",
+      "line": 7,
+      "id": "292cd5096aa08fc2",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: Pen is exported here but git grep -w Pen at 960be90 finds no use outside drafting.ts; the only importer, examples/outdoor-kitchen.ts lines 9-24, imports breakLine, dashedLine, dimension, dimensionChain, earth, gridLines, hatch, insulation, leader, lineOutside, sectionMark, stipple, viewTitle and type Box only; drafting.ts is a helper module no package.json script runs pass two: git grep -w Pen at the commit finds no import of it: outside examples/lib/drafting.ts the only importer of that file is examples/outdoor-kitchen.ts:9-24, whose import list does not name Pen, and no package.json script names examples/lib/drafting.ts; the `Pen` hits in src/svg.ts:38 are a local `interface Pen`"
+    },
+    {
+      "rule": "dead-export",
+      "file": "examples/lib/drafting.ts",
+      "line": 13,
+      "id": "22a698ad4b6a6b6e",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: feetInches is exported here but git grep -w feetInches at 960be90 finds no use outside drafting.ts; the only importer, examples/outdoor-kitchen.ts lines 9-24, imports breakLine, dashedLine, dimension, dimensionChain, earth, gridLines, hatch, insulation, leader, lineOutside, sectionMark, stipple, viewTitle and type Box only; drafting.ts is a helper module no package.json script runs pass two: git grep -w feetInches at the commit finds no import of it: outside examples/lib/drafting.ts the only importer of that file is examples/outdoor-kitchen.ts:9-24, whose import list does not name feetInches, and no package.json script names examples/lib/drafting.ts"
+    },
+    {
+      "rule": "dead-export",
+      "file": "examples/lib/drafting.ts",
+      "line": 40,
+      "id": "41c1f6b58f150fea",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: textWidth is exported here but git grep -w textWidth at 960be90 finds no use outside drafting.ts; the only importer, examples/outdoor-kitchen.ts lines 9-24, imports breakLine, dashedLine, dimension, dimensionChain, earth, gridLines, hatch, insulation, leader, lineOutside, sectionMark, stipple, viewTitle and type Box only; drafting.ts is a helper module no package.json script runs pass two: git grep -w textWidth at the commit finds no import of it: outside examples/lib/drafting.ts the only importer of that file is examples/outdoor-kitchen.ts:9-24, whose import list does not name textWidth, and no package.json script names examples/lib/drafting.ts"
+    },
+    {
+      "rule": "dead-export",
+      "file": "examples/lib/drafting.ts",
+      "line": 44,
+      "id": "2e1d3ef9aefecf2e",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: Align is exported here but git grep -w Align at 960be90 finds no use outside drafting.ts; the only importer, examples/outdoor-kitchen.ts lines 9-24, imports breakLine, dashedLine, dimension, dimensionChain, earth, gridLines, hatch, insulation, leader, lineOutside, sectionMark, stipple, viewTitle and type Box only; drafting.ts is a helper module no package.json script runs pass two: git grep -w Align at the commit finds no import of it: outside examples/lib/drafting.ts the only importer of that file is examples/outdoor-kitchen.ts:9-24, whose import list does not name Align, and no package.json script names examples/lib/drafting.ts"
+    },
+    {
+      "rule": "dead-export",
+      "file": "examples/lib/drafting.ts",
+      "line": 47,
+      "id": "80e03b9a3985ac54",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: label is exported here; the only importer, examples/outdoor-kitchen.ts lines 9-24, imports breakLine, dashedLine, dimension, dimensionChain, earth, gridLines, hatch, insulation, leader, lineOutside, sectionMark, stipple, viewTitle and type Box only; the only other hits of the word label are unrelated locals (outdoor-kitchen.ts:56 scale.label, cad-check.ts:1133 const label) pass two: git grep -w label at the commit finds no import of it: outside examples/lib/drafting.ts the only importer of that file is examples/outdoor-kitchen.ts:9-24, whose import list does not name label, and no package.json script names examples/lib/drafting.ts; the other `label` hits are a property (examples/outdoor-kitchen.ts:56 `const scale = { label: ...`) and a local const (scripts/cad-check.ts:1133)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "examples/lib/drafting.ts",
+      "line": 61,
+      "id": "67b1bcf51e6b7663",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: DimensionStyle is exported here but git grep -w DimensionStyle at 960be90 finds no use outside drafting.ts; the only importer, examples/outdoor-kitchen.ts lines 9-24, imports breakLine, dashedLine, dimension, dimensionChain, earth, gridLines, hatch, insulation, leader, lineOutside, sectionMark, stipple, viewTitle and type Box only; drafting.ts is a helper module no package.json script runs pass two: git grep -w DimensionStyle at the commit finds no import of it: outside examples/lib/drafting.ts the only importer of that file is examples/outdoor-kitchen.ts:9-24, whose import list does not name DimensionStyle, and no package.json script names examples/lib/drafting.ts"
+    },
+    {
+      "rule": "dead-export",
+      "file": "examples/lib/drafting.ts",
+      "line": 153,
+      "id": "63e46547b12a4bcd",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: arrowhead is exported here but git grep -w arrowhead at 960be90 finds no use outside drafting.ts; the only importer, examples/outdoor-kitchen.ts lines 9-24, imports breakLine, dashedLine, dimension, dimensionChain, earth, gridLines, hatch, insulation, leader, lineOutside, sectionMark, stipple, viewTitle and type Box only; drafting.ts is a helper module no package.json script runs pass two: git grep -w arrowhead at the commit finds no import of it: outside examples/lib/drafting.ts the only importer of that file is examples/outdoor-kitchen.ts:9-24, whose import list does not name arrowhead, and no package.json script names examples/lib/drafting.ts"
+    },
+    {
+      "rule": "dead-export",
+      "file": "examples/lib/drafting.ts",
+      "line": 216,
+      "id": "e9b0565a455142a5",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: StippleOptions is exported here but git grep -w StippleOptions at 960be90 finds no use outside drafting.ts; the only importer, examples/outdoor-kitchen.ts lines 9-24, imports breakLine, dashedLine, dimension, dimensionChain, earth, gridLines, hatch, insulation, leader, lineOutside, sectionMark, stipple, viewTitle and type Box only; drafting.ts is a helper module no package.json script runs pass two: git grep -w StippleOptions at the commit finds no import of it: outside examples/lib/drafting.ts the only importer of that file is examples/outdoor-kitchen.ts:9-24, whose import list does not name StippleOptions, and no package.json script names examples/lib/drafting.ts"
+    },
+    {
+      "rule": "dead-export",
+      "file": "examples/lib/drafting.ts",
+      "line": 351,
+      "id": "3ae1fc2b7f1def57",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: ViewTitleOptions is exported here but git grep -w ViewTitleOptions at 960be90 finds no use outside drafting.ts; the only importer, examples/outdoor-kitchen.ts lines 9-24, imports breakLine, dashedLine, dimension, dimensionChain, earth, gridLines, hatch, insulation, leader, lineOutside, sectionMark, stipple, viewTitle and type Box only; drafting.ts is a helper module no package.json script runs pass two: git grep -w ViewTitleOptions at the commit finds no import of it: outside examples/lib/drafting.ts the only importer of that file is examples/outdoor-kitchen.ts:9-24, whose import list does not name ViewTitleOptions, and no package.json script names examples/lib/drafting.ts"
+    },
+    {
+      "rule": "dead-file",
+      "file": "examples/outdoor-kitchen.ts",
+      "line": 1,
+      "id": "0499d0d56c677490",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: entry point: package.json at 960be90 line 51 \"example\": \"node examples/site-plan.ts && node examples/outdoor-kitchen.ts\"; scripts/readme-drawing.ts also runs it via execFileSync on `examples/${name}.ts` with name \"outdoor-kitchen\" (line 49) pass two: an entry point: package.json line 51 at the commit is `\"example\": \"node examples/site-plan.ts && node examples/outdoor-kitchen.ts\",`, and scripts/readme-drawing.ts:78 runs it with `execFileSync(process.execPath, [`examples/${name}.ts`], ...)` for the picture named \"outdoor-kitchen\" (line 49)"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "paperclipai__paperclip__eb75c9b",
+  "source": "git",
+  "repo": "paperclipai/paperclip",
+  "sha": "eb75c9bb855ce83915256efc9d6b308a272cdeff",
+  "parent": "4d141cdf64394b5466eedacc6397187c4cd32f1b",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/paperclipai/paperclip/commit/eb75c9bb855ce83915256efc9d6b308a272cdeff",
+  "files": [
+    "server/src/services/native-runtime/native-harness-backup-storage.ts",
+    "server/src/services/native-runtime/native-harness-backup-throttle.integration.test.ts",
+    "server/src/services/native-runtime/native-provider-artifacts.ts"
+  ],
+  "wave": 2,
+  "signal": "weak-hash",
+  "signals": [
+    "weak-hash",
+    "test-case"
+  ]
+}

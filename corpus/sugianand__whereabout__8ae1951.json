@@ -1,0 +1,23 @@
+{
+  "id": "sugianand__whereabout__8ae1951",
+  "source": "git",
+  "repo": "sugianand/whereabout",
+  "sha": "8ae1951a92938f7521dcc64deab700d9364f7235",
+  "parent": "1d3977d2a9e503a954e2022c6b0382e97ab2a33b",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/sugianand/whereabout/commit/8ae1951a92938f7521dcc64deab700d9364f7235",
+  "files": [
+    "web/e2e/how-far.spec.ts",
+    "web/src/components/HowFar.test.tsx",
+    "web/src/components/HowFar.tsx",
+    "web/src/lib/game/farChallenge.test.ts",
+    "web/src/lib/game/farChallenge.ts"
+  ],
+  "wave": 2,
+  "signal": "test-skip",
+  "signals": [
+    "test-skip",
+    "test-case"
+  ]
+}

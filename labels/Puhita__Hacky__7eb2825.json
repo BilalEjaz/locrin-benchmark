@@ -1,0 +1,42 @@
+{
+  "diff": "Puhita__Hacky__7eb2825",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-file",
+      "file": "packages/extension/media/board.js",
+      "line": 1,
+      "id": "f30513e323b7bf02",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Webview script loaded by extension.ts openBoard(): 'this.html(panel.webview, mediaUri, \"board\")', which emits src=${uri(`${name}.js`)}; board.test.ts:9 also reads '../media/board.js' pass two: the webview script the extension loads: extension.ts:97 `panel.webview.html = this.html(panel.webview, mediaUri, \"board\");` feeds extension.ts:119 `src=\"${uri(`${name}.js`)}\"`, and board.test.ts:9 reads \"../media/board.js\""
+    },
+    {
+      "rule": "injection-sink",
+      "file": "packages/extension/src/board.test.ts",
+      "line": 21,
+      "id": "8a6001fd12e02ce2",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: window.eval(SCRIPT) in a jsdom test; SCRIPT is readFileSync of the repo's own '../media/board.js' (line 9), no user-controlled input pass two: `window.eval(SCRIPT)` in a jsdom test; SCRIPT is the repository's own file, board.test.ts:9 `readFileSync(join(dirname(fileURLToPath(import.meta.url)), \"../media/board.js\"), \"utf8\")`, not user input"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "packages/extension/media/sidebar.js",
+      "line": 448,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: Floating promise: 'navigator.clipboard.writeText(state.team.invite_code);' as a statement in a block-bodied onclick, result discarded (parent line 380 returned it from an expression arrow) pass two: floating promise: `navigator.clipboard.writeText(state.team.invite_code);` is now a bare statement in a block-bodied onclick, no await, handler, return or void (the parent returned it from an expression arrow)"
+    }
+  ]
+}

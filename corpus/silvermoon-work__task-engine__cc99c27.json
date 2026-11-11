@@ -1,0 +1,19 @@
+{
+  "id": "silvermoon-work__task-engine__cc99c27",
+  "source": "git",
+  "repo": "silvermoon-work/task-engine",
+  "sha": "cc99c27a12a5189ea41327edc51bb770de054179",
+  "parent": "bdfbdbbb5286be34844039abd0658bf4c1c1b904",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/silvermoon-work/task-engine/commit/cc99c27a12a5189ea41327edc51bb770de054179",
+  "files": [
+    "packages/task-builder-cli/src/node.ts",
+    "packages/task-builder-cli/test/cli.test.ts"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

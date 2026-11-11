@@ -1,0 +1,22 @@
+{
+  "id": "rocambille__start-express-react__6b41567",
+  "source": "git",
+  "repo": "rocambille/start-express-react",
+  "sha": "6b4156781d482880ab0b37a1cc363b113432f67c",
+  "parent": "ba20885394b8c978fe8c41b29ccbf23f9babf5ce",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/rocambille/start-express-react/commit/6b4156781d482880ab0b37a1cc363b113432f67c",
+  "files": [
+    "tests/contracts/assertions/session.ts",
+    "tests/contracts/auth.ts",
+    "tests/express/modules/auth/contract-assertions.test.ts",
+    "tests/express/test-utils.ts"
+  ],
+  "wave": 2,
+  "signal": "express-cookie",
+  "signals": [
+    "express-cookie",
+    "test-case"
+  ]
+}

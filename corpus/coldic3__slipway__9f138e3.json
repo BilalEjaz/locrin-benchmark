@@ -1,0 +1,21 @@
+{
+  "id": "coldic3__slipway__9f138e3",
+  "source": "git",
+  "repo": "coldic3/slipway",
+  "sha": "9f138e3ec349e5ff57e902b541f857a8084957e2",
+  "parent": "50dcaf15059dc531923e118ea11213da0110b4a5",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/coldic3/slipway/commit/9f138e3ec349e5ff57e902b541f857a8084957e2",
+  "files": [
+    "plugin/dist/slipway-hook.mjs",
+    "src/mcp/hook.ts",
+    "tests/e2e/review-flow.spec.ts",
+    "tests/unit/hook.test.ts"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

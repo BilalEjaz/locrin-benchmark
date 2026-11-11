@@ -1,0 +1,33 @@
+{
+  "id": "earayu__Mingle__f8a174a",
+  "source": "git",
+  "repo": "earayu/Mingle",
+  "sha": "f8a174a26ac86a851af62cd3a19e108f9342e9bd",
+  "parent": "5aa6528b622a90bdaa7a14457bf40c3cac77a525",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/earayu/Mingle/commit/f8a174a26ac86a851af62cd3a19e108f9342e9bd",
+  "files": [
+    "scripts/copy-assets.mjs",
+    "src/api/server.ts",
+    "src/channels/channel.ts",
+    "src/cli/main.ts",
+    "src/store/store.ts",
+    "test/flow.test.ts",
+    "test/helpers.ts",
+    "web/src/AgentPage.tsx",
+    "web/src/App.tsx",
+    "web/src/CreateAgent.tsx",
+    "web/src/api.ts",
+    "web/src/i18n.ts",
+    "web/src/main.tsx",
+    "web/src/ui.tsx",
+    "web/vite.config.ts"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console",
+    "test-case"
+  ]
+}

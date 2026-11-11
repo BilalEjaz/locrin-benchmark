@@ -1,0 +1,177 @@
+{
+  "diff": "DwareLab__bugfree__2b0c550",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "apps/api/src/auth.ts",
+      "line": 86,
+      "id": "b46e664d82d5d4e3",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export const REPORTER_COOKIE: git grep -w at the commit finds it only in auth.ts (lines 86, 105, 116, 118, 122), no importer pass two: `export const REPORTER_COOKIE = \"bugfree_reporter\";` is used only inside auth.ts (lines 105, 116, 118, 122); git grep REPORTER_COOKIE at the commit finds no other file, and portal.ts:5 imports other names from ../auth but not this one."
+    },
+    {
+      "rule": "dead-export",
+      "file": "apps/api/src/routes/tickets.ts",
+      "line": 11,
+      "id": "faff32fbcc9b69ee",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export const TICKET_STATUSES: git grep -w at the commit finds it only in tickets.ts lines 11 and 69, no importer pass two: `export const TICKET_STATUSES = [...]` is used only at tickets.ts:69 `status: z.enum(TICKET_STATUSES).optional(),`; git grep finds no importer (portal.ts:9 imports only `SEVERITIES` from ./tickets)."
+    },
+    {
+      "rule": "dead-export",
+      "file": "apps/api/src/routes/tickets.ts",
+      "line": 13,
+      "id": "d3acb399cacbd345",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export const CLOSED_STATUSES: git grep -w at the commit finds it only in tickets.ts lines 13 and 90, no importer pass two: `export const CLOSED_STATUSES = new Set([\"done\", \"wont_fix\"]);` is used only at tickets.ts:90 `CLOSED_STATUSES.has(body.status)`; git grep finds no importer."
+    },
+    {
+      "rule": "dead-export",
+      "file": "apps/web/components/tickets.tsx",
+      "line": 10,
+      "id": "3c7611b9e677c60b",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: STATUSES is imported: apps/web/app/(app)/projects/[projectId]/tickets/page.tsx:8 imports { Avatar, CommentForm, CommentThread, SEVERITIES, STATUSES, Select, SeverityBadge, StatusPill } from \"@/components/tickets\" pass two: STATUSES is imported at apps/web/app/(app)/projects/[projectId]/tickets/page.tsx:8 `import { Avatar, CommentForm, CommentThread, SEVERITIES, STATUSES, Select, SeverityBadge, StatusPill } from \"@/components/tickets\";` and at apps/web/app/report/[slug]/[number]/page.tsx:7; the @/ alias is apps/web/tsconfig.json `\"paths\": { \"@/*\": [\"./*\"] }`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "apps/web/components/tickets.tsx",
+      "line": 18,
+      "id": "357ea60cd71952e1",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: SEVERITIES is imported: apps/web/app/report/[slug]/page.tsx:8 imports { SEVERITIES, StatusPill, Textarea } from \"@/components/tickets\" pass two: SEVERITIES is imported at apps/web/app/report/[slug]/page.tsx:8 `import { SEVERITIES, StatusPill, Textarea } from \"@/components/tickets\";` and at apps/web/app/(app)/projects/[projectId]/tickets/page.tsx:8; the @/ alias is apps/web/tsconfig.json `\"paths\": { \"@/*\": [\"./*\"] }`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "apps/web/components/tickets.tsx",
+      "line": 29,
+      "id": "aa05f911cbbc0c3c",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: StatusPill is imported: apps/web/app/report/[slug]/[number]/page.tsx:7 imports { CommentForm, CommentThread, STATUSES, SeverityBadge, StatusPill } from \"@/components/tickets\" pass two: StatusPill is imported at apps/web/app/report/[slug]/page.tsx:8 `import { SEVERITIES, StatusPill, Textarea } from \"@/components/tickets\";`, at apps/web/app/report/[slug]/[number]/page.tsx:7 and at apps/web/app/(app)/projects/[projectId]/tickets/page.tsx:8; the @/ alias is apps/web/tsconfig.json `\"paths\": { \"@/*\": [\"./*\"] }`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "apps/web/components/tickets.tsx",
+      "line": 39,
+      "id": "fa368adcf373873a",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: SeverityBadge is imported: apps/web/app/report/[slug]/[number]/page.tsx:7 imports { CommentForm, CommentThread, STATUSES, SeverityBadge, StatusPill } from \"@/components/tickets\" pass two: SeverityBadge is imported at apps/web/app/report/[slug]/[number]/page.tsx:7 `import { CommentForm, CommentThread, STATUSES, SeverityBadge, StatusPill } from \"@/components/tickets\";` and at apps/web/app/(app)/projects/[projectId]/tickets/page.tsx:8; the @/ alias is apps/web/tsconfig.json `\"paths\": { \"@/*\": [\"./*\"] }`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "apps/web/components/tickets.tsx",
+      "line": 66,
+      "id": "46214fc3861cc31c",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: CommentThread is imported: apps/web/app/report/[slug]/[number]/page.tsx:7 imports { CommentForm, CommentThread, STATUSES, SeverityBadge, StatusPill } from \"@/components/tickets\" pass two: CommentThread is imported at apps/web/app/report/[slug]/[number]/page.tsx:7 `import { CommentForm, CommentThread, STATUSES, SeverityBadge, StatusPill } from \"@/components/tickets\";` and at apps/web/app/(app)/projects/[projectId]/tickets/page.tsx:8; the @/ alias is apps/web/tsconfig.json `\"paths\": { \"@/*\": [\"./*\"] }`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "apps/web/components/tickets.tsx",
+      "line": 103,
+      "id": "4d007e63b76042b2",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: CommentForm is imported: apps/web/app/report/[slug]/[number]/page.tsx:7 imports { CommentForm, CommentThread, STATUSES, SeverityBadge, StatusPill } from \"@/components/tickets\" pass two: CommentForm is imported at apps/web/app/report/[slug]/[number]/page.tsx:7 `import { CommentForm, CommentThread, STATUSES, SeverityBadge, StatusPill } from \"@/components/tickets\";` and at apps/web/app/(app)/projects/[projectId]/tickets/page.tsx:8; the @/ alias is apps/web/tsconfig.json `\"paths\": { \"@/*\": [\"./*\"] }`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "apps/web/components/tickets.tsx",
+      "line": 162,
+      "id": "44cd076e80e2d484",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Textarea is imported: apps/web/app/report/[slug]/page.tsx:8 imports { SEVERITIES, StatusPill, Textarea } from \"@/components/tickets\" pass two: Textarea is imported at apps/web/app/report/[slug]/page.tsx:8 `import { SEVERITIES, StatusPill, Textarea } from \"@/components/tickets\";`; the @/ alias is apps/web/tsconfig.json `\"paths\": { \"@/*\": [\"./*\"] }`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "apps/web/components/tickets.tsx",
+      "line": 174,
+      "id": "bef7e9d864cec5f1",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Select is imported: apps/web/app/(app)/projects/[projectId]/tickets/page.tsx:8 imports { Avatar, CommentForm, CommentThread, SEVERITIES, STATUSES, Select, SeverityBadge, StatusPill } from \"@/components/tickets\" pass two: Select is imported at apps/web/app/(app)/projects/[projectId]/tickets/page.tsx:8 `import { Avatar, CommentForm, CommentThread, SEVERITIES, STATUSES, Select, SeverityBadge, StatusPill } from \"@/components/tickets\";`; the @/ alias is apps/web/tsconfig.json `\"paths\": { \"@/*\": [\"./*\"] }`."
+    },
+    {
+      "rule": "dead-file",
+      "file": "apps/web/app/(app)/projects/[projectId]/tickets/page.tsx",
+      "line": 1,
+      "id": "6e9c7d9303b9634e",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Next.js App Router page.tsx under apps/web/app (apps/web/package.json: \"dev\": \"next dev -p 3100\"), a framework entry point pass two: Next.js App Router page, an entry point the framework routes to by path: the file is app/(app)/projects/[projectId]/tickets/page.tsx with line 13 `export default function TicketsPage() {`; apps/web/next.config.ts:2 is `import type { NextConfig } from \"next\";` and apps/web/components/app-shell.tsx:130 links to `/projects/${p.id}/tickets`."
+    },
+    {
+      "rule": "dead-file",
+      "file": "apps/web/app/report/[slug]/[number]/page.tsx",
+      "line": 1,
+      "id": "fa63df07e5ab75ce",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Next.js App Router page.tsx under apps/web/app (apps/web/package.json: \"dev\": \"next dev -p 3100\"), a framework entry point pass two: Next.js App Router page, an entry point routed by path: app/report/[slug]/[number]/page.tsx with line 12 `export default function PortalTicket() {`; apps/web/app/report/[slug]/page.tsx:33 links to it with `/report/${slug}/${t.number}`."
+    },
+    {
+      "rule": "dead-file",
+      "file": "apps/web/app/report/[slug]/layout.tsx",
+      "line": 1,
+      "id": "6ef469d4767f9a52",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Next.js App Router layout.tsx under apps/web/app (apps/web/package.json: \"dev\": \"next dev -p 3100\"), a framework entry point pass two: Next.js App Router layout, an entry point the framework loads by path: app/report/[slug]/layout.tsx with line 5 `export const metadata = { title: \"Report a bug\" };` and line 7 `export default function PortalLayout({ children }: { children: React.ReactNode }) {`."
+    },
+    {
+      "rule": "dead-file",
+      "file": "apps/web/app/report/[slug]/page.tsx",
+      "line": 1,
+      "id": "be077a808e94ec2f",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Next.js App Router page.tsx under apps/web/app (apps/web/package.json: \"dev\": \"next dev -p 3100\"), a framework entry point pass two: Next.js App Router page, an entry point routed by path: app/report/[slug]/page.tsx with line 13 `export default function PortalHome() {`; apps/api/src/routes/projects.ts:24 builds its address as `${config.appUrls[0]}/report/${p.portal_slug}`."
+    },
+    {
+      "rule": "dead-file",
+      "file": "apps/web/components/portal-shell.tsx",
+      "line": 1,
+      "id": "8573e6c1508f8134",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: imported by apps/web/app/report/[slug]/layout.tsx:2 import { PortalShell } from \"@/components/portal-shell\" (and usePortal in report/[slug]/page.tsx:7) pass two: Imported at apps/web/app/report/[slug]/layout.tsx:2 `import { PortalShell } from \"@/components/portal-shell\";` and at apps/web/app/report/[slug]/page.tsx:7 `import { usePortal } from \"@/components/portal-shell\";`; the @/ alias is apps/web/tsconfig.json `\"paths\": { \"@/*\": [\"./*\"] }`."
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "apps/api/src/routes/portal.ts",
+      "line": 75,
+      "id": "31943090766e3d81",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: empty catch: `} catch {}` after JSON.parse of the OAuth cookie, body holds nothing pass two: Empty catch with no comment: lines 73-75 are `try {`, `saved = JSON.parse(Buffer.from(String(req.cookies?.[OAUTH_COOKIE] ?? \"\"), \"base64url\").toString());`, `} catch {}`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "apps/web/lib/api.ts",
+      "line": 348,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export interface Reporter {` added in apps/web/lib/api.ts; git grep -w Reporter at the commit finds it only at api.ts:348/357 in apps/web (the apps/api import is of auth.ts's own Reporter), no importer pass two: `export interface Reporter {` is added by this change and has no importer: git grep for Reporter at the commit finds it under apps/web only at lib/api.ts:348 and lib/api.ts:357 `reporter: Reporter | null;` (apps/api/src/routes/portal.ts:5 imports the other Reporter, from ../auth)."
+    }
+  ]
+}

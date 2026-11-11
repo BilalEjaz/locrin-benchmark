@@ -1,0 +1,1325 @@
+/**
+ * Adapter Policy contracts for adapter-specific DAP behaviors
+ *
+ * The goal is to keep the DAP transport core generic while exposing
+ * adapter-specific quirks and multi-session strategies via a typed policy.
+ *
+ * Consumers (e.g., proxy/minimal-dap) consult this policy to decide:
+ * - whether reverse startDebugging is supported
+ * - how to start a child session (launch/attach) when a __pendingTargetId is provided
+ * - whether to defer parent configurationDone temporarily
+ * - when a child session is considered "ready" (e.g., after 'initialized', or when a 'thread'/'stopped' event is seen)
+ *
+ * @since 2.1.0
+ */
+import type { DebugProtocol } from '@vscode/debugprotocol';
+import * as path from 'path';
+import type { Breakpoint, ExceptionBreakMode, StackFrame, Variable } from '../models/index.js';
+import type { DapClientBehavior } from './dap-client-behavior.js';
+import type { ChildAdoptionContract } from './child-adoption.js';
+import type { LanguageSpecificLaunchConfig } from './debug-adapter.js';
+import type { BreakpointFields } from '../utils/to-source-breakpoint.js';
+
+export type ChildSessionStrategy =
+  | 'none'                     // No child session expected/created
+  | 'launchWithPendingTarget'  // Launch child using __pendingTargetId (js-debug typical)
+  | 'attachByPort'             // Attach child by known inspector port
+  | 'adoptInParent';           // Adopt pending target in the same parent session
+
+/**
+ * Command handling result that determines how the proxy should proceed
+ */
+export interface CommandHandling {
+  shouldQueue: boolean;
+  shouldDefer: boolean;
+  reason?: string;
+}
+
+/**
+ * Adapter-specific state that can be managed by each policy
+ */
+export interface AdapterSpecificState {
+  initialized: boolean;
+  configurationDone: boolean;
+  [key: string]: unknown;
+}
+
+/**
+ * The DAP stop reasons that mean "a breakpoint the user set fired". Shared by
+ * the session layer's first-stop auto-continue guard (a stop with one of these
+ * reasons is never auto-continued) and the frame resolver's paused-frame rule
+ * (issue #672), so a policy that relabels a stop to a breakpoint-shaped reason
+ * — the way the LLDB and .NET policies produce 'function breakpoint' — is
+ * honoured by both without a second list to update.
+ */
+export const BREAKPOINT_STOP_REASONS: ReadonlySet<string> = new Set([
+  'breakpoint',
+  'function breakpoint',
+  'data breakpoint',
+  'instruction breakpoint'
+]);
+
+/**
+ * Stop reasons the user asked for: the breakpoint family plus an exception
+ * the user asked to break on. The first-stop auto-continue must never
+ * swallow one, and one is proof a debugger is live (issues #749, #746).
+ */
+export const USER_BREAK_REASONS: ReadonlySet<string> = new Set([...BREAKPOINT_STOP_REASONS, 'exception']);
+
+/**
+ * Context passed to AdapterPolicy.normalizeStopReason (issues #260/#302).
+ * See that method's doc comment for the completeness rules.
+ */
+export interface StopReasonContext {
+  /** True while a current-generation pause request is in flight. */
+  pausePending: boolean;
+  /** Which operation requested the pause, when pausePending is true. */
+  pauseSource?: 'user' | 'attach';
+  /**
+   * Adapter-assigned ids of ALL user breakpoints (line + function).
+   * Present only when both bookkeepings are complete.
+   */
+  userBreakpointIds?: ReadonlySet<number>;
+  /**
+   * Adapter-assigned ids of function breakpoints only. Present only when
+   * function-breakpoint id bookkeeping is complete.
+   */
+  functionBreakpointIds?: ReadonlySet<number>;
+  /** Line-breakpoint count from the session store — always present. */
+  lineBreakpointCount: number;
+  /** Function-breakpoint count from the session store — always present. */
+  functionBreakpointCount: number;
+  /**
+   * How the session came up — a launch or an attach (issue #798). Lets a
+   * policy tell a launch's own entry stop from an attach's post-attach one.
+   */
+  sessionMode?: 'launch' | 'attach';
+  /** True for the first stop the session has seen since its launch/attach. */
+  firstStop?: boolean;
+  /**
+   * Whether the session asked for an initial stop, read per mode: a launch
+   * stops on entry only when the caller asked (`stopOnEntry === true`); an
+   * attach stops unless the caller opted out (`stopOnEntry !== false`, the
+   * adapters' own default — issue #817).
+   */
+  stopOnEntry?: boolean;
+  /**
+   * The source line under the stop's top frame (issue #1097), read by the
+   * core before normalization when the policy asked for it through
+   * `stopNeedsSourceLine`. Absent when the policy did not ask, the frame had
+   * no path, or the stack or the file could not be read — a policy that
+   * cannot see it keeps the answer it gave before.
+   */
+  topFrameLine?: StopTopFrameLine;
+}
+
+/** The source line under a stop's top frame: where it is, and what it says. */
+export interface StopTopFrameLine {
+  path: string;
+  /** 1-based. */
+  line: number;
+  text: string;
+}
+
+/**
+ * Result of AdapterPolicy.extractLocalVariables.
+ *
+ * `variables` is what the caller shows the user. `scopeRefs` names the
+ * `variablesReference` of every scope on the ANCHOR frame that contributed to
+ * it, in the order the variables appear — so the session layer can report the
+ * adapter's own scope name (e.g. Delve's `Locals (warning: optimized
+ * function)`) and attribute per-scope truncation without reconstructing the
+ * attribution from object identity.
+ *
+ * Refs, not names: the caller already holds the anchor frame's scope objects
+ * and needs the object, not a copy of its label. Plural, because a policy may
+ * legitimately merge sibling scopes (js-debug's `Block` + `Local`, issue
+ * #558). An empty `variables` list must carry an empty `scopeRefs`.
+ */
+export interface LocalVariableExtraction {
+  /** The extracted local variables, in presentation order. */
+  variables: Variable[];
+  /**
+   * `variablesReference` of every anchor-frame scope that contributed a
+   * variable, in the same order. Empty when `variables` is empty.
+   */
+  scopeRefs: number[];
+  /** Optional explanation for an intentionally empty policy result. */
+  note?: string;
+}
+
+/** The "no locals here" result: no variables, and therefore no scopes. */
+export function emptyLocalVariableExtraction(note?: string): LocalVariableExtraction {
+  return { variables: [], scopeRefs: [], ...(note ? { note } : {}) };
+}
+
+/**
+ * Build an extraction from a single scope. Reports no scope ref when the
+ * variable list is empty, keeping the "empty implies no refs" invariant that
+ * lets the caller treat a ref list as "these scopes reached the response".
+ */
+export function extractionFromScope(
+  scope: DebugProtocol.Scope,
+  variables: Variable[]
+): LocalVariableExtraction {
+  return variables.length > 0
+    ? { variables, scopeRefs: [scope.variablesReference] }
+    : emptyLocalVariableExtraction();
+}
+
+/**
+ * The slice of the session's proxy manager a handshake is allowed to use.
+ *
+ * `@debugmcp/shared` must not import from `src/`, so this is the structural
+ * contract rather than `IProxyManager` itself — send a DAP request, ask
+ * whether the proxy is still alive, and subscribe to DAP events for the
+ * duration of the handshake. The app's `IProxyManager`
+ * (src/proxy/proxy-manager.ts, where a compile-time `AssertAssignable`
+ * proves it) satisfies this as written — not the deprecated placeholder
+ * declared in this package.
+ */
+export interface HandshakeProxy {
+  /** False once the proxy has exited — a handshake must stop rather than hang. */
+  isRunning(): boolean;
+  sendDapRequest<T extends DebugProtocol.Response>(
+    command: string,
+    args?: unknown,
+    options?: { timeoutMs?: number }
+  ): Promise<T>;
+  on(event: 'dap-event', listener: (event: string, body: unknown) => void): unknown;
+  removeListener(event: 'dap-event', listener: (event: string, body: unknown) => void): unknown;
+}
+
+/** Everything AdapterPolicy.performHandshake is given about the session. */
+export interface HandshakeContext {
+  /** Absent when the proxy never started; the handshake must no-op. */
+  proxyManager: HandshakeProxy | undefined;
+  sessionId: string;
+  /** Launch/attach arguments; `request: 'attach'` distinguishes the two. */
+  dapLaunchArgs?: Record<string, unknown>;
+  scriptPath: string;
+  scriptArgs?: string[];
+  /** The session's breakpoint store, keyed by breakpoint id. Read-only here. */
+  breakpoints: ReadonlyMap<string, Breakpoint>;
+  launchConfig?: LanguageSpecificLaunchConfig;
+  /** Abstract break-on-exception mode requested by the user (issue #220) */
+  breakOnExceptions?: ExceptionBreakMode;
+}
+
+/**
+ * The part of a queued DAP command a policy is allowed to reorder on. The
+ * proxy worker's own payload type carries more (session id, timeout); the
+ * generic on processQueuedCommands preserves it, so the worker gets its own
+ * payloads back rather than a widened array it has to cast.
+ */
+export interface QueuedDapCommand {
+  requestId: string;
+  dapCommand: string;
+  dapArgs?: unknown;
+}
+
+/** What a policy may consult when explaining a pending pause or step (issue #678). */
+export interface PendingStopContext {
+  operation: 'pause' | 'step';
+  /** True for attach sessions, whose skip configuration is the target's, not the launch's. */
+  attachMode: boolean;
+  /** The caller's launch inputs as the launcher merges them: adapterLaunchConfig wins over dapLaunchArgs. */
+  launch?: {
+    dapLaunchArgs?: Record<string, unknown>;
+    adapterLaunchConfig?: Record<string, unknown>;
+  };
+  /** The raw top frame the step was issued from — step only, and only when it could be read. */
+  fromFrame?: StackFrame;
+}
+
+/** Context passed to AdapterPolicy.describeUnresolvedSource (issue #816). */
+export interface UnresolvedSourceContext {
+  /** How many of the reported frames carry `unresolvedSource: true`. */
+  count: number;
+  /**
+   * The flagged frames' `file` labels, in stack order — what the adapter
+   * reported in place of a path (CodeLLDB's `@symbol`, js-debug's
+   * `../src/x.ts`, the JDI bridge's `java/io/PrintStream.java`), so a policy
+   * can tell its cases apart before it speaks.
+   */
+  files: readonly string[];
+  /**
+   * True for attach sessions — a remedy that names a configuration key spells
+   * it the attach way (`adapterConfig.…`) rather than the launch way
+   * (`adapterLaunchConfig.…`).
+   */
+  attachMode: boolean;
+}
+
+/** Context passed to AdapterPolicy.generatedFileCandidates (issues #938/#950). */
+export interface GeneratedFileContext {
+  /** The source path as the breakpoint or stop names it (absolute, server-resolved). */
+  sourcePath: string;
+  /**
+   * The program the adapter's transform handed the engine for the session's
+   * current launch — the binary, DLL or script it actually runs — or
+   * undefined before any launch and on an attach session (issue #950). A
+   * policy whose launch compiles the source afresh (tsx, cargo on a `.rs`
+   * program, Delve's debug mode) reads it to decline; one whose engine binds
+   * through a prebuilt artefact names that artefact from it.
+   */
+  program?: string;
+  /**
+   * The transformed launch config the program came from, for the policies
+   * whose artefact is not the program itself (Java's `classpath` and `cwd`)
+   * or whose mode says whether the program is one (Go's `mode`, COBOL's
+   * `runner`). Absent with `program`.
+   */
+  launchConfig?: Record<string, unknown>;
+  /**
+   * The nearest tsconfig.json above the source when the core found and parsed
+   * one: its directory and the two emit options that place outputs, as
+   * written (relative to `dir` unless absolute). Absent on the applicability
+   * probe, when none was found, or when it did not parse.
+   */
+  tsconfig?: { dir: string; outDir?: string; rootDir?: string };
+  /** Directory of the nearest package.json above the source, when one exists. */
+  packageDir?: string;
+}
+
+/** One compiled file a source may bind through, and what ties the two together (issue #950). */
+export interface GeneratedFileCandidate {
+  /** Absolute path of the compiled file. */
+  path: string;
+  /**
+   * `sourceMap`: a guess from path arithmetic that the core trusts only once
+   * `<path>.map` names the source. `launch`: the artefact the transformed
+   * launch runs (or the class file derived from its classpath), linked by the
+   * launch itself — no map exists to prove it, and the warning's hedge ("may
+   * be stale") carries the mtime-only comparison.
+   */
+  linkedBy: 'sourceMap' | 'launch';
+}
+
+/**
+ * Candidates from a list of paths, each path once (issue #950): compared
+ * normalised and, on Windows, case-folded — the one platform where two
+ * spellings name one file. For the hooks that build their list from several
+ * roots whose forms coincide for the common layouts: a tsconfig `rootDir` and
+ * the `src/`-stripped form, a classpath entry that is the source directory
+ * and the sibling. Order is kept.
+ */
+export function generatedFileCandidatesFrom(
+  paths: readonly string[],
+  linkedBy: GeneratedFileCandidate['linkedBy'],
+  platform: NodeJS.Platform = process.platform
+): GeneratedFileCandidate[] {
+  const seen = new Set<string>();
+  const candidates: GeneratedFileCandidate[] = [];
+  for (const candidate of paths) {
+    const normalized = path.normalize(candidate);
+    const key = platform === 'win32' ? normalized.toLowerCase() : normalized;
+    if (!seen.has(key)) {
+      seen.add(key);
+      candidates.push({ path: candidate, linkedBy });
+    }
+  }
+  return candidates;
+}
+
+/** Arguments of a `hot_reload` call, as the policy turns them into its adapter's request (issue #876). */
+export interface HotReloadArgs {
+  /** Java: the directory of the recompiled `.class` files the JDI bridge scans. */
+  classesDir?: string;
+  /** Java: only `.class` files modified after this Unix-ms timestamp (0 or absent: all). */
+  sinceTimestamp?: number;
+}
+
+/** The DAP request a `hot_reload` call sends, or the reason the policy refuses it right now. */
+export type LiveUpdateRequest =
+  | { command: string; args?: Record<string, unknown> }
+  | { refused: string };
+
+/**
+ * The adapter's live code update behind `hot_reload` (issue #876): apply changed code to the
+ * running program and keep its state. One object, so a reader sees one feature and a new
+ * adapter implements one member: Java's is the JDI bridge's `redefineClasses` (HotSwap);
+ * Flutter's is the SDK adapter's `hotReload`, gated on the app having started, which the
+ * policy learns from the adapter's own events.
+ */
+export interface LiveUpdatePolicy {
+  /** Custom DAP events the worker forwards to the session for this feature's bookkeeping. */
+  events?: readonly string[];
+  /** DAP commands of this feature that resume the program (the worker clears its last stop). */
+  resumeCommands?: readonly string[];
+  /** Folds a forwarded event into the session's per-policy state (opaque to the core). */
+  onEvent?(state: unknown, event: string, body: unknown): unknown;
+  /** The request a `hot_reload` call sends, or why it is refused now — decided before anything reaches the adapter. */
+  request(args: HotReloadArgs, state: unknown): LiveUpdateRequest;
+  /** Whether the update changed code, so statement anchors re-resolve and moved breakpoints are re-sent (issue #464). */
+  changed(response: DebugProtocol.Response | undefined): boolean;
+  /**
+   * The update may stop the program before it answers (Flutter: the reassemble runs `build()`
+   * and a breakpoint there fires ~150 ms after the request; the response is held until the
+   * isolate resumes on some platforms — measured). The controller then races the stop against
+   * the response under the launch hold instead of awaiting the response.
+   */
+  mayStopDuringUpdate?: boolean;
+}
+
+/** What the policy reads a program's end from (issue #877). */
+export interface ProgramEndContext {
+  /** The tail of the output the program and its tool printed (the last few KB). */
+  outputTail: string;
+  exitCode?: number;
+}
+
+/** The policy's reading of a program's end: a sentence for the message, data for the answer. */
+export interface ProgramEndExplanation {
+  note?: string;
+  data?: Record<string, unknown>;
+}
+
+export interface AdapterPolicy {
+  /**
+   * Identifying name for diagnostics (e.g., 'default', 'js-debug')
+   */
+  name: string;
+
+  /**
+   * Whether the adapter uses reverse startDebugging (adapter asks client to start a child session)
+   */
+  supportsReverseStartDebugging: boolean;
+
+  /**
+   * Static pre-launch knowledge of DAP logpoint (SourceBreakpoint.logMessage)
+   * support (issue #235). `true`/`false` gate set_breakpoint synchronously
+   * before live capabilities exist; `undefined` means unknown — the request
+   * is accepted with a warning and re-checked against the adapter's real
+   * capabilities at launch.
+   */
+  supportsLogPoints?: boolean;
+
+  /**
+   * The wire form of a stored line breakpoint (issue #850). Absent means the
+   * shared toSourceBreakpoint mapping; a policy that delivers logpoints
+   * itself (js-debug: the logMessage is compiled into a condition that
+   * reports through the proxy's CDP binding, because js-debug's own
+   * console.log delivery is lost in a program that replaced console) returns
+   * what the adapter must receive. The stored breakpoint is never changed;
+   * every setBreakpoints construction site maps through
+   * toWireSourceBreakpoint(bp, policy), which calls this.
+   */
+  toWireBreakpoint?(bp: BreakpointFields): DebugProtocol.SourceBreakpoint;
+
+  /**
+   * Up-front check of a logMessage (and its optional condition) for a policy
+   * that compiles logpoints itself (issue #853): the returned text refuses
+   * set_breakpoint the way an expectedContent mismatch does, instead of the
+   * adapter reporting the syntax error only in its output stream. Undefined
+   * means the message is acceptable (or the policy does not pre-validate).
+   */
+  validateLogMessage?(logMessage: string, condition?: string): string | undefined;
+
+  /**
+   * Static pre-launch knowledge of function-breakpoint support (issue #271
+   * phase 3). Unlike supportsLogPoints, an explicit policy verdict here wins
+   * over live adapter capabilities: the policy also encodes what OUR plumbing
+   * can deliver. `false` rejects even if the adapter advertises the DAP
+   * capability; `true` combined with functionBreakpointsVia 'cdp' accepts even
+   * though the adapter's live capabilities say false (we never send it the DAP
+   * request). `undefined` means unknown — accepted with a warning and
+   * re-checked against live capabilities.
+   */
+  supportsFunctionBreakpoints?: boolean;
+
+  /**
+   * Delivery mechanism for function breakpoints (issue #295). Absent means
+   * 'dap': the standard setFunctionBreakpoints request goes to the adapter,
+   * and live capabilities matter. 'cdp' means our proxy delivers them out of
+   * band (js-debug: resolved and armed over the requestCDPProxy WebSocket via
+   * Debugger.setBreakpointOnFunctionCall), so the adapter's own capability
+   * bit is irrelevant to gating and capability-drift checks.
+   */
+  functionBreakpointsVia?: 'dap' | 'cdp';
+
+  /**
+   * High-signal advisory for a function-breakpoint name the adapter is known
+   * to mis-resolve or never bind (issues #303/#308) — e.g. Go needs
+   * package-qualified names ('main.main'); a bare 'main' on Rust resolves to
+   * the C runtime's entry point. The returned text joins the set_breakpoint
+   * response warning and the launch-time unbound warning; it never blocks
+   * the request. Return undefined for names with no known hazard.
+   */
+  functionBreakpointNameHint?(name: string): string | undefined;
+
+  /**
+   * Policy-certain rewrite of a function-breakpoint name the adapter can
+   * never bind as given (issue #467) — e.g. Go's bare 'main' is always
+   * 'main.main' (func main must live in package main). Applied at
+   * set_breakpoint time; the response warning says the rewrite happened.
+   * Only return a value when the corrected form is certain — an uncertain
+   * name should get a functionBreakpointNameHint instead.
+   */
+  normalizeFunctionBreakpointName?(name: string): { name: string; note: string } | undefined;
+
+  /**
+   * True when the adapter binds function breakpoints lazily by design
+   * (js-debug: CDP re-resolve at pauses for late-loaded modules; Java:
+   * ClassPrepareRequest deferral), so verified:false at launch is normal and
+   * the launch-time "not bound" warning is suppressed (issue #308). The
+   * never-bound-at-exit note applies regardless.
+   */
+  functionBreakpointsBindLate?: boolean;
+
+  /**
+   * True when the adapter honours DAP's `noDebug` launch flag by not enabling
+   * the debugger, so breakpoints, exception filters and an entry stop are
+   * inert on such a launch and the start_debugging response says so
+   * (issue #710). Measured per adapter, not assumed: js-debug, debugpy, Delve
+   * and CodeLLDB honour it; rdbg, netcoredbg, the JDI bridge and the mock
+   * adapter ignore it, and the rust launch transform never forwards it. Left
+   * undefined, the debugger is taken to stay on and a caller who set the
+   * flag is told it had no effect. The proxy worker reads the same pin: under
+   * an honoured flag it does not wait for the adapter's `initialized` event
+   * (an adapter that is not debugging opens no configuration phase) and a
+   * refused configuration request is logged rather than fatal (issue #746).
+   */
+  honoursNoDebug?: boolean;
+
+  /**
+   * True when the adapter's own `stopped { reason: 'entry' }` may be bookkeeping, not a stop the
+   * session can use: the Dart SDK adapters pause every new isolate at start to configure it,
+   * announce that pause as an entry stop and resume it themselves 1 ms later with a `continued`
+   * (issue #790, measured). The proxy worker holds such an entry stop briefly and drops it,
+   * with the `continued` that follows, when the adapter resumes it within the hold; one that
+   * outlives the hold — a VM started with `--pause_isolates_on_start`, attached to or launched
+   * — is forwarded as the durable stop it is. So the session never flickers PAUSED, and a
+   * launch's first reported stop is a real one. The entry stop a caller asks for with
+   * `stopOnEntry` comes from `entryBreakpointLine`.
+   */
+  suppressesAdapterEntryStop?: boolean;
+
+  /**
+   * Where a `stopOnEntry` launch should stop when the adapter has no native entry stop worth
+   * reporting (see `suppressesAdapterEntryStop`): given the program's source text, the 1-based
+   * line to arm a temporary breakpoint on, or `undefined` when none is found. The proxy worker
+   * adds that breakpoint to the launch's `setBreakpoints` for the program file, keeps it out of
+   * the session's breakpoint list, and relabels its first hit as `reason: 'entry'`. The Dart
+   * adapters bind a breakpoint on the `main(` declaration line to the first statement of main
+   * (issue #790, measured).
+   */
+  entryBreakpointLine?(sourceText: string): number | undefined;
+
+  /**
+   * Strategy for how to create/attach to the child session when reverse startDebugging occurs
+   */
+  childSessionStrategy: ChildSessionStrategy;
+
+  /**
+   * The session-tree adoption contract (issue #1081): defined by an adapter that
+   * reports the processes its debuggee starts, so each becomes a child debug
+   * session of the reporting one. Undefined for adapters that report nothing.
+   * Combined with `supportsReverseStartDebugging` only by js-debug (issue
+   * #1082), whose program is itself the first pending target, adopted
+   * in-session; every report after it is a child of this contract.
+   */
+  childAdoption?: ChildAdoptionContract;
+
+  /**
+   * Build the child start request (launch or attach) for a given pending target ID.
+   * This should include just the necessary args; consumers may sanitize/augment further.
+   */
+  buildChildStartArgs(
+    pendingId: string,
+    parentConfig: Record<string, unknown>,
+    /** Forwardable arguments from an attach parent, separate from its start intent. */
+    attachArguments?: Readonly<Record<string, unknown>>
+  ): { command: 'launch' | 'attach'; args: Record<string, unknown> };
+
+  /**
+   * Decide whether an incoming DAP event indicates the child session is ready
+   * to surface queries like 'threads'. Defaults to 'initialized' for many adapters.
+   * Some adapters (e.g., js-debug) may prefer to wait for 'thread' or 'stopped'.
+   */
+  isChildReadyEvent(evt: DebugProtocol.Event): boolean;
+
+  /**
+   * Filter stack frames to remove internal/framework frames based on adapter-specific logic.
+   * This is optional - if not implemented, all frames are returned unfiltered.
+   * 
+   * @param frames The original stack frames from the debug adapter
+   * @param includeInternals Whether to include internal/framework frames
+   * @returns The filtered stack frames
+   */
+  filterStackFrames?(frames: StackFrame[], includeInternals: boolean): StackFrame[];
+
+  /**
+   * Check if a stack frame is an internal/framework frame.
+   * This is used by filterStackFrames to determine which frames to filter out.
+   * 
+   * @param frame The stack frame to check
+   * @returns True if the frame is internal/framework code, false otherwise
+   */
+  isInternalFrame?(frame: StackFrame): boolean;
+
+  /**
+   * True for a frame that marks an async boundary in the adapter's stack —
+   * js-debug's `await` / `Promise.then` / `HTTPINCOMINGMESSAGE` labels — below
+   * which the frames belong to an earlier activation the runtime can no longer
+   * evaluate in. The frame resolver uses it to decide whether the first visible
+   * frame under a hidden paused frame is a real anchor at all (issue #672):
+   * when a boundary lies between them, the paused frame is kept whatever the
+   * stop reason. Optional — absent means the adapter has no such frames.
+   */
+  isAsyncBoundaryFrame?(frame: StackFrame): boolean;
+
+  /**
+   * Explain why a pause or step may never produce a `stopped` event under this
+   * adapter's configuration, for the `pending: true` responses (issue #678).
+   * js-debug, for example, resumes any pause or step that lands in a frame its
+   * `skipFiles` blackboxes, so a pause on an idle server or a step issued from
+   * inside a dependency is swallowed with nothing to distinguish it from a
+   * slow one. The session layer appends the sentence to the generic pending
+   * message; undefined leaves that message exactly as it is. Optional — absent
+   * means the adapter has nothing to add.
+   */
+  describePendingStop?(info: PendingStopContext): string | undefined;
+
+  /**
+   * Say what a frame flagged `unresolvedSource` IS under this adapter, for
+   * the `get_stack_trace` note (issue #816) — and the remedy, when there is
+   * one. The flag itself is adapter-neutral (a non-zero `sourceReference`, or
+   * a kept paused frame whose file is a relative label — no openable path
+   * either way), but what it means is not: js-debug reports a source map
+   * naming a file the package did not ship (`sourceMaps: false` shows the
+   * generated paths), CodeLLDB a native frame without debug info (the
+   * program's own frames are the ones with a path), the JDI bridge a class it
+   * names by package path. The handler appends the sentence to its
+   * adapter-neutral one; undefined leaves that one standing alone. Optional —
+   * absent means the adapter has nothing to add.
+   */
+  describeUnresolvedSource?(info: UnresolvedSourceContext): string | undefined;
+
+  /**
+   * A sentence that says what an adapter's refusal during the launch's
+   * configuration phase means (issue #959): the worker appends it to the
+   * adapter's own message, which stays first and unchanged. netcoredbg, for
+   * one, answers a program it cannot start with a bare HRESULT
+   * (`Failed command 'configurationDone' : 0x800700c1`). `program` is the
+   * launch's program when the worker knows it. Optional — absent, or
+   * undefined, leaves the adapter's words alone.
+   */
+  explainRequestFailure?(command: string, message: string, context: { program?: string }): string | undefined;
+
+  /**
+   * The launch-config key this adapter reads for "stop at the program's
+   * entry", when it is not DAP's de-facto `stopOnEntry` (issue #973):
+   * netcoredbg, like VS Code's `coreclr` configuration, reads `stopAtEntry`
+   * and ignores `stopOnEntry`, so a .NET launch asked to stop at entry ran to
+   * completion. The connection manager writes the launch's final entry-stop
+   * decision under this key too, unless the caller set the key themselves.
+   * Undefined for an adapter that reads `stopOnEntry`.
+   */
+  entryStopLaunchKey?: string;
+
+  /**
+   * The launch-config keys that name what the adapter runs, when `program` is
+   * not the only one (issue #985). debugpy takes `program`, `module` or
+   * `code` — exactly one: a launch carrying `program` beside `module` is
+   * refused ('"program", "module", and "code" are mutually exclusive'). The
+   * connection manager fills `program` from the tool's scriptPath only when
+   * the launch config names no target under any of these keys, so a
+   * `module` launch (`python -m pytest`) goes out as the transform shaped it.
+   * Undefined means `program` alone.
+   */
+  launchTargetKeys?: readonly string[];
+
+  /**
+   * The DAP exception-filter ids a mode arms for this launch, read off the
+   * transformed launch config, when they differ from the `exceptionFilters`
+   * table (issue #985): debugpy's `uncaught` never fires on a failing test —
+   * pytest catches it — so a pytest module launch arms `userUnhandled`
+   * beside it under the `uncaught` default. Undefined, or an undefined
+   * answer, means the table applies. The worker sends what this says; the
+   * launcher records the ids the launch armed beyond the table on the
+   * session, so the "still running" answer can name them.
+   */
+  exceptionFiltersForLaunch?(mode: ExceptionBreakMode, launchConfig: Record<string, unknown> | undefined): string[] | undefined;
+
+  /**
+   * The exception class as the adapter means it, when the adapter decorates
+   * the name it reports (issue #985): at a user-unhandled stop pydevd appends
+   * "       (note: full exception trace is shown but execution is paused at:
+   * <fn>)" to the name on `text`, `exceptionId` and `typeName` alike. The
+   * core applies this when it stores an exception stop (`text`,
+   * `description`, and the merged exceptionInfo's `exceptionId`, `typeName`
+   * and `fullTypeName`, issue #1047), and the stop snapshot reads its
+   * `exception.type` through the same lens, so every answer names the class
+   * the same way; the DAP mirror replays the adapter's raw body untouched.
+   * Undefined means the name is used as is.
+   */
+  normalizeExceptionTypeName?(name: string): string;
+
+  /**
+   * The adapter's DAP `next` stops once per token position rather than once
+   * per line (issue #879, the Dart SDK adapter; `granularity: 'line'` is
+   * ignored). The core's step_over then repeats `next` while a plain step
+   * stop lands on the line it left, in the same frame depth, up to a cap, and
+   * says how many steps it took. A breakpoint or exception stop, or a landing
+   * in another frame, ends it at once.
+   */
+  stepsByTokenPosition?: boolean;
+
+  /**
+   * Where the compiled file a location binds through may live (issues
+   * #938/#950), most specific first. A `set_breakpoint` echoes the line from
+   * the source file, while the engine binds it through a compiled one —
+   * js-debug through the generated `.js` and its source map, JDI through the
+   * `.class`, netcoredbg through the DLL's PDB, CodeLLDB and Delve through the
+   * binary's DWARF; when that file is older than the source the two disagree
+   * and the echo is a confident lie. The adapter answers under the source
+   * path, so the compiled file never appears in any record: the core locates
+   * it with this hook, proves a `sourceMap` candidate through its `.map`,
+   * takes a `launch` candidate as the launch's own word, and compares mtimes.
+   *
+   * The core probes with `{ sourcePath, program, launchConfig }` first:
+   * `undefined` means this adapter binds the path through nothing it can
+   * name — a plain `.js` under js-debug, a source the launch compiles afresh
+   * (tsx, a `.rs` program cargo rebuilds, Delve's debug mode), a compiled
+   * language before any launch has named its artefact — and no filesystem
+   * work follows. A `sourceMap` answer makes the core gather the
+   * tsconfig/package context and ask again; a `launch` answer needs no
+   * context. Pure path arithmetic, no filesystem. Optional: absent means the
+   * adapter never binds through a compiled file.
+   */
+  generatedFileCandidates?(info: GeneratedFileContext): GeneratedFileCandidate[] | undefined;
+
+  /**
+   * Return true to drop a DAP 'output' event that is known adapter-internal
+   * noise, not debuggee output (issue #361 — e.g. LLDB's DWARF-parsing
+   * error spew on MinGW binaries). Consulted by the session manager's output
+   * capture AFTER the standard 'telemetry' category drop; suppressed events
+   * are still logged at debug level. Optional — absent means capture
+   * everything. Implementations must be conservative: when in doubt, keep
+   * the output.
+   *
+   * @param category The DAP output category ('stdout', 'stderr', 'console', ...)
+   * @param text The event's output text (may span multiple lines)
+   */
+  shouldSuppressOutputEvent?(category: string, text: string): boolean;
+
+  /**
+   * Return an attributed explanation for a DAP 'output' event that signals a
+   * known adapter-level capability degradation (issue #441 — e.g. CodeLLDB's
+   * "Could not locate Rust toolchain" (1.12) or "Failed to initialize language
+   * support for rust" (1.11) when no rustc is available, which leaves Rust
+   * values rendering as raw LLDB structures).
+   * Consulted by the session manager's output capture AFTER the event is
+   * recorded; the returned text is pushed to the session's output buffer as a
+   * `[mcp-debugger] Warning:` entry and, when it arrives before the launch
+   * resolves, joined into the start_debugging result's warning. Optional —
+   * absent means no annotation. Return undefined for ordinary output.
+   *
+   * @param category The DAP output category ('stdout', 'stderr', 'console', ...)
+   * @param text The event's output text (may span multiple lines)
+   */
+  annotateOutputEvent?(category: string, text: string): string | undefined;
+
+  /**
+   * Read the debuggee's exit code out of a DAP 'output' event, for adapters
+   * that state it only as console text and never send `exited` (issue #753 —
+   * Delve before 1.27 prints `Process N has exited with status S`). Consulted by the proxy
+   * worker on every output event, which is still forwarded unchanged so
+   * get_output keeps the adapter's line; the first code returned is replayed
+   * as a synthesized DAP `exited` event ahead of `terminated`, exactly as the
+   * js-debug shim's recorded code (#247) and rdbg's process status (#258)
+   * are. Implementations must be conservative: match the adapter's own
+   * console category and its exact wording — never debuggee stdout — and
+   * return undefined for anything that is not a real exit code (a negative
+   * status is a signal kill, not a code). Optional — absent means the worker
+   * never parses output for a code. Pair it with
+   * exitStatusReportedOnDisconnect when the adapter prints the line only in
+   * reply to `disconnect`.
+   *
+   * @param category The DAP output category ('stdout', 'stderr', 'console', ...)
+   * @param text The event's output text (may span multiple lines)
+   */
+  debuggeeExitCodeFromOutput?(category: string, text: string): number | undefined;
+
+  /**
+   * True when the adapter states the exit status (the line
+   * debuggeeExitCodeFromOutput reads) only in reply to the DAP `disconnect`
+   * request — Delve in debug mode (issue #753). The proxy worker then sends
+   * the disconnect BEFORE forwarding `terminated` whenever `terminated`
+   * arrives with no status observed (closing the DAP mirror first, as the
+   * ordinary shutdown does), so the code can still be replayed as `exited`
+   * ahead of `terminated`; without this flag the worker only parses lines
+   * that arrive on their own and never reorders its shutdown. Bounded by the
+   * disconnect request's own 1 s cap. Optional — absent means false.
+   */
+  exitStatusReportedOnDisconnect?: boolean;
+
+  /**
+   * True when the proxy worker sends DAP `terminate` ahead of the
+   * `disconnect` that ends a launch session (issue #885). The Dart and
+   * Flutter SDK adapters treat `disconnect` as the forced path: their own
+   * tool processes are SIGKILLed, `terminateDebuggee` is ignored, and under
+   * `flutter run` the desktop app the tool started is left running — the
+   * SDK's own comment says clients should send `terminateRequest` first.
+   * Only `terminate` reaches the app (`app.stop` to the tool, then SIGTERM
+   * to the tool's pids; the Flutter adapter then exits by itself, the Dart
+   * CLI adapter stays until the disconnect). The worker sends it only in launch
+   * mode, only when the live `initialize` capabilities say
+   * `supportsTerminateRequest`, and only while no terminal signal has
+   * arrived (a program that ended on its own keeps the plain sequence); it
+   * awaits the response under its own cap and then sends the disconnect
+   * exactly as before, whatever the outcome. Attach sessions never see it:
+   * their disconnect detaches. Optional — absent means the disconnect goes
+   * out alone.
+   */
+  terminateBeforeDisconnect?: boolean;
+
+  /**
+   * `restart_debugging` sends the DAP `restart` request instead of terminate +
+   * relaunch when the live `initialize` capabilities also advertise
+   * `supportsRestartRequest` (issue #876). Pinned per adapter because the
+   * advertisement alone is not enough: js-debug advertises it and relaunches
+   * through a child session this proxy does not follow (the session ends
+   * `stopped`), while the Flutter adapter's `restart` is a hot restart — the
+   * same process re-runs `main()`, breakpoints hold, measured to re-hit in
+   * ~0.4 s. Optional — absent means the relaunch.
+   */
+  restartViaDapRequest?: boolean;
+
+  /** The adapter's live code update behind `hot_reload` (issue #876); absent means the tool refuses this language by name. */
+  liveUpdate?: LiveUpdatePolicy;
+
+  /**
+   * What the program's end means in this adapter's words (issue #877), for the answers that
+   * report the end — the launch that ran to completion within its hold, wait_for_stop, the
+   * session listing — read once at the end event from the output the program and its tool
+   * printed. Dart names the devices `flutter run` listed when `deviceId` matched none (the tool
+   * prints them and exits ~3 s after the launch answered, so the launch answer cannot). Absent
+   * or `undefined`: nothing to add.
+   */
+  explainProgramEnd?(context: ProgramEndContext): ProgramEndExplanation | undefined;
+
+  /**
+   * Whether this stop can only be named once the source line under its top
+   * frame is known (issue #1097). js-debug reports a `debugger;` statement
+   * and its own leaked module-entry break with one body; the line tells
+   * them apart. When this answers true the core holds the stop — the session
+   * stays RUNNING, nothing is shown — resolves the top frame, reads the line,
+   * and only then calls `normalizeStopReason` with `context.topFrameLine`.
+   * A failed read calls it without the line, so a policy that asks must
+   * still answer without one.
+   *
+   * Asked before the id sets are collected: `context` carries the mode facts
+   * (`sessionMode`, `firstStop`, `stopOnEntry`, `pausePending`) and the
+   * counts, never `userBreakpointIds`/`functionBreakpointIds`. Keep it cheap
+   * and specific — every stop pays the question, a held stop pays a DAP
+   * round trip and a file read.
+   */
+  stopNeedsSourceLine?(
+    reason: string,
+    body: DebugProtocol.StoppedEvent['body'] | undefined,
+    context: StopReasonContext
+  ): boolean;
+
+  /**
+   * Normalize an adapter-specific DAP stop reason into a canonical reason
+   * ('pause', 'breakpoint', 'step', 'exception', ...). Some adapters report
+   * misleading raw reasons — e.g. CodeLLDB surfaces a user-initiated pause as
+   * reason 'exception' with a SIGSTOP description.
+   *
+   * Called from the session-manager stopped handler BEFORE the auto-continue
+   * decision and before the stop is recorded, so the normalized reason drives
+   * both. A policy that also sets pauseAfterChildAttach must therefore be
+   * careful not to normalize a first stop into a user-break reason — and
+   * when the body alone cannot tell a user break from an incidental first
+   * stop, ask for the top frame's source line through `stopNeedsSourceLine`
+   * and decide from `context.topFrameLine` (issue #1097).
+   *
+   * @param reason The raw DAP stop reason from the adapter
+   * @param body The full stopped-event body, if available
+   * @param context context.pausePending is true while a current-generation
+   *   pause request is in flight for this session; pauseSource distinguishes
+   *   a public pause from post-attach suspension. context.userBreakpointIds
+   *   holds the adapter-assigned ids of every user-set breakpoint (line and
+   *   function breakpoints combined), and is only present when that
+   *   bookkeeping is complete (every breakpoint of both kinds has a known
+   *   id) — policies must not infer anything from hitBreakpointIds when it
+   *   is absent. context.functionBreakpointIds holds the function-breakpoint
+   *   subset under the same completeness rule for its own kind.
+   *   context.lineBreakpointCount / functionBreakpointCount come from the
+   *   session's own store and are always present — count-based inference
+   *   (e.g. "the only user breakpoints are function breakpoints") does not
+   *   touch hitBreakpointIds and is legitimate even when the id sets are
+   *   absent.
+   * @returns The canonical reason, or undefined to keep the raw reason
+   */
+  normalizeStopReason?(
+    reason: string,
+    body: DebugProtocol.StoppedEvent['body'] | undefined,
+    context: StopReasonContext
+  ): string | undefined;
+
+  /**
+   * Extract local variables from the raw DAP data based on language-specific logic.
+   * This allows each language adapter to define what constitutes "local variables".
+   * 
+   * @param stackFrames The stack frames from the DAP response
+   * @param scopes A map of frame IDs to their scopes
+   * @param variables A map of scope references to their variables
+   * @param includeSpecial Whether to include special/internal variables
+   * @returns The extracted local variables plus the anchor-frame scopes that
+   *   contributed them (see LocalVariableExtraction)
+   */
+  extractLocalVariables?(
+    stackFrames: StackFrame[],
+    scopes: Record<number, DebugProtocol.Scope[]>,
+    variables: Record<number, Variable[]>,
+    includeSpecial?: boolean
+  ): LocalVariableExtraction;
+
+  /**
+   * Get the scope name(s) that contain local variables for this language.
+   * Different languages may use different names (e.g., "Locals" vs "Local").
+   * 
+   * @returns The scope name(s) to look for when finding locals
+   */
+  getLocalScopeName?(): string | string[];
+
+  /**
+   * Get DAP adapter configuration including type and future config options.
+   * This determines which DAP adapter type to use (e.g., 'pwa-node', 'debugpy').
+   * 
+   * @returns The DAP adapter configuration
+   */
+  getDapAdapterConfiguration(): {
+    type: string;  // 'pwa-node', 'debugpy', 'mock', etc.
+    // Future: could include other DAP-specific configuration
+  };
+
+  /**
+   * Resolve the executable path for this language.
+   * Handles language-specific executable resolution logic.
+   *
+   * @param providedPath Optional path provided by the user
+   * @param platform Platform override for tests (issue #183); implementations default it to process.platform
+   * @returns The resolved executable path or undefined
+   */
+  resolveExecutablePath(providedPath?: string, platform?: NodeJS.Platform): string | undefined;
+
+  /**
+   * Get debugger configuration and requirements.
+   * Specifies language-specific debugger behavior and capabilities.
+   * 
+   * @returns Configuration options for the debugger
+   */
+  getDebuggerConfiguration(): {
+    requiresStrictHandshake?: boolean;
+    skipConfigurationDone?: boolean;
+    supportsVariableType?: boolean;
+    // Additional debugger-specific configuration can be added here
+  };
+
+  /**
+   * Check if a source identifier is a non-file reference that this adapter
+   * can resolve at runtime (e.g., Java FQCNs resolved via vm.classesByName()).
+   * When this returns true, the server skips the file existence check.
+   *
+   * @param sourceIdentifier The source identifier to check
+   * @returns True if this is a valid non-file identifier for this adapter
+   */
+  isNonFileSourceIdentifier?(sourceIdentifier: string): boolean;
+
+  /**
+   * Validate that the resolved executable is actually usable for this language.
+   * This is language-specific - e.g., Python needs to check for Windows Store aliases.
+   *
+   * @param executablePath The path to validate
+   * @returns Promise resolving to true if valid, false otherwise
+   */
+  validateExecutable?(executablePath: string): Promise<boolean>;
+
+  /**
+   * Perform language-specific handshake after connecting to the debug adapter.
+   * Some languages (like JavaScript) require a specific initialization sequence.
+   *
+   * Contract: the SessionManager invokes this for BOTH launch
+   * (startDebugging) and attach (attachToProcess), right after the proxy
+   * launch (ProxyLauncher.start) succeeds. A policy that defines this method owns the
+   * full DAP start sequence — initialize, configuration and the
+   * launch/attach request itself; the proxy worker's built-in launch/attach
+   * flow does not run for command-queueing policies. Attach is
+   * distinguished from launch by `dapLaunchArgs.request === 'attach'`
+   * (and/or `__attachMode: true`) and by the transformed
+   * `launchConfig.request`. Policies that do not define this method are
+   * unaffected: the proxy worker drives their launch/attach sequence.
+   *
+   * @param context Context object with session details and helper methods
+   * @returns Promise that resolves when handshake is complete
+   */
+  performHandshake?(context: HandshakeContext): Promise<void>;
+
+  /**
+   * Determines if commands should be queued before initialization
+   * @returns True if this adapter requires command queueing
+   */
+  requiresCommandQueueing(): boolean;
+
+  /**
+   * Determines if a specific command should be queued based on current state
+   * @param command The DAP command name
+   * @param state Current adapter state
+   * @returns Decision on whether to queue the command
+   */
+  shouldQueueCommand(command: string, state: AdapterSpecificState): CommandHandling;
+
+  /**
+   * Process queued commands and return them in the correct order.
+   * Generic in the caller's payload type so the worker's own
+   * DapCommandPayload survives the round trip unchanged.
+   * @param commands Currently queued commands
+   * @param state Current adapter state
+   * @returns Ordered array of commands to execute
+   */
+  processQueuedCommands?<T extends QueuedDapCommand>(
+    commands: T[],
+    state: AdapterSpecificState
+  ): T[];
+
+  /**
+   * Create initial state for this adapter
+   * @returns Initial state object
+   */
+  createInitialState(): AdapterSpecificState;
+
+  /**
+   * Update state based on a DAP command being sent
+   * @param command The DAP command name
+   * @param args Command arguments
+   * @param state Current state (will be mutated)
+   */
+  updateStateOnCommand?(command: string, args: unknown, state: AdapterSpecificState): void;
+
+  /**
+   * Update state based on a DAP response being received
+   * @param command The DAP command name
+   * @param response The raw DAP response payload
+   * @param state Current state (will be mutated)
+   */
+  updateStateOnResponse?(command: string, response: unknown, state: AdapterSpecificState): void;
+
+  /**
+   * Update state based on a DAP event being received
+   * @param event The DAP event name
+   * @param body Event body
+   * @param state Current state (will be mutated)
+   */
+  updateStateOnEvent?(event: string, body: unknown, state: AdapterSpecificState): void;
+
+  /**
+   * Check if the adapter is fully initialized and ready for commands
+   * @param state Current adapter state
+   * @returns True if initialized and ready
+   */
+  isInitialized(state: AdapterSpecificState): boolean;
+
+  /**
+   * Check if the adapter connection is ready to accept DAP commands
+   * @param state Current adapter state
+   * @returns True if connected and ready
+   */
+  isConnected(state: AdapterSpecificState): boolean;
+
+  /**
+   * Determine the adapter type from adapter command
+   * @param adapterCommand Command used to spawn the adapter
+   * @returns True if this policy applies to the given adapter
+   */
+  matchesAdapter(adapterCommand: { command: string; args: string[] }): boolean;
+
+  /**
+   * Get initialization behavior flags for this adapter.
+   * This combines multiple initialization quirks into a single method to reduce interface bloat.
+   * @returns Object with initialization behavior flags
+   */
+  getInitializationBehavior(): {
+    /** Whether to defer configurationDone until after launch/attach */
+    deferConfigDone?: boolean;
+    /** Whether to add runtimeExecutable to launch arguments */
+    addRuntimeExecutable?: boolean;
+    /** Whether to track initialize response separately from initialized event */
+    trackInitializeResponse?: boolean;
+    /** Whether to ensure initial stop after launch/attach */
+    requiresInitialStop?: boolean;
+    /** Override default stopOnEntry when user hasn't explicitly set it */
+    defaultStopOnEntry?: boolean;
+    /** Whether the adapter sends 'initialized' before receiving 'launch', requiring
+     *  the proxy to defer initialized handling and send launch before configurationDone. */
+    sendLaunchBeforeConfig?: boolean;
+    /**
+     * The DAP request a LAUNCH goes out as (default 'launch'), a literal or a
+     * choice per launch. rdbg's `launch` handler goes nonstop unconditionally
+     * and only its `attach` handler reads `nonstop`, so a Ruby launch that
+     * asks for an entry stop — whose rdbg process this server spawns
+     * suspended at load — is sent as `attach` (issue #798); a launch that does
+     * not keeps the `launch` verb, byte-identical to before (on debug gems
+     * older than 1.7.0 the attach handler ignores `nonstop` and would hold
+     * the pause). The session stays a launch: attach MODE is keyed on the
+     * config's `request`, which this does not touch, and the handshake stage
+     * still names the launch. Honoured by the worker's own handshake
+     * (sendTrackedLaunch); a command-queueing policy drives its launch
+     * through the session's DAP commands, which are sent as given.
+     */
+    launchRequestCommand?: 'launch' | 'attach' | ((launch: { stopOnEntry: boolean }) => 'launch' | 'attach');
+    /** Whether the adapter requires attach to be sent BEFORE the initialized event.
+     *  Some adapters send initialized only AFTER processing the attach request, so waiting
+     *  for initialized before sending attach causes a deadlock. */
+    sendAttachBeforeInitialized?: boolean;
+    /** Whether a launch may proceed when the 'initialized' event has arrived but the
+     *  'initialize' response has not (issue #492). rdbg intermittently emits the event
+     *  and then never sends the response, which would otherwise park initialization
+     *  until the 30s proxy deadline kills the session. When set, the proxy races the
+     *  response against the event plus a short grace period and, if the event wins,
+     *  continues the launch with unknown capabilities. Launch mode only — attach
+     *  initialization is unaffected. */
+    initializeResponseOptional?: boolean;
+    /** Concrete DAP exceptionBreakpointFilters IDs per abstract breakOnExceptions
+     *  mode (issue #220). Omitted (or an empty array for a mode) means the mode
+     *  is unsupported for this adapter and setExceptionBreakpoints is skipped. */
+    exceptionFilters?: {
+      uncaught: string[];
+      all: string[];
+    };
+    /** Default breakOnExceptions mode applied to LAUNCH sessions when the user
+     *  did not specify one (issue #244). Attach sessions never receive a
+     *  default — pausing a process you attached to is surprising. Omit for
+     *  adapters without a usable uncaught filter (e.g. Ruby) so crashing
+     *  scripts keep running to termination. Mirrors defaultStopOnEntry. */
+    defaultExceptionBreakMode?: ExceptionBreakMode;
+    /** Whether the engine pauses at an uncaught exception with NO exception filter
+     *  armed (issue #1032) — CodeLLDB on POSIX, where an uncaught C++ exception reaches
+     *  std::terminate → SIGABRT, a signal stop. Read by the session layer's exception
+     *  arming when a mode resolves to an empty filter list: true keeps the launch
+     *  answer's promise of a crash stop, absent or false makes it promise the exit
+     *  instead. A policy with an empty `uncaught` table under an 'uncaught' default has
+     *  to say which (the cross-policy contract test checks). */
+    stopsOnUncaughtWithoutFilter?: boolean;
+  };
+
+  /**
+   * Get DAP client-specific behavior configuration.
+   * This groups all DAP client behaviors (reverse requests, child sessions, etc.)
+   * @returns DAP client behavior configuration
+   */
+  getDapClientBehavior(): DapClientBehavior;
+
+  /**
+   * DAP evaluate context to use for evaluate_expression.
+   * Most adapters accept 'variables'; some (rdbg) only accept contexts like
+   * 'repl'/'watch'. Defaults to 'variables' when not implemented.
+   */
+  getEvaluateContext?(): string;
+
+  /**
+   * Attach-mode behavior tweaks.
+   * pauseAfterAttach: send an explicit DAP 'pause' after attaching when
+   * stopOnEntry is requested. Needed for debuggers (rdbg, the Java JDI
+   * bridge) that do NOT suspend the target on attach when it is already
+   * running — without it the session would report PAUSED while the target
+   * keeps executing.
+   * pauseAllThreads: send the pause with threadId 0 (pause-all) instead of
+   * the discovered thread's id. The JDI bridge suspends the whole VM on a
+   * pause-all and re-anchors its stopped event to a thread that can actually
+   * report frames (issue #465).
+   * resumeBeforeDetach: have the worker send a DAP 'continue' on the last
+   * stopped thread before any attach-mode 'disconnect' — the session's
+   * detach, close_debug_session's auto-detach and the shutdown path alike —
+   * while the target is stopped (issue #763). CodeLLDB on Windows needs it:
+   * ProcessWindows::DoDetach (LLVM PR 115712) resumes every thread with the
+   * resume state of its last stop before DebugActiveProcessStop, and after a
+   * step that state is still "stepping" — the thread single-steps with no
+   * debugger attached and the process dies with STATUS_SINGLE_STEP
+   * (0x80000004). A continue recomputes the state; a running target is
+   * detached without that resume loop at all.
+   * resumeBeforeDetachReason: the policy's own words for why, framed into
+   * the detach result's warning when the continue is refused.
+   */
+  getAttachBehavior?(): {
+    pauseAfterAttach?: boolean;
+    pauseAllThreads?: boolean;
+    resumeBeforeDetach?: boolean;
+    resumeBeforeDetachReason?: string;
+  };
+
+  /**
+   * Get the configuration for starting the debug adapter connection.
+   * Policies return either a 'spawn' config (start an adapter process, then
+   * connect to it) or a 'connect' config (an external DAP server is already
+   * listening — e.g. attach to a remote rdbg — so connect directly without
+   * spawning anything).
+   * @param payload The initialization payload containing ports, paths, etc.
+   * @param platform Platform override for tests (issue #186); implementations default it to process.platform
+   * @param arch Architecture override for tests (issue #186); implementations default it to process.arch
+   * @returns Spawn or connect configuration, or undefined if not applicable
+   */
+  getAdapterSpawnConfig?(payload: AdapterSpawnPayload, platform?: NodeJS.Platform, arch?: NodeJS.Architecture): AdapterSpawnConfig | undefined;
+}
+
+/**
+ * Input payload for AdapterPolicy.getAdapterSpawnConfig.
+ */
+export interface AdapterSpawnPayload {
+  executablePath: string;
+  adapterHost: string;
+  adapterPort: number;
+  logDir: string;
+  scriptPath: string;
+  launchConfig?: LanguageSpecificLaunchConfig;
+  adapterCommand?: { command: string; args: string[]; env?: Record<string, string>; cwd?: string };
+}
+
+/**
+ * Result of AdapterPolicy.getAdapterSpawnConfig — a discriminated union:
+ * - mode 'spawn': the worker spawns the adapter process, then connects to host:port
+ * - mode 'connect': a DAP server is already listening; connect directly to host:port
+ */
+export type AdapterSpawnConfig =
+  | {
+      mode: 'spawn';
+      command: string;
+      args: string[];
+      host: string;
+      port: number;
+      logDir: string;
+      cwd?: string;
+      env?: NodeJS.ProcessEnv;
+      /**
+       * Forward the adapter process's stdio as synthesized DAP 'output'
+       * events (issue #222). Opt-in for adapters whose launch-mode debuggee
+       * inherits the adapter process's stdio instead of having it converted
+       * to DAP output events — e.g. rdbg -c (all platforms) and CodeLLDB's
+       * console mode on Windows. Policies that leave this unset keep the
+       * existing behavior: adapter stdio is drained to logs only.
+       */
+      forwardStdio?: {
+        /**
+         * stderr lines matching this pattern are adapter diagnostics (e.g.
+         * rdbg's `DEBUGGER: ` banners): still logged, never forwarded as
+         * debuggee output.
+         */
+        excludeStderrLinePattern?: RegExp;
+        /**
+         * The adapter process stays alive after the debuggee has ended, and
+         * keeps these pipes open with it (CodeLLDB; issue #856). The worker
+         * holds the debuggee's exit until the forwarded output has drained,
+         * and by default "drained" means the pipes closed — true of rdbg -c,
+         * which exits with its debuggee, and never true of an adapter like
+         * this one, for which the wait would run to its backstop every time.
+         * With this set, the pipes going quiet counts as drained: when the
+         * adapter reports the exit the process is gone and everything it
+         * wrote is already in the pipe.
+         */
+        adapterOutlivesDebuggee?: boolean;
+      };
+      /**
+       * The adapter process's exit code IS the debuggee's exit code (issue
+       * #258): rdbg -c runs the debuggee under the adapter process, so its
+       * exit status propagates. Lets the worker synthesize a DAP 'exited'
+       * event for adapters that never send one, giving the session a
+       * recorded debuggee exit code like Python/js. Deliberately separate
+       * from forwardStdio: CodeLLDB forwards stdio too, but its exit code
+       * is its own, not the debuggee's.
+       */
+      adapterExitCodeIsDebuggeeExitCode?: boolean;
+    }
+  | {
+      mode: 'connect';
+      host: string;
+      port: number;
+      logDir: string;
+    };
+
+/**
+ * DefaultAdapterPolicy is a lightweight placeholder used while the worker is
+ * determining which concrete adapter policy to activate. It purposefully
+ * implements the smallest safe surface so real adapters cannot accidentally
+ * rely on it for behaviour.
+ */
+export const DefaultAdapterPolicy = {
+  name: 'default',
+  supportsReverseStartDebugging: false,
+  childSessionStrategy: 'none',
+  buildChildStartArgs: (pendingId: string) => {
+    throw new Error(
+      `DefaultAdapterPolicy is a placeholder and cannot start child sessions (pendingId=${pendingId}).`
+    );
+  },
+  isChildReadyEvent: () => false,
+  getDapAdapterConfiguration: () => ({
+    type: 'default'
+  }),
+  resolveExecutablePath: (providedPath?: string) => providedPath,
+  getDebuggerConfiguration: () => ({}),
+  requiresCommandQueueing: () => false,
+  shouldQueueCommand: (): CommandHandling => ({
+    shouldQueue: false,
+    shouldDefer: false,
+    reason: 'DefaultAdapterPolicy is inactive until a real adapter is selected'
+  }),
+  createInitialState: (): AdapterSpecificState => ({
+    initialized: false,
+    configurationDone: false
+  }),
+  isInitialized: () => false,
+  isConnected: () => false,
+  matchesAdapter: () => false,
+  getInitializationBehavior: () => ({}),
+  getDapClientBehavior: (): DapClientBehavior => ({})
+} satisfies AdapterPolicy;
+
+/**
+ * Resolve an abstract break-on-exception mode to the concrete DAP
+ * exceptionBreakpointFilters IDs for the given adapter policy (issue #220).
+ * Returns [] when the mode is unset, 'none', or unsupported by the policy —
+ * callers skip the setExceptionBreakpoints request in that case.
+ */
+export function resolveExceptionFilters(
+  policy: AdapterPolicy,
+  mode: ExceptionBreakMode | undefined,
+  launchConfig?: Record<string, unknown>
+): string[] {
+  if (!mode || mode === 'none') {
+    return [];
+  }
+  // A launch-aware answer first (issue #985: a pytest module launch arms
+  // userUnhandled beside uncaught); the table otherwise.
+  const forLaunch = policy.exceptionFiltersForLaunch?.(mode, launchConfig);
+  if (forLaunch !== undefined) {
+    return forLaunch;
+  }
+  return policy.getInitializationBehavior().exceptionFilters?.[mode] ?? [];
+}
+
+/**
+ * The launch-config keys under which a policy's adapter takes its target:
+ * `program` alone unless the policy declares otherwise (issue #985).
+ */
+export function launchTargetKeysOf(policy: Pick<AdapterPolicy, 'launchTargetKeys'> | undefined): readonly string[] {
+  return policy?.launchTargetKeys ?? ['program'];
+}
+
+/**
+ * Whether a launch config already names a target under one of `keys`: a
+ * non-empty string, or a non-empty array (debugpy's `code` may be a list of
+ * lines). When it does, the connection manager leaves `program` out instead
+ * of filling it from scriptPath (issue #985).
+ */
+export function namesLaunchTarget(config: Record<string, unknown> | undefined, keys: readonly string[]): boolean {
+  if (!config) {
+    return false;
+  }
+  return keys.some(key => {
+    const value = config[key];
+    return (typeof value === 'string' && value.length > 0) || (Array.isArray(value) && value.length > 0);
+  });
+}

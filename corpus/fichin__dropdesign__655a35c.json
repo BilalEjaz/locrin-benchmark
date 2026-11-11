@@ -1,0 +1,38 @@
+{
+  "id": "fichin__dropdesign__655a35c",
+  "source": "git",
+  "repo": "fichin/dropdesign",
+  "sha": "655a35c565bf81f1c32998cc0b39c01f031bc42c",
+  "parent": "4252006fb67e91a63fedf8c77d8368c4992e6ad2",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/fichin/dropdesign/commit/655a35c565bf81f1c32998cc0b39c01f031bc42c",
+  "files": [
+    "backend/src/app.ts",
+    "backend/src/auth/routes.ts",
+    "backend/src/auth/session.ts",
+    "backend/src/config.ts",
+    "backend/src/db/migrate.ts",
+    "backend/src/db/seed.ts",
+    "backend/src/server.ts",
+    "backend/test/api.test.ts",
+    "backend/test/auth.test.ts",
+    "backend/test/helpers.ts",
+    "src/App.tsx",
+    "src/api/client.ts",
+    "src/components/AuthPage.tsx",
+    "src/components/BoardScreen.tsx",
+    "src/components/TopBar.tsx",
+    "src/components/icons.tsx",
+    "src/routing.ts",
+    "src/state/storage.ts",
+    "src/state/useAuth.ts",
+    "src/state/useBoardSync.ts"
+  ],
+  "wave": 2,
+  "signal": "express-cookie",
+  "signals": [
+    "express-cookie",
+    "test-case"
+  ]
+}

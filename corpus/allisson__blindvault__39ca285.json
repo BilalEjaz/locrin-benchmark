@@ -1,0 +1,23 @@
+{
+  "id": "allisson__blindvault__39ca285",
+  "source": "git",
+  "repo": "allisson/blindvault",
+  "sha": "39ca285604d1c04101a3c62ffe1cf03f25427e63",
+  "parent": "39128781d94e4c4ce3b04e8116b06590565b5b8c",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/allisson/blindvault/commit/39ca285604d1c04101a3c62ffe1cf03f25427e63",
+  "files": [
+    "apps/web/e2e/axe-devices.spec.ts",
+    "apps/web/e2e/axe.spec.ts",
+    "apps/web/e2e/axe.ts",
+    "apps/web/e2e/keyboard.spec.ts",
+    "apps/web/e2e/layout.spec.ts"
+  ],
+  "wave": 2,
+  "signal": "test-skip",
+  "signals": [
+    "test-skip",
+    "test-case"
+  ]
+}

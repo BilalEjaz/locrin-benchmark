@@ -1,0 +1,28 @@
+{
+  "id": "devanshupathak9__StreakArena__10b52da",
+  "source": "git",
+  "repo": "devanshupathak9/StreakArena",
+  "sha": "10b52da949f315ddeb73f534a6c24123c7df2a5a",
+  "parent": "6240be3d194b7c0f91140f8b1997164d9f5e99a3",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/devanshupathak9/StreakArena/commit/10b52da949f315ddeb73f534a6c24123c7df2a5a",
+  "files": [
+    "backend/src/auth.js",
+    "backend/src/google.js",
+    "backend/src/routes/auth.js",
+    "frontend/src/components/GoogleButton.tsx",
+    "frontend/src/components/profile/SignInMethods.tsx",
+    "frontend/src/lib/api.ts",
+    "frontend/src/lib/authErrors.ts",
+    "frontend/src/pages/Login.tsx",
+    "frontend/src/pages/Profile.tsx",
+    "frontend/src/pages/Register.tsx"
+  ],
+  "wave": 2,
+  "signal": "express-cookie",
+  "signals": [
+    "express-cookie",
+    "weak-random"
+  ]
+}

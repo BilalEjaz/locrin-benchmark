@@ -1,0 +1,20 @@
+{
+  "id": "oladannyel__planna__6f9f39c",
+  "source": "git",
+  "repo": "oladannyel/planna",
+  "sha": "6f9f39c7d28ebfcbc62c6d14a846e60724a75491",
+  "parent": "70b2984a68f3a6264bb7c72f02642ed163d35272",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/oladannyel/planna/commit/6f9f39c7d28ebfcbc62c6d14a846e60724a75491",
+  "files": [
+    "src/lib/__tests__/env.test.ts",
+    "src/lib/env.ts"
+  ],
+  "wave": 2,
+  "signal": "supabase-service-role",
+  "signals": [
+    "supabase-service-role",
+    "test-case"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "KRusselAlex__desknotes__1b971c2",
+  "source": "git",
+  "repo": "KRusselAlex/desknotes",
+  "sha": "1b971c23fc5feb04e5b8fea6131b03ce1e194d67",
+  "parent": "46d524c4e95f3ee9bb61b02d15cbce7048218f56",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/KRusselAlex/desknotes/commit/1b971c23fc5feb04e5b8fea6131b03ce1e194d67",
+  "files": [
+    "src/features/notes/NoteWindow.test.tsx",
+    "src/features/notes/NoteWindow.tsx",
+    "src/features/notes/imageInput.test.ts",
+    "src/features/notes/imageInput.ts",
+    "src/ipc/commands.ts",
+    "src/ipc/events.ts",
+    "src/types/note.ts"
+  ],
+  "wave": 2,
+  "signal": "html-sink",
+  "signals": [
+    "html-sink",
+    "test-case"
+  ]
+}

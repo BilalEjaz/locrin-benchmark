@@ -1,0 +1,29 @@
+{
+  "id": "alilibx__kerstel__6f5648b",
+  "source": "git",
+  "repo": "alilibx/kerstel",
+  "sha": "6f5648bc25b546859f3f2b9d6345b51c33d2a64b",
+  "parent": "6927e226963140c229d8f4eb5b11f89eec6f8e6e",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/alilibx/kerstel/commit/6f5648bc25b546859f3f2b9d6345b51c33d2a64b",
+  "files": [
+    "packages/cli/src/commands/sync.ts",
+    "packages/cli/src/index.ts",
+    "packages/cli/src/sync/crypto.ts",
+    "packages/cli/src/sync/engine.ts",
+    "packages/cli/src/sync/http.ts",
+    "packages/cli/src/sync/state.ts",
+    "packages/cli/src/vault/schema.ts",
+    "packages/cli/src/vault/store.ts",
+    "packages/cli/test/sync.test.ts",
+    "packages/cli/test/vault.test.ts"
+  ],
+  "wave": 2,
+  "signal": "cipher-iv",
+  "signals": [
+    "cipher-iv",
+    "console",
+    "test-case"
+  ]
+}

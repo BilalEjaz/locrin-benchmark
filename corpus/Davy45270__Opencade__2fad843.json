@@ -1,0 +1,32 @@
+{
+  "id": "Davy45270__Opencade__2fad843",
+  "source": "git",
+  "repo": "Davy45270/Opencade",
+  "sha": "2fad84377f8f4084334ce6f7c2a64f989e001385",
+  "parent": "e72aa24b3eea235c7fd6e6d118f4591e1d939b39",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Davy45270/Opencade/commit/2fad84377f8f4084334ce6f7c2a64f989e001385",
+  "files": [
+    "scripts/dedale-diversity.js",
+    "scripts/dedale-step-budgets.js",
+    "scripts/diversity-report.js",
+    "scripts/validate-dedale.js",
+    "src/engines/dedale/engine.ts",
+    "src/engines/dedale/labyrinth.ts",
+    "src/engines/dedale/solver.ts",
+    "src/games/dedale/lessons.ts",
+    "src/games/dedale/scene.ts",
+    "tests/dedale-campaign.ts",
+    "tests/dedale-journey.test.ts",
+    "tests/dedale-mechanics.ts",
+    "tests/dedale-solutions.ts",
+    "tests/e2e/dedale.spec.ts",
+    "tests/variety-e.ts"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

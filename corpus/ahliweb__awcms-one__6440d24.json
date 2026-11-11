@@ -1,0 +1,18 @@
+{
+  "id": "ahliweb__awcms-one__6440d24",
+  "source": "git",
+  "repo": "ahliweb/awcms-one",
+  "sha": "6440d24f04b04347b93a6ca5f3ef545660d3c7cd",
+  "parent": "57e7661265147b9a71b04c13e4354371f0a02c73",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/ahliweb/awcms-one/commit/6440d24f04b04347b93a6ca5f3ef545660d3c7cd",
+  "files": [
+    "apps/storefront/tests/e2e/booking.e2e.ts"
+  ],
+  "wave": 2,
+  "signal": "weak-random",
+  "signals": [
+    "weak-random"
+  ]
+}

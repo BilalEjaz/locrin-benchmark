@@ -1,0 +1,27 @@
+{
+  "id": "vecyang1__paseo-plugin-file-inspector-finder__de969d5",
+  "source": "git",
+  "repo": "vecyang1/paseo-plugin-file-inspector-finder",
+  "sha": "de969d52786e0106232c898741146bb61c4f66a8",
+  "parent": "5342a89ac4029757b7158fabca3f55560bc2036f",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/vecyang1/paseo-plugin-file-inspector-finder/commit/de969d52786e0106232c898741146bb61c4f66a8",
+  "files": [
+    "client/markdown-mermaid-web.ts",
+    "client/mermaid-settings-section.tsx",
+    "client/metro-registry.ts",
+    "client/settings-screen.tsx",
+    "index.client.tsx",
+    "scripts/mermaid-e2e.mts",
+    "shared/mermaid-policy.ts",
+    "test/mermaid-enhancer.test.ts",
+    "test/mermaid-policy.test.ts",
+    "test/register-ts.mjs"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

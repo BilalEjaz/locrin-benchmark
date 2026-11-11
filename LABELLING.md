@@ -23,6 +23,8 @@ Verdicts:
 - `missed`: the definition is met at that file and line, on a construct the diff introduced and no earlier diff from the same repository already introduced, and the engine did not report it. Use the first line of the offending construct. A missed entry has `"id": null`; every other entry carries the engine's 16 character id.
 - `not-applicable`: the finding is on a file the diff did not really author: generated code or vendored code committed with the change. It is counted in the Not applicable column and excluded from both precision and recall.
 
+A note is evidence, and it says where it came from. A note that asserts something about the code, that the file has a shebang, that another file imports it, that a config entry names it, that a caller exists, quotes the line it read or names the file and line. Both wave-one passes described `test/scope-prop-test.mjs` as a `#!/usr/bin/env node` suite; the file's first line is a comment and it has no shebang. The verdict was right and the reason was invented, and nothing in the label file could have told a reader which. A claim a labeller cannot point to in the checkout does not go in a note.
+
 ## What counts as true, per rule
 
 - `leftover-debug`: a debug print or breakpoint left in non-script code (console.log, debugger, var_dump, dd, breakpoint(), pdb). A log statement that is the module's real logging is not true; a print in a CLI script's main path is not true.
@@ -43,7 +45,7 @@ Verdicts:
 
 The `swallowed-error` line wave one was labelled under named the catch block alone and omitted the second and third forms, the log-only catch whose result a caller reads and the floating promise, so the six of the twelve reported `swallowed-error` entries that both passes had marked false-positive under the old text were re-judged under the text above by two independent labellers on 2026-09-15 (five became true, one stayed false-positive) and their labels carry a note saying so. That re-judgement stands in pass one; pass two on those entries is the second model's own blind verdict under the text above.
 
-Not scored: `vulnerable-dependency` (advisory feed), `boundary-violation` and `express-route-without-auth` (need per-repository config). The table never gives them a number, but an entry for one still gets a truthful verdict under the definitions above: `true` when the finding is a real instance of what the rule name describes, `false-positive` when it is not. `not-applicable` keeps its one meaning, generated or vendored code the diff did not really author.
+Not scored: `vulnerable-dependency` (advisory feed), and `boundary-violation`, `express-route-without-auth` and `express-cors-wildcard-on-authenticated` (need per-repository config: the last fires only on a route behind a middleware the repository's own `locrin.toml` names, and the harness writes one config for every repository). No missed entry is written for those four, nor for `supabase-table-without-rls`: the harness does not check out SQL files, so the engine could not have seen a table. The table never gives them a number, but an entry for one still gets a truthful verdict under the definitions above: `true` when the finding is a real instance of what the rule name describes, `false-positive` when it is not. `not-applicable` keeps its one meaning, generated or vendored code the diff did not really author.
 
 ## Disputes
 

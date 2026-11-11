@@ -1,0 +1,33 @@
+{
+  "diff": "KRusselAlex__desknotes__1b971c2",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "html-injection",
+      "file": "src/features/notes/imageInput.ts",
+      "line": 108,
+      "id": "ea598455e43ce591",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: template.innerHTML = html; (imageInput.ts:108) parses clipboard HTML into an inert <template> only to test onlyImages(template.content); nothing from it is inserted into the document or rendered pass two: Line 108 is `template.innerHTML = html;` on `const template = document.createElement(\"template\");` (line 107), a detached <template> never added to the page; line 109 only inspects it, `return onlyImages(template.content) ? \"native\" : \"default\";`, so the clipboard HTML is parsed inert and nothing is rendered as HTML."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/ipc/events.ts",
+      "line": 99,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: export const IMAGES_DROPPED = \"images-dropped\"; is new and git grep at the commit finds it only in src/ipc/events.ts (lines 99 and 113), no importer anywhere pass two: `export const IMAGES_DROPPED = \"images-dropped\";` is added by this change and nothing imports it: git grep -w IMAGES_DROPPED at the commit finds only src/ipc/events.ts lines 99 and 113 (its own `listen<ImagesDropped>(IMAGES_DROPPED, ...)`), and no file imports `* as` from ipc/events."
+    }
+  ]
+}

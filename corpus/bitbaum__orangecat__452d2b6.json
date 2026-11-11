@@ -1,0 +1,25 @@
+{
+  "id": "bitbaum__orangecat__452d2b6",
+  "source": "git",
+  "repo": "bitbaum/orangecat",
+  "sha": "452d2b663c3a58016039c76410fccf60edf1d4f9",
+  "parent": "df23a3028666bd4da1cfa0d373736aa5c8908820",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/bitbaum/orangecat/commit/452d2b663c3a58016039c76410fccf60edf1d4f9",
+  "files": [
+    "mcp-servers/fs-server.js",
+    "mcp-servers/git-server.js",
+    "mcp-servers/lint-server.js",
+    "mcp-servers/shell-server.js",
+    "mcp-servers/smoke.mjs",
+    "mcp-servers/supabase-server.js",
+    "mcp-servers/vitest-server.js"
+  ],
+  "wave": 2,
+  "signal": "supabase-service-role",
+  "signals": [
+    "supabase-service-role",
+    "console"
+  ]
+}

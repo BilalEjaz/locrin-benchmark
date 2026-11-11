@@ -1,0 +1,132 @@
+{
+  "diff": "whysosuresh__whysosuresh.com__2f54a42",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/quota.ts",
+      "line": 6,
+      "id": "a40dc39108579875",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -w PER_NETWORK at the commit finds only src/quota.ts lines 6 and 80; the file's one importer src/talk.ts:10 imports networkOf and takeSend only. pass two: git grep PER_NETWORK at the commit hits only src/quota.ts lines 6 and 80; the file's one importer is src/talk.ts:10 `import { networkOf, takeSend } from \"./quota.ts\"`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/quota.ts",
+      "line": 7,
+      "id": "75d53484637fa13c",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -w PER_DAY at the commit finds only src/quota.ts lines 7 and 80; src/talk.ts:10 imports networkOf and takeSend only. pass two: git grep PER_DAY at the commit hits only src/quota.ts lines 7 and 80; src/talk.ts:10 imports `{ networkOf, takeSend }` only."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/quota.ts",
+      "line": 46,
+      "id": "21ec6ae76419b616",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: today is used only inside src/quota.ts (line 62 default argument); src/talk.ts:10 imports networkOf and takeSend only, and no other file imports quota.ts. pass two: `today` is called only at src/quota.ts:62 (`day: string = today()`); src/talk.ts:10 imports `{ networkOf, takeSend }` only, and test/talk.test.ts:278 computes the date itself (`new Date().toISOString().slice(0, 10)`)."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/turnstile.ts",
+      "line": 13,
+      "id": "f21b4bad645fbba6",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -w ACTION at the commit finds only src/turnstile.ts lines 13 and 25; its one importer src/talk.ts:12 imports verifyToken only. pass two: git grep ACTION at the commit hits only src/turnstile.ts lines 13 and 25; the file's one importer is src/talk.ts:12 `import { verifyToken } from \"./turnstile.ts\"`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/turnstile.ts",
+      "line": 16,
+      "id": "2a8f35acf9083386",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: src/turnstile.ts TEST_SECRET is used only at its line 24; test/talk.test.ts:9 imports TEST_SECRET from ./harness.ts, not from src/turnstile.ts, and src/talk.ts:12 imports verifyToken only. pass two: src/turnstile.ts's TEST_SECRET is read only at src/turnstile.ts:24; src/talk.ts:12 imports `{ verifyToken }` only, and test/talk.test.ts:9 takes its TEST_SECRET from \"./harness.ts\" (test/harness.ts:25), not from this file."
+    },
+    {
+      "rule": "dead-export",
+      "file": "test/harness.ts",
+      "line": 23,
+      "id": "34f539db0c7e3bb9",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep -w SECRET finds only test/harness.ts lines 23, 101, 112; its one importer test/talk.test.ts:9 imports SITE, TEST_SECRET, TURNSTILE_HOST, startHarness, Harness. pass two: SECRET is read only inside test/harness.ts (lines 101 and 112); the only importer of test/harness.ts is test/talk.test.ts:9 `import { SITE, TEST_SECRET, TURNSTILE_HOST, startHarness, type Harness } from \"./harness.ts\"`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "test/harness.ts",
+      "line": 31,
+      "id": "200ffc7fc4727df6",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: interface Statement is named only inside test/harness.ts (lines 31, 32, 38, 39); test/talk.test.ts:9 does not import it. pass two: Statement is named only inside test/harness.ts (lines 32, 38, 39); the only importer of test/harness.ts is test/talk.test.ts:9 `import { SITE, TEST_SECRET, TURNSTILE_HOST, startHarness, type Harness } from \"./harness.ts\"`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "test/harness.ts",
+      "line": 37,
+      "id": "c143eaf86d0898d7",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: interface Database is named only inside test/harness.ts (lines 37, 57, 134); test/talk.test.ts:9 does not import it. pass two: Database is named only inside test/harness.ts (lines 57, 134); the only importer of test/harness.ts is test/talk.test.ts:9 `import { SITE, TEST_SECRET, TURNSTILE_HOST, startHarness, type Harness } from \"./harness.ts\"`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "test/harness.ts",
+      "line": 41,
+      "id": "f72ec9c211f331a5",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: interface StoredObject is named only inside test/harness.ts (lines 41, 49); test/talk.test.ts:9 does not import it. pass two: StoredObject is named only inside test/harness.ts (line 49); the only importer of test/harness.ts is test/talk.test.ts:9 `import { SITE, TEST_SECRET, TURNSTILE_HOST, startHarness, type Harness } from \"./harness.ts\"`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "test/harness.ts",
+      "line": 47,
+      "id": "d0ca1bf989f5a692",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: interface Bucket is named only inside test/harness.ts (lines 47, 59, 135); test/talk.test.ts:9 does not import it. pass two: Bucket is named only inside test/harness.ts (lines 59, 135); the only importer of test/harness.ts is test/talk.test.ts:9 `import { SITE, TEST_SECRET, TURNSTILE_HOST, startHarness, type Harness } from \"./harness.ts\"`."
+    },
+    {
+      "rule": "dead-file",
+      "file": "site/talk.js",
+      "line": 1,
+      "id": "f56a5303f4a88ea0",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: site/talk.js is an entry point: site/index.html:27 at the commit loads it with <script type=\"module\" src=\"/talk.js\">, and test/site.test.ts:230 checks that. pass two: An entry point names it: site/index.html:27 `<script type=\"module\" src=\"/talk.js\"></script>`."
+    },
+    {
+      "rule": "html-injection",
+      "file": "site/talk.js",
+      "line": 164,
+      "id": "4e08fc41a4cfc421",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: this.dialog.innerHTML = SHEET assigns a module constant whose only interpolations are ${micIcon()}, ${stopIcon()} and ${PRIVACY}, all fixed string literals in site/talk.js (lines 25-26, 115-122); no user data reaches it. pass two: site/talk.js:164 is `this.dialog.innerHTML = SHEET;` and SHEET (line 28) interpolates only fixed text written in the same file: `${micIcon()}` (line 39) and `${stopIcon()}` (line 52), which return string literals (lines 116, 121), and `${PRIVACY}` (line 72), a const string literal (line 25); no value from outside the file reaches the markup."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "src/talk.ts",
+      "line": 29,
+      "id": "74318d80c5e514d9",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log(JSON.stringify({ refused: status, reason })) is the Worker's deliberate refusal logging, documented in the file header (src/talk.ts:6-7: a refusal's line holds its status and reason only), not a debug print. pass two: The Worker's real logging: src/talk.ts:29 `console.log(JSON.stringify({ refused: status, reason }));` is the body of `refuse`, and the file's header (lines 6-7) documents it: \"Nothing personal is ever logged: a refusal's line holds its status and reason only.\""
+    }
+  ]
+}

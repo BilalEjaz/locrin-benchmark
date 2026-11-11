@@ -1,0 +1,19 @@
+{
+  "id": "morluto__rea__01e8c64",
+  "source": "git",
+  "repo": "morluto/rea",
+  "sha": "01e8c6447aecf351361db72fa6f56df5c9545158",
+  "parent": "8cc2a1ae6e7f84952e7f260674940bd8806c2920",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/morluto/rea/commit/01e8c6447aecf351361db72fa6f56df5c9545158",
+  "files": [
+    "src/domain/artifactComparison.test.ts",
+    "tests/acceptance/artifactComparisonGodotPck.test.ts"
+  ],
+  "wave": 2,
+  "signal": "weak-hash",
+  "signals": [
+    "weak-hash"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "jaimemachadoneto__archify-react__e444650",
+  "source": "git",
+  "repo": "jaimemachadoneto/archify-react",
+  "sha": "e4446505fbd2d62bf9204c6e852266adc8bc86f0",
+  "parent": "9b72365ad4906b49213f332e6e735a07071009b0",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/jaimemachadoneto/archify-react/commit/e4446505fbd2d62bf9204c6e852266adc8bc86f0",
+  "files": [
+    "src/diagram/Demo.tsx",
+    "src/diagram/WorkflowDiagram.test.tsx",
+    "src/diagram/WorkflowDiagram.tsx",
+    "src/diagram/components/Edge.tsx",
+    "src/diagram/components/FlowEdge.tsx",
+    "src/diagram/components/Lane.tsx",
+    "src/diagram/components/Node.tsx",
+    "src/diagram/edge.test.tsx",
+    "src/test/setup.ts"
+  ],
+  "wave": 2,
+  "signal": "marker",
+  "signals": [
+    "marker",
+    "test-case"
+  ]
+}

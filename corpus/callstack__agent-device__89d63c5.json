@@ -1,0 +1,40 @@
+{
+  "id": "callstack__agent-device__89d63c5",
+  "source": "git",
+  "repo": "callstack/agent-device",
+  "sha": "89d63c57280116f7b09db0a2aa7d36a85a810e67",
+  "parent": "0abf88ed2b66df57849a2ef50b8921fe0cbc9b4b",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/callstack/agent-device/commit/89d63c57280116f7b09db0a2aa7d36a85a810e67",
+  "files": [
+    "packages/contracts/src/daemon-http.ts",
+    "packages/daemon-client/src/__tests__/daemon-client-transport.test.ts",
+    "packages/daemon-client/src/daemon-client-rpc.ts",
+    "packages/daemon-client/src/daemon-client-transport.ts",
+    "packages/daemon/src/core/__tests__/session-script-writer-longpress.test.ts",
+    "packages/daemon/src/core/__tests__/session-script-writer.test.ts",
+    "packages/daemon/src/server/__tests__/upload.test.ts",
+    "packages/daemon/src/server/http/http-server-provider-scenarios.test.ts",
+    "packages/daemon/src/server/http/http-server.ts",
+    "packages/daemon/src/server/http/transport.test.ts",
+    "packages/daemon/src/server/http/transport.ts",
+    "packages/daemon/src/server/upload.ts",
+    "packages/proxy/src/daemon-proxy.test.ts",
+    "packages/proxy/src/daemon-proxy.ts",
+    "packages/remote/src/__tests__/daemon-artifacts-capture.test.ts",
+    "packages/remote/src/__tests__/upload-client-redirect.test.ts",
+    "packages/remote/src/__tests__/upload-stream.test.ts",
+    "packages/remote/src/daemon-artifacts.ts",
+    "packages/remote/src/upload-client.ts",
+    "packages/remote/src/upload-stream.ts",
+    "packages/replay-port/src/__tests__/script-source-bundle.test.ts",
+    "test/wire-compat/surface.ts"
+  ],
+  "wave": 2,
+  "signal": "weak-hash",
+  "signals": [
+    "weak-hash",
+    "test-case"
+  ]
+}

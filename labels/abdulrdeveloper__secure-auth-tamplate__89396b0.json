@@ -1,0 +1,114 @@
+{
+  "diff": "abdulrdeveloper__secure-auth-tamplate__89396b0",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "backend/src/config/validation.ts",
+      "line": 75,
+      "id": "b030cedb10048f5d",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export type RegisterInput: git grep for the name at 89396b0 over *.ts/*.js finds only its declaration line in backend/src/config/validation.ts; nothing imports it and the file is not an entry point (file moved from src/, so new) pass two: git grep for `RegisterInput` at the commit matches only its own definition, backend/src/config/validation.ts:75; backend/src/routes/auth.routes.ts:12-19 imports only the six schemas from this file"
+    },
+    {
+      "rule": "dead-export",
+      "file": "backend/src/config/validation.ts",
+      "line": 76,
+      "id": "8b770ef92c8f1cc9",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export type LoginInput: git grep for the name at 89396b0 over *.ts/*.js finds only its declaration line in backend/src/config/validation.ts; nothing imports it and the file is not an entry point (file moved from src/, so new) pass two: git grep for `LoginInput` at the commit matches only its own definition, backend/src/config/validation.ts:76; backend/src/routes/auth.routes.ts:12-19 imports only the six schemas from this file"
+    },
+    {
+      "rule": "dead-export",
+      "file": "backend/src/config/validation.ts",
+      "line": 77,
+      "id": "920967b5ecd29eb6",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export type VerifyOtpInput: git grep for the name at 89396b0 over *.ts/*.js finds only its declaration line in backend/src/config/validation.ts; nothing imports it and the file is not an entry point (file moved from src/, so new) pass two: git grep for `VerifyOtpInput` at the commit matches only its own definition, backend/src/config/validation.ts:77; backend/src/routes/auth.routes.ts:12-19 imports only the six schemas from this file"
+    },
+    {
+      "rule": "dead-export",
+      "file": "backend/src/config/validation.ts",
+      "line": 78,
+      "id": "7b6d742d36ea6ac9",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export type ResendOtpInput: git grep for the name at 89396b0 over *.ts/*.js finds only its declaration line in backend/src/config/validation.ts; nothing imports it and the file is not an entry point (file moved from src/, so new) pass two: git grep for `ResendOtpInput` at the commit matches only its own definition, backend/src/config/validation.ts:78; backend/src/routes/auth.routes.ts:12-19 imports only the six schemas from this file"
+    },
+    {
+      "rule": "dead-export",
+      "file": "backend/src/config/validation.ts",
+      "line": 79,
+      "id": "3b439a02191508e7",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export type ForgotPasswordInput: git grep for the name at 89396b0 over *.ts/*.js finds only its declaration line in backend/src/config/validation.ts; nothing imports it and the file is not an entry point (file moved from src/, so new) pass two: git grep for `ForgotPasswordInput` at the commit matches only its own definition, backend/src/config/validation.ts:79; backend/src/routes/auth.routes.ts:12-19 imports only the six schemas from this file"
+    },
+    {
+      "rule": "dead-export",
+      "file": "backend/src/config/validation.ts",
+      "line": 80,
+      "id": "48a9882172f9d904",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export type ResetPasswordInput: git grep for the name at 89396b0 over *.ts/*.js finds only its declaration line in backend/src/config/validation.ts; nothing imports it and the file is not an entry point (file moved from src/, so new) pass two: git grep for `ResetPasswordInput` at the commit matches only its own definition, backend/src/config/validation.ts:80; backend/src/routes/auth.routes.ts:12-19 imports only the six schemas from this file"
+    },
+    {
+      "rule": "dead-export",
+      "file": "backend/src/models/user.model.ts",
+      "line": 3,
+      "id": "7d03b0aa7e2675b7",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export interface User: the only importer of user.model is backend/src/controllers/auth.controller.ts:6 'import userModel from \"../models/user.model.js\"' (default only); User is imported nowhere pass two: git grep for `\bUser\b` matches only backend/src/models/user.model.ts lines 3, 13 and 48; the one importer of the file takes the default: auth.controller.ts:6 `import userModel from \"../models/user.model.js\";`"
+    },
+    {
+      "rule": "dead-export",
+      "file": "backend/src/services/otp.service.ts",
+      "line": 4,
+      "id": "da33a744c4562de5",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export type OtpType: git grep at 89396b0 finds it only inside backend/src/services/otp.service.ts; auth.controller.ts:11-16 imports checkCooldown, clearOtp, generateAndStoreOtp, verifyOtpWithRateLimit, not OtpType pass two: git grep for `OtpType` matches only backend/src/services/otp.service.ts (lines 4, 16, 26, 30, 45, 73); auth.controller.ts:11-16 imports checkCooldown, clearOtp, generateAndStoreOtp and verifyOtpWithRateLimit, not the type"
+    },
+    {
+      "rule": "dead-file",
+      "file": "backend/server.ts",
+      "line": 1,
+      "id": "f43e233dcc22058f",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: backend/server.ts is the entry point: backend/package.json script \"dev\": \"tsc-watch --onSuccess \\\"node dist/server.js\\\"\" runs its compiled output pass two: entry point: backend/package.json has `\"dev\": \"tsc-watch --onSuccess \\\"node dist/server.js\\\"\"` and backend/tsconfig.json has `\"rootDir\": \".\"` and `\"outDir\": \"./dist\"`, so dist/server.js is this file compiled"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "backend/server.ts",
+      "line": 10,
+      "id": "2b7cedc02f63a46f",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log(`Server running on port ${PORT}`) in the app.listen callback of the server entry script backend/server.ts: startup message on the entry's main path, not a leftover debug print pass two: the server entry point's startup announcement inside the listen callback, `app.listen(PORT, () => { console.log(`Server running on port ${PORT}`); });` (backend/server.ts:9-11): the program's real logging, not a debug print"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "backend/src/config/db.ts",
+      "line": 10,
+      "id": "b6a69a2058a95b38",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log(`MongoDB Connected`) in connectDB is the module's operational status logging (paired with console.error at db.ts:12 then process.exit), not a debug print pass two: connection status logging: `console.log(`MongoDB Connected`);` at db.ts:10 is the success half of connectDB, whose failure half is `console.error(`Error: ${(error as Error).message}`);` then `process.exit(1);` at db.ts:12-13; it prints no debug value"
+    }
+  ]
+}

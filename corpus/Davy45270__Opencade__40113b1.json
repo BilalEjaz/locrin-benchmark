@@ -1,0 +1,25 @@
+{
+  "id": "Davy45270__Opencade__40113b1",
+  "source": "git",
+  "repo": "Davy45270/Opencade",
+  "sha": "40113b1127b70ccd178cc21dfc7ab441eda1087b",
+  "parent": "e8f7c343dabfc68ab71d48a94a2c0f93faa56127",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Davy45270/Opencade/commit/40113b1127b70ccd178cc21dfc7ab441eda1087b",
+  "files": [
+    "scripts/check-derapage-cadence.js",
+    "src/games/derapage/decor-atlas.ts",
+    "src/games/derapage/paris-sprites.ts",
+    "src/games/derapage/result-panel.ts",
+    "src/games/derapage/road.ts",
+    "src/games/derapage/scene.ts",
+    "tests/derapage-decor.test.ts",
+    "tests/e2e/derapage-3d.spec.ts"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

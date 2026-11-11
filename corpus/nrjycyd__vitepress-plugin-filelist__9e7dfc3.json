@@ -1,0 +1,24 @@
+{
+  "id": "nrjycyd__vitepress-plugin-filelist__9e7dfc3",
+  "source": "git",
+  "repo": "nrjycyd/vitepress-plugin-filelist",
+  "sha": "9e7dfc34549e37daca2c2678b433319f238c7d29",
+  "parent": "8dfa34f8db927b50701c3ea88c25e3de77304616",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/nrjycyd/vitepress-plugin-filelist/commit/9e7dfc34549e37daca2c2678b433319f238c7d29",
+  "files": [
+    "demo/e2e/.vitepress/config.ts",
+    "demo/e2e/.vitepress/theme/index.ts",
+    "e2e/filelist.spec.ts",
+    "e2e/mock-openlist.mjs",
+    "playwright.config.ts"
+  ],
+  "wave": 2,
+  "signal": "test-skip",
+  "signals": [
+    "test-skip",
+    "console",
+    "test-case"
+  ]
+}

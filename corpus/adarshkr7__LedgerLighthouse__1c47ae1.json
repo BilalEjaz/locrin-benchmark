@@ -1,0 +1,18 @@
+{
+  "id": "adarshkr7__LedgerLighthouse__1c47ae1",
+  "source": "git",
+  "repo": "adarshkr7/LedgerLighthouse",
+  "sha": "1c47ae18dba77dcbfa0d4964987cb0dc7db81a77",
+  "parent": "1d03e390729578b4f204192f3e47488e7c54f8de",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/adarshkr7/LedgerLighthouse/commit/1c47ae18dba77dcbfa0d4964987cb0dc7db81a77",
+  "files": [
+    "tools/e2e/src/sweep.ts"
+  ],
+  "wave": 2,
+  "signal": "console",
+  "signals": [
+    "console"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "id": "whileloophq__whileui__d1a1f74",
+  "source": "git",
+  "repo": "whileloophq/whileui",
+  "sha": "d1a1f7427035f7d2682fbd7ce21b8fe614dc0b72",
+  "parent": "40ae57d5ad8204e1dc5e38bfbcac3b41af31bf79",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/whileloophq/whileui/commit/d1a1f7427035f7d2682fbd7ce21b8fe614dc0b72",
+  "files": [
+    "packages/ui/scripts/api-docs.mjs",
+    "packages/ui/scripts/api-tables.mjs",
+    "packages/ui/scripts/api-tables.test.mjs",
+    "packages/ui/scripts/build-agent-docs.mjs",
+    "packages/ui/src/blocks/chat/chat.tsx",
+    "packages/ui/src/blocks/chat/index.ts",
+    "packages/ui/src/blocks/commerce/subscription-card.tsx",
+    "packages/ui/src/blocks/commerce/usage-bar.tsx",
+    "packages/ui/src/blocks/layout/app-shell.tsx",
+    "packages/ui/src/blocks/layout/page-skeleton.tsx",
+    "packages/ui/src/blocks/layout/pull-to-refresh-scroll-view.tsx",
+    "packages/ui/src/blocks/layout/screen-skeleton.tsx",
+    "packages/ui/src/components/button/button.tsx",
+    "packages/ui/src/components/numeric-input/numeric-input.tsx",
+    "packages/ui/src/components/otp-input/otp-input.tsx",
+    "packages/ui/src/components/pressable/pressable.tsx",
+    "packages/ui/src/components/segmented-control/segmented-control.tsx",
+    "packages/ui/src/components/surface/surface.tsx",
+    "packages/ui/src/lib/frosted-surface.tsx"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

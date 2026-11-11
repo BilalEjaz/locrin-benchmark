@@ -1,0 +1,27 @@
+{
+  "id": "allisson__blindvault__a20e9f5",
+  "source": "git",
+  "repo": "allisson/blindvault",
+  "sha": "a20e9f58993c0ffc14a06fe598a9fc3539599539",
+  "parent": "210e707e4a35ca7b6d9b8f4bce325eecc82dad6b",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/allisson/blindvault/commit/a20e9f58993c0ffc14a06fe598a9fc3539599539",
+  "files": [
+    "packages/vault/src/errors.ts",
+    "packages/vault/src/import/blindpass.test.ts",
+    "packages/vault/src/import/blindpass.ts",
+    "packages/vault/src/import/csv-formats.test.ts",
+    "packages/vault/src/import/csv-formats.ts",
+    "packages/vault/src/import/csv.test.ts",
+    "packages/vault/src/import/csv.ts",
+    "packages/vault/src/import/source.ts",
+    "packages/vault/src/index.ts"
+  ],
+  "wave": 2,
+  "signal": "weak-hash",
+  "signals": [
+    "weak-hash",
+    "test-case"
+  ]
+}

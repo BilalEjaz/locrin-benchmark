@@ -1,0 +1,21 @@
+{
+  "id": "KRusselAlex__desknotes__50a0882",
+  "source": "git",
+  "repo": "KRusselAlex/desknotes",
+  "sha": "50a0882eff80bb1f0e99a8c6cd46e2cd68f45280",
+  "parent": "327b78ee345e7f8822970df853c54203b794b366",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/KRusselAlex/desknotes/commit/50a0882eff80bb1f0e99a8c6cd46e2cd68f45280",
+  "files": [
+    "src/features/notes/NoteWindow.test.tsx",
+    "src/features/notes/extensions.test.ts",
+    "src/features/notes/extensions.ts"
+  ],
+  "wave": 2,
+  "signal": "html-sink",
+  "signals": [
+    "html-sink",
+    "test-case"
+  ]
+}

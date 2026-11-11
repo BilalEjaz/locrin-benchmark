@@ -1,0 +1,20 @@
+{
+  "id": "overnightworks__design__f3b8e47",
+  "source": "git",
+  "repo": "overnightworks/design",
+  "sha": "f3b8e47c00603388c314debec75a98456c444554",
+  "parent": "b0566691e8b62d90a2ae0e753e1a21d1241e80d6",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/overnightworks/design/commit/f3b8e47c00603388c314debec75a98456c444554",
+  "files": [
+    "tests/e2e/legal-row.spec.ts",
+    "tests/e2e/main.ts"
+  ],
+  "wave": 2,
+  "signal": "html-sink",
+  "signals": [
+    "html-sink",
+    "test-case"
+  ]
+}

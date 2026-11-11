@@ -1,0 +1,24 @@
+{
+  "id": "bakirsobashy__kursi__483bf9f",
+  "source": "git",
+  "repo": "bakirsobashy/kursi",
+  "sha": "483bf9f36067e2c6626fd57366618d70c09419b6",
+  "parent": "08798fa02ed7a4b99eb789748eae1a9249823ab2",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/bakirsobashy/kursi/commit/483bf9f36067e2c6626fd57366618d70c09419b6",
+  "files": [
+    "src/app.ts",
+    "src/lib/refresh-cookie.ts",
+    "src/routes/auth.ts",
+    "src/services/auth.ts",
+    "src/services/refresh-tokens.ts",
+    "tests/refresh.test.ts"
+  ],
+  "wave": 2,
+  "signal": "express-cookie",
+  "signals": [
+    "express-cookie",
+    "test-case"
+  ]
+}

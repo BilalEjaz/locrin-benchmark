@@ -1,0 +1,78 @@
+{
+  "diff": "earayu__Mingle__f8a174a",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "web/src/i18n.ts",
+      "line": 174,
+      "id": "153df7e1349f42b4",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: 'export const catalogs' is new; git grep -w catalogs at the commit hits only web/src/i18n.ts (174, 203), no importer pass two: `export const catalogs` has no importer: git grep -w `catalogs` at the commit matches only web/src/i18n.ts lines 174 and 203 (its own use in `translator`)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "web/src/i18n.ts",
+      "line": 192,
+      "id": "a98d0495605841cd",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: 'export type Translate' is new; git grep -w Translate at the commit hits only web/src/i18n.ts (183, 192, 194, 202), no importer pass two: `export type Translate` has no importer: git grep -w `Translate` at the commit matches only web/src/i18n.ts lines 183, 192, 194 and 202, all inside the file"
+    },
+    {
+      "rule": "dead-file",
+      "file": "web/src/main.tsx",
+      "line": 1,
+      "id": "8393714e32ef5a5a",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: entry point: web/index.html at the commit has '<script type=\"module\" src=\"/src/main.tsx\"></script>', the Vite page entry pass two: entry point: web/index.html line 11 is `<script type=\"module\" src=\"/src/main.tsx\"></script>`, and package.json builds it with `\"build:web\": \"vite build --config web/vite.config.ts\"`"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "src/api/server.ts",
+      "line": 279,
+      "id": "90e691023528fcba",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: new '} catch {}' with an empty body around 'onboarding = mingle.channel(platform).onboarding;' in the new /v1/admin/platforms route; the parent server.ts has no catch pass two: empty catch with no comment: `try { onboarding = mingle.channel(platform).onboarding; } catch {}` at lines 277-279"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "web/src/App.tsx",
+      "line": 84,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: floating promise: statement 'refresh();' calls 'const refresh = useCallback(async () => {' (line 72) and discards the promise with no await, .catch or void pass two: floating promise: `refresh();` in the effect at line 82; refresh is `const refresh = useCallback(async () => {` (line 72), so the call returns a promise that is discarded with no await, handler, binding or void"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "web/src/App.tsx",
+      "line": 126,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: floating promise: statement 'refresh();' calls 'const refresh = useCallback(async () => {' (line 72) and discards the promise with no await, .catch or void pass two: floating promise: `refresh();` as a statement in the `onCreated={(agent) => {` callback; refresh is `useCallback(async () => {` (line 72), result discarded with no await, handler or void"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "web/src/App.tsx",
+      "line": 136,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: floating promise: statement 'refresh();' calls 'const refresh = useCallback(async () => {' (line 72) and discards the promise with no await, .catch or void pass two: floating promise: `refresh();` as a statement in the `onDeleted={() => {` callback; refresh is `useCallback(async () => {` (line 72), result discarded with no await, handler or void"
+    }
+  ]
+}

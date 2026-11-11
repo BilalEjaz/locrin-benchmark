@@ -1,0 +1,28 @@
+{
+  "id": "Von-Payments__vonpay-samples__3ccc9b5",
+  "source": "git",
+  "repo": "Von-Payments/vonpay-samples",
+  "sha": "3ccc9b5297ee89a63f638646facda4603ece05e1",
+  "parent": "ca7f2ff6098c9c5b3dacc0fcb732c1079a0a82d8",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Von-Payments/vonpay-samples/commit/3ccc9b5297ee89a63f638646facda4603ece05e1",
+  "files": [
+    "checkout-express/server.ts",
+    "checkout-flask/app.py",
+    "checkout-nextjs/app/api/checkout/route.ts",
+    "checkout-nextjs/app/confirm/page.tsx",
+    "checkout-nextjs/lib/orders.ts",
+    "checkout-paybylink-nextjs/app/confirm/page.tsx",
+    "checkout-paybylink-nextjs/lib/storage.ts",
+    "platform-integrator-nextjs/app/api/charge/route.ts",
+    "platform-integrator-nextjs/app/tenants/[merchantId]/confirm/page.tsx",
+    "platform-integrator-nextjs/lib/orders.ts"
+  ],
+  "wave": 2,
+  "signal": "express-cookie",
+  "signals": [
+    "express-cookie",
+    "console"
+  ]
+}

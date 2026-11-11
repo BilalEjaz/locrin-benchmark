@@ -1,0 +1,24 @@
+{
+  "diff": "d-zero-dev__tools__1e69228",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "packages/@d-zero/beholder/src/types.ts",
+      "line": 8,
+      "id": "11602e79933e5c43",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export type { ImageScanCode } re-export in types.ts line 8 has no importer: git grep shows index.ts line 26 re-exports it from './image-scan-code.js' and no file imports ImageScanCode from './types.js' pass two: types.ts:8 `export type { ImageScanCode } from './image-scan-code.js';`; git grep -w ImageScanCode at the commit shows no file importing it from './types.js': index.ts:26 re-exports it from './image-scan-code.js' and classify-image-scan-error.ts:4 imports it from './image-scan-code.js'. packages/@d-zero/beholder/package.json exports only \".\" (./dist/index.js), so types.ts is not an entry point."
+    }
+  ]
+}

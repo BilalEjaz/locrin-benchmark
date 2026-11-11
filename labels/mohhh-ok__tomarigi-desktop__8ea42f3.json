@@ -1,0 +1,159 @@
+{
+  "diff": "mohhh-ok__tomarigi-desktop__8ea42f3",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "tools/llm-regression/cases.ts",
+      "line": 17,
+      "id": "93dfb91ae4e2ca98",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export interface TurnCase` is new; git grep TurnCase at the commit hits only cases.ts:17 and :43 (`export type Case = TurnCase | ConciergeCase`), no importer pass two: `export interface TurnCase extends Strictness {`: git grep -w TurnCase at the commit matches only tools/llm-regression/cases.ts (lines 17, 43); run.ts:22 imports only `CASES, CASE_NOW, type Case`"
+    },
+    {
+      "rule": "dead-export",
+      "file": "tools/llm-regression/cases.ts",
+      "line": 31,
+      "id": "2710b3cad96659cc",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export interface ConciergeCase` is new; git grep ConciergeCase at the commit hits only cases.ts:31 and :43, no importer pass two: `export interface ConciergeCase extends Strictness {`: git grep -w ConciergeCase at the commit matches only tools/llm-regression/cases.ts (lines 31, 43); run.ts:22 imports only `CASES, CASE_NOW, type Case`"
+    },
+    {
+      "rule": "dead-export",
+      "file": "tools/llm-regression/transport.ts",
+      "line": 29,
+      "id": "4c7ee27b87b23e44",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export interface Keys` is new; git grep -w Keys at the commit finds it only in transport.ts (29, 34); run.ts:23 imports only fetchTransport, localModels and the test imports only KEYS_RS_VALUES pass two: `export interface Keys {`: the only other use of the identifier is transport.ts:34 `fetchTransport(keys: Keys)`; run.ts:23 imports `fetchTransport, localModels` and tests/llm-transport.test.ts:6 imports `KEYS_RS_VALUES`"
+    },
+    {
+      "rule": "dead-file",
+      "file": "tools/llm-regression/needs-run.ts",
+      "line": 1,
+      "id": "b62ddf8d5969edc4",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: tools/llm-regression/needs-run.ts is an entry point: package.json scripts at the commit: \"test:llm\": \"bun tools/llm-regression/run.ts\", \"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\" pass two: an entry point: package.json at the commit has `\"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\"`"
+    },
+    {
+      "rule": "dead-file",
+      "file": "tools/llm-regression/run.ts",
+      "line": 1,
+      "id": "60f3e58294539e51",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: tools/llm-regression/run.ts is an entry point: package.json scripts at the commit: \"test:llm\": \"bun tools/llm-regression/run.ts\", \"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\" pass two: an entry point: package.json at the commit has `\"test:llm\": \"bun tools/llm-regression/run.ts\"`"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "tools/llm-regression/needs-run.ts",
+      "line": 144,
+      "id": "da447b3abc7ce7bc",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at top level of the CLI script tools/llm-regression/needs-run.ts, its report output in the main path; it is a package.json script (package.json scripts at the commit: \"test:llm\": \"bun tools/llm-regression/run.ts\", \"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\") pass two: tools/llm-regression/needs-run.ts is the CLI script package.json runs (`\"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\"`); line 144 `console.log(`base ${base.slice(0, 12)}; the test reaches ...`)` is its top-level result output"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "tools/llm-regression/needs-run.ts",
+      "line": 146,
+      "id": "4df689fd3a192379",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at top level of the CLI script tools/llm-regression/needs-run.ts, its report output in the main path; it is a package.json script (package.json scripts at the commit: \"test:llm\": \"bun tools/llm-regression/run.ts\", \"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\") pass two: tools/llm-regression/needs-run.ts is the CLI script package.json runs (`\"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\"`); line 146 `console.log(\"run: bun run test:llm (these changes can change the results)\")` is the answer the script exists to print"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "tools/llm-regression/needs-run.ts",
+      "line": 147,
+      "id": "a5edf8d6d3839920",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at top level of the CLI script tools/llm-regression/needs-run.ts, its report output in the main path; it is a package.json script (package.json scripts at the commit: \"test:llm\": \"bun tools/llm-regression/run.ts\", \"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\") pass two: tools/llm-regression/needs-run.ts is the CLI script package.json runs (`\"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\"`); line 147 `for (const r of reasons.sort()) console.log(`  ${r}`)` prints the reasons at top level"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "tools/llm-regression/needs-run.ts",
+      "line": 149,
+      "id": "fcc0a431f398b17a",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at top level of the CLI script tools/llm-regression/needs-run.ts, its report output in the main path; it is a package.json script (package.json scripts at the commit: \"test:llm\": \"bun tools/llm-regression/run.ts\", \"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\") pass two: tools/llm-regression/needs-run.ts is the CLI script package.json runs (`\"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\"`); line 149 `console.log(\"not needed: no change reaches ...\")` is the answer the script exists to print"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "tools/llm-regression/run.ts",
+      "line": 156,
+      "id": "d83cee4c4e7d123b",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at top level of the CLI script tools/llm-regression/run.ts, its report output in the main path; it is a package.json script (package.json scripts at the commit: \"test:llm\": \"bun tools/llm-regression/run.ts\", \"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\") pass two: tools/llm-regression/run.ts is the CLI script package.json runs (`\"test:llm\": \"bun tools/llm-regression/run.ts\"`); line 156 `console.log(`${p}: not run (${why})`)` reports skipped providers at top level"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "tools/llm-regression/run.ts",
+      "line": 166,
+      "id": "ca51dcb821bd7238",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at top level of the CLI script tools/llm-regression/run.ts, its report output in the main path; it is a package.json script (package.json scripts at the commit: \"test:llm\": \"bun tools/llm-regression/run.ts\", \"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\") pass two: tools/llm-regression/run.ts is the CLI script package.json runs (`\"test:llm\": \"bun tools/llm-regression/run.ts\"`); line 166 `console.log(` opens the --dry-run summary printed at top level before `process.exit(0)`"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "tools/llm-regression/run.ts",
+      "line": 208,
+      "id": "cac8193ffa38ff97",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at top level of the CLI script tools/llm-regression/run.ts, its report output in the main path; it is a package.json script (package.json scripts at the commit: \"test:llm\": \"bun tools/llm-regression/run.ts\", \"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\") pass two: tools/llm-regression/run.ts is the CLI script package.json runs (`\"test:llm\": \"bun tools/llm-regression/run.ts\"`); line 208 `console.log(`${new Date().toISOString()} ${provider} ${c.name} ${row.passed}/${row.runs}...`)` is the per-case progress line of runProvider, which line 214 calls at top level"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "tools/llm-regression/run.ts",
+      "line": 241,
+      "id": "8193f0a9144f1d61",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at top level of the CLI script tools/llm-regression/run.ts, its report output in the main path; it is a package.json script (package.json scripts at the commit: \"test:llm\": \"bun tools/llm-regression/run.ts\", \"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\") pass two: tools/llm-regression/run.ts is the CLI script package.json runs (`\"test:llm\": \"bun tools/llm-regression/run.ts\"`); line 241 `console.log(`\n${lines.join(\"\n\")}\n`)` prints the result table at top level"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "tools/llm-regression/run.ts",
+      "line": 244,
+      "id": "d717d7b3bb99c01a",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at top level of the CLI script tools/llm-regression/run.ts, its report output in the main path; it is a package.json script (package.json scripts at the commit: \"test:llm\": \"bun tools/llm-regression/run.ts\", \"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\") pass two: tools/llm-regression/run.ts is the CLI script package.json runs (`\"test:llm\": \"bun tools/llm-regression/run.ts\"`); line 244 `console.log(`${p}: ${u.input} input tokens, ${u.output} output tokens`)` prints the token totals at top level"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "tools/llm-regression/run.ts",
+      "line": 246,
+      "id": "353d4d819378e532",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at top level of the CLI script tools/llm-regression/run.ts, its report output in the main path; it is a package.json script (package.json scripts at the commit: \"test:llm\": \"bun tools/llm-regression/run.ts\", \"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\") pass two: tools/llm-regression/run.ts is the CLI script package.json runs (`\"test:llm\": \"bun tools/llm-regression/run.ts\"`); line 246 `for (const p of problems) console.log(`NG ${p}`)` prints the failures at top level"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "tools/llm-regression/run.ts",
+      "line": 251,
+      "id": "9df9bd85e18dd68b",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at top level of the CLI script tools/llm-regression/run.ts, its report output in the main path; it is a package.json script (package.json scripts at the commit: \"test:llm\": \"bun tools/llm-regression/run.ts\", \"test:llm:needed\": \"bun tools/llm-regression/needs-run.ts\") pass two: tools/llm-regression/run.ts is the CLI script package.json runs (`\"test:llm\": \"bun tools/llm-regression/run.ts\"`); line 251 `console.log(`every answer: ${file}`)` names the result file at top level"
+    }
+  ]
+}

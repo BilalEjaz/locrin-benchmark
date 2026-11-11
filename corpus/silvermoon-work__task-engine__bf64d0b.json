@@ -1,0 +1,32 @@
+{
+  "id": "silvermoon-work__task-engine__bf64d0b",
+  "source": "git",
+  "repo": "silvermoon-work/task-engine",
+  "sha": "bf64d0be1d470aef3a5d7870bfccee6a4da60a17",
+  "parent": "029ca8c3c994c5e26699106de56389dc8e076766",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/silvermoon-work/task-engine/commit/bf64d0be1d470aef3a5d7870bfccee6a4da60a17",
+  "files": [
+    "packages/task-builder-cli/src/project.ts",
+    "packages/task-builder-cli/test/cli.test.ts",
+    "packages/task-builder-cli/test/runner.test.ts",
+    "packages/task-builder/src/init.ts",
+    "packages/task-builder/test/init.test.ts",
+    "packages/task-engine-cli/src/commands.ts",
+    "packages/task-engine-cli/src/data.ts",
+    "packages/task-engine-cli/src/diagnostics.ts",
+    "packages/task-engine-cli/src/entry.ts",
+    "packages/task-engine-cli/src/execution.ts",
+    "packages/task-engine-cli/src/managed.ts",
+    "packages/task-engine-cli/src/usage.ts",
+    "packages/task-engine-cli/test/data.test.ts",
+    "packages/task-engine-cli/test/help.test.ts",
+    "packages/task-engine-cli/test/managed.test.ts"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

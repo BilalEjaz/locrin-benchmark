@@ -1,0 +1,22 @@
+{
+  "id": "paperclipai__paperclip__9296c74",
+  "source": "git",
+  "repo": "paperclipai/paperclip",
+  "sha": "9296c74e8dfaf2aa386ffe2ca85b203a2f1619ed",
+  "parent": "7f72ea75341e142412f545c3ef364a162e0802b9",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/paperclipai/paperclip/commit/9296c74e8dfaf2aa386ffe2ca85b203a2f1619ed",
+  "files": [
+    "server/src/__tests__/heartbeat-native-restart-suspension.test.ts",
+    "server/src/__tests__/native-recovery-dispatch-lease-reacquire.test.ts",
+    "server/src/services/budget-reservations.ts",
+    "server/src/services/native-runtime/native-execution-lease.ts"
+  ],
+  "wave": 2,
+  "signal": "test-skip",
+  "signals": [
+    "test-skip",
+    "test-case"
+  ]
+}

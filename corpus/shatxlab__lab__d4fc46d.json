@@ -1,0 +1,33 @@
+{
+  "id": "shatxlab__lab__d4fc46d",
+  "source": "git",
+  "repo": "shatxlab/lab",
+  "sha": "d4fc46d74c9ca438a0d31813ded41e04a8dedcfb",
+  "parent": "46c8c792946133292a5ad78b3fe0370e9d592f2a",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/shatxlab/lab/commit/d4fc46d74c9ca438a0d31813ded41e04a8dedcfb",
+  "files": [
+    "scripts/hr/playthrough.ts",
+    "src/components/hr/HrApp.tsx",
+    "src/lib/hr/career.ts",
+    "src/lib/hr/i18n.ts",
+    "src/lib/hr/sim/balance.ts",
+    "src/lib/hr/sim/picks.ts",
+    "src/lib/hr/sim/run.ts",
+    "src/lib/hr/sim/types.ts",
+    "src/lib/roster/generate.ts",
+    "src/lib/roster/save.ts",
+    "src/lib/roster/types.ts",
+    "tests/hr/career.test.ts",
+    "tests/hr/hr-app.test.tsx",
+    "tests/hr/run.test.ts",
+    "tests/roster/save.test.ts"
+  ],
+  "wave": 2,
+  "signal": "weak-random",
+  "signals": [
+    "weak-random",
+    "test-case"
+  ]
+}

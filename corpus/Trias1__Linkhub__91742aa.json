@@ -1,0 +1,40 @@
+{
+  "id": "Trias1__Linkhub__91742aa",
+  "source": "git",
+  "repo": "Trias1/Linkhub",
+  "sha": "91742aac458142c1099b499bfadcd4664cc42d2f",
+  "parent": "b2aa6a913edb446befc863ee615bc98a7a11590f",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Trias1/Linkhub/commit/91742aac458142c1099b499bfadcd4664cc42d2f",
+  "files": [
+    "src/app/[slug]/page.tsx",
+    "src/app/admin/page.tsx",
+    "src/app/api/contact/[id]/route.ts",
+    "src/app/api/export/[type]/route.ts",
+    "src/app/auth/actions.ts",
+    "src/app/auth/callback/route.ts",
+    "src/app/dashboard/account/account-security.tsx",
+    "src/app/dashboard/actions.ts",
+    "src/app/dashboard/links/links-workspace.tsx",
+    "src/app/dashboard/shops/shop-workspace.tsx",
+    "src/app/dashboard/sidebar.tsx",
+    "src/app/forgot-password/page.tsx",
+    "src/app/layout.tsx",
+    "src/app/login/mfa/mfa-challenge.tsx",
+    "src/app/login/page.tsx",
+    "src/app/reset-password/page.tsx",
+    "src/app/signup/page.tsx",
+    "src/components/auth-layout.tsx",
+    "src/components/password-input.tsx",
+    "src/lib/active-linktree.ts",
+    "src/lib/i18n-server.ts",
+    "src/lib/products.ts",
+    "src/proxy.ts"
+  ],
+  "wave": 2,
+  "signal": "supabase-service-role",
+  "signals": [
+    "supabase-service-role"
+  ]
+}

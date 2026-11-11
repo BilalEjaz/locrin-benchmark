@@ -1,0 +1,24 @@
+{
+  "diff": "allisson__blindvault__a9b14e9",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "test-newly-skipped",
+      "file": "apps/web/e2e/backup-merge.spec.ts",
+      "line": 159,
+      "id": "00947153332cb7c4",
+      "pass1": "true",
+      "pass2": "false-positive",
+      "note": "pass one: backup-merge.spec.ts:159 'test.skip(browserName === 'webkit' && process.platform === 'linux', ...)' in the new describe's beforeEach marks its new merge test skipped on WebKit/Linux (conditional skip) pass two: Not a test marked skip: line 159 is a conditional guard in the describe's beforeEach, `test.skip(` / `browserName === 'webkit' && process.platform === 'linux',` (lines 159-160), so the new test at line 196 still runs wherever the condition is false."
+    }
+  ]
+}

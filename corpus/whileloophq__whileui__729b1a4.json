@@ -1,0 +1,25 @@
+{
+  "id": "whileloophq__whileui__729b1a4",
+  "source": "git",
+  "repo": "whileloophq/whileui",
+  "sha": "729b1a4e900494bfb273999e6508a880b8869e2a",
+  "parent": "0bee3ba67fe6359762fbeffe05db60614262db02",
+  "licence": "MIT",
+  "language": "javascript",
+  "url": "https://github.com/whileloophq/whileui/commit/729b1a4e900494bfb273999e6508a880b8869e2a",
+  "files": [
+    "packages/mcp/src/catalog.ts",
+    "packages/mcp/src/server.ts",
+    "packages/mcp/test/server.test.mjs",
+    "packages/ui/scripts/agent-docs-guards.mjs",
+    "packages/ui/scripts/agent-docs-guards.test.mjs",
+    "packages/ui/scripts/api-tables.mjs",
+    "packages/ui/scripts/api-tables.test.mjs",
+    "packages/ui/scripts/build-agent-docs.mjs"
+  ],
+  "wave": 2,
+  "signal": "test-case",
+  "signals": [
+    "test-case"
+  ]
+}

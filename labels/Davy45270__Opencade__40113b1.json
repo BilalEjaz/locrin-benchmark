@@ -1,0 +1,33 @@
+{
+  "diff": "Davy45270__Opencade__40113b1",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/games/derapage/paris-sprites.ts",
+      "line": 14,
+      "id": "0806c3122c65ba5a",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: paris-sprites.ts:14 'export type ParisKind' in a new file; git grep at the commit finds ParisKind only inside paris-sprites.ts (lines 14,15,20,27,33); importers scene.ts:17, road.ts:4 and tests/derapage-decor.test.ts:6 do not name it pass two: `export type ParisKind = 'building' | 'lamp' | 'crossing';` in a new file; git grep at the commit finds ParisKind only inside paris-sprites.ts (lines 14, 15, 17, 20, 27, 33), and the three importers of the file (road.ts:4, scene.ts:17, tests/derapage-decor.test.ts:6) name other bindings."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/games/derapage/paris-sprites.ts",
+      "line": 17,
+      "id": "0bd11b800fffe196",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: paris-sprites.ts:17 'export const PARIS_HEIGHT' in a new file; git grep finds PARIS_HEIGHT only at paris-sprites.ts:17 and :29; scene.ts:17, road.ts:4 and tests/derapage-decor.test.ts:6 import other names only pass two: `export const PARIS_HEIGHT: Record<ParisKind, number> = {...}` in a new file; git grep at the commit finds PARIS_HEIGHT only at paris-sprites.ts:17 and :29 (`return { key, height: PARIS_HEIGHT[kind] }`), no importer names it."
+    }
+  ]
+}

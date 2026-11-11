@@ -1,0 +1,21 @@
+{
+  "id": "Von-Payments__vonpay-samples__4f9d26c",
+  "source": "git",
+  "repo": "Von-Payments/vonpay-samples",
+  "sha": "4f9d26cc1a4690f827a5213c53bca559c808c5f3",
+  "parent": "c93c325e3e472abdefaad5b4774e06f796129551",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/Von-Payments/vonpay-samples/commit/4f9d26cc1a4690f827a5213c53bca559c808c5f3",
+  "files": [
+    "funnel-one-click-node/public/funnel.js",
+    "funnel-one-click-node/server/app.ts",
+    "funnel-one-click-node/server/index.ts"
+  ],
+  "wave": 2,
+  "signal": "express-cookie",
+  "signals": [
+    "express-cookie",
+    "console"
+  ]
+}

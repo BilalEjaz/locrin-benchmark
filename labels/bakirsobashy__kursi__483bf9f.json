@@ -1,0 +1,42 @@
+{
+  "diff": "bakirsobashy__kursi__483bf9f",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/lib/refresh-cookie.ts",
+      "line": 4,
+      "id": "d1d40693bd7ec55e",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep REFRESH_COOKIE at the commit finds only src/lib/refresh-cookie.ts (lines 4, 23, 31, 35); no other file imports it, and the importers of the file (src/routes/auth.ts:2, tests/refresh.test.ts:9) name other symbols. pass two: git grep REFRESH_COOKIE at the commit hits only src/lib/refresh-cookie.ts (lines 4, 23, 31, 35); the file's two importers take other names: src/routes/auth.ts:2 `import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from '../lib/refresh-cookie.js'` and tests/refresh.test.ts:9 `import { refreshCookieOptions } from '../src/lib/refresh-cookie.js'`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/services/refresh-tokens.ts",
+      "line": 48,
+      "id": "0c7c44eada45ca1c",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep revokeFamily at the commit finds only src/services/refresh-tokens.ts (lines 48, 94, 120); its one importer src/services/auth.ts:10 imports issueRefreshToken, revokeSessionOf, rotateRefreshToken only. pass two: git grep revokeFamily at the commit hits only src/services/refresh-tokens.ts (lines 48, 94, 120); the file's one importer, src/services/auth.ts:10, is `import { issueRefreshToken, revokeSessionOf, rotateRefreshToken } from './refresh-tokens.js'`."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/services/refresh-tokens.ts",
+      "line": 57,
+      "id": "92b0643bcdd9bfd6",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: git grep RotationResult at the commit finds only src/services/refresh-tokens.ts lines 57 and 69; src/services/auth.ts:10 does not import it. pass two: git grep RotationResult at the commit hits only src/services/refresh-tokens.ts lines 57 and 69 (`Promise<RotationResult>`); src/services/auth.ts:10 imports `{ issueRefreshToken, revokeSessionOf, rotateRefreshToken }` only."
+    }
+  ]
+}

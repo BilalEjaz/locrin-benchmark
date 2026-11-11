@@ -1,0 +1,24 @@
+{
+  "diff": "coldic3__slipway__65eeff0",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/mcp/shell.ts",
+      "line": 234,
+      "id": "50fb721313c22034",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: substitutionEnd is exported at src/mcp/shell.ts:234; git grep -w at 65eeff0 finds no other file naming it, and the only importer of shell.ts, src/mcp/hook.ts:8, imports just parseCommand and SimpleCommand pass two: git grep substitutionEnd at the commit finds it only inside src/mcp/shell.ts (lines 96, 114, 223, 234) and in the bundle plugin/dist/slipway-hook.mjs as a plain function; the only imports of the module are src/mcp/hook.ts:8 `import { parseCommand, type SimpleCommand } from './shell.ts';` and tests/unit/shell.test.ts:2 `import { parseCommand } from '../../src/mcp/shell.ts';`"
+    }
+  ]
+}

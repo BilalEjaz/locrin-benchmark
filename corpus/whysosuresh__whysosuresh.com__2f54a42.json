@@ -1,0 +1,32 @@
+{
+  "id": "whysosuresh__whysosuresh.com__2f54a42",
+  "source": "git",
+  "repo": "whysosuresh/whysosuresh.com",
+  "sha": "2f54a4282bf5ab1803a2ce9ba42364cc951effa2",
+  "parent": "487eb9c298310bc5f44c38663cfe216b34ecf258",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/whysosuresh/whysosuresh.com/commit/2f54a4282bf5ab1803a2ce9ba42364cc951effa2",
+  "files": [
+    "site/talk-recorder.js",
+    "site/talk.js",
+    "src/audio.ts",
+    "src/json.ts",
+    "src/quota.ts",
+    "src/store.ts",
+    "src/talk.ts",
+    "src/turnstile.ts",
+    "src/worker.ts",
+    "test/harness.ts",
+    "test/site.test.ts",
+    "test/talk.test.ts",
+    "vitest.config.ts"
+  ],
+  "wave": 2,
+  "signal": "html-sink",
+  "signals": [
+    "html-sink",
+    "console",
+    "test-case"
+  ]
+}

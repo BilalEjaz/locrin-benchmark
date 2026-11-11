@@ -1,0 +1,31 @@
+{
+  "id": "ratelworks__agent-safety-oss__3fcfcc5",
+  "source": "git",
+  "repo": "ratelworks/agent-safety-oss",
+  "sha": "3fcfcc52e6883e7a11e92156ef3caa306fa62c4a",
+  "parent": "66615c966a69e28b35e848ae584159d83f1d2574",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/ratelworks/agent-safety-oss/commit/3fcfcc52e6883e7a11e92156ef3caa306fa62c4a",
+  "files": [
+    "scripts/etl/simulate-user-input.ts",
+    "scripts/etl/validate-a2ui-form.ts",
+    "scripts/test/a2ui-schema-validator.ts",
+    "scripts/test/test-a2ui-schema.ts",
+    "scripts/test/test-v150-a2ui-form-value.ts",
+    "src/lib/a2ui.ts",
+    "src/tool-registry.ts",
+    "src/tools/analyze-work-context.ts",
+    "src/tools/preview-review.ts",
+    "src/tools/render-a2ui-form.ts",
+    "src/tools/render-profile-input-form.ts",
+    "src/tools/request-field-help.ts",
+    "src/tools/suggest-controls-for-hazard.ts",
+    "src/viewer.ts"
+  ],
+  "wave": 2,
+  "signal": "html-sink",
+  "signals": [
+    "html-sink"
+  ]
+}

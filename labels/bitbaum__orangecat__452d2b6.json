@@ -1,0 +1,87 @@
+{
+  "diff": "bitbaum__orangecat__452d2b6",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-file",
+      "file": "mcp-servers/smoke.mjs",
+      "line": 1,
+      "id": "a0462547ea9c57a1",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: entry point: mcp-servers/package.json at the commit has `\"smoke\": \"node smoke.mjs\"`, and smoke.mjs line 1 is `#!/usr/bin/env node` pass two: an entry point names it: mcp-servers/package.json at 452d2b6 has the script `\"smoke\": \"node smoke.mjs\"`, and the file starts with line 1 `#!/usr/bin/env node`"
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "mcp-servers/smoke.mjs",
+      "line": 34,
+      "id": "f8569f0e28f1d658",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: `SUPABASE_SERVICE_ROLE_KEY: 'smoke-placeholder',` is a placeholder env value in a Node CLI script (`#!/usr/bin/env node`, spawns servers via node:child_process), not client code pass two: `SUPABASE_SERVICE_ROLE_KEY: 'smoke-placeholder',` is a placeholder in the env given to child processes by a Node script (line 1 `#!/usr/bin/env node`, line 20 `import { spawn } from 'node:child_process';`), not client code"
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "mcp-servers/supabase-server.js",
+      "line": 16,
+      "id": "a797cb24ae623895",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: supabase-server.js is a Node stdio MCP server (line 1 `#!/usr/bin/env node`, line 180 `new StdioServerTransport()`), not code that runs on a client pass two: `const service = process.env.SUPABASE_SERVICE_ROLE_KEY;` is in a Node stdio MCP server (line 1 `#!/usr/bin/env node`, line 180 `const transport = new StdioServerTransport();`), not client code"
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "mcp-servers/supabase-server.js",
+      "line": 19,
+      "id": "5a6ad2e55c881847",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: supabase-server.js is a Node stdio MCP server (line 1 `#!/usr/bin/env node`, line 180 `new StdioServerTransport()`), not code that runs on a client pass two: the line is the text of an error message naming the variable, in a Node stdio MCP server (line 1 `#!/usr/bin/env node`, line 180 `const transport = new StdioServerTransport();`), not client code"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "mcp-servers/fs-server.js",
+      "line": 182,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `new FSServer().run();` floating promise: `async run()` (line 175) is called at top level and its promise discarded with no await, .catch or void; parent line was `new FSServer().run()` without the semicolon, so the line text is new pass two: floating promise `new FSServer().run();`: `async run() {` (line 175) returns a promise that is discarded with no await, handler, binding or void; the parent held `new FSServer().run()` at line 104 without the semicolon, so the line text is new"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "mcp-servers/git-server.js",
+      "line": 208,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `new GitServer().run();` floating promise: `async run()` (line 201) is called at top level and its promise discarded with no await, .catch or void; parent line was `new GitServer().run()` without the semicolon, so the line text is new pass two: floating promise `new GitServer().run();`: `async run() {` (line 201) returns a promise that is discarded with no await, handler, binding or void; the parent held `new GitServer().run()` at line 109 without the semicolon, so the line text is new"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "mcp-servers/lint-server.js",
+      "line": 186,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `new LintServer().run();` floating promise: `async run()` (line 179) is called at top level and its promise discarded with no await, .catch or void; parent line was `new LintServer().run()` without the semicolon, so the line text is new pass two: floating promise `new LintServer().run();`: `async run() {` (line 179) returns a promise that is discarded with no await, handler, binding or void; the parent held `new LintServer().run()` at line 93 without the semicolon, so the line text is new"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "mcp-servers/supabase-server.js",
+      "line": 186,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `new SupabaseMCPServer().run();` floating promise: `async run()` (line 179) is called at top level and its promise discarded with no await, .catch or void; parent line was `new SupabaseMCPServer().run()` without the semicolon, so the line text is new pass two: floating promise `new SupabaseMCPServer().run();`: `async run() {` (line 179) returns a promise that is discarded with no await, handler, binding or void; the parent held `new SupabaseMCPServer().run()` at line 103 without the semicolon, so the line text is new"
+    }
+  ]
+}

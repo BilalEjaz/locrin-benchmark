@@ -1,0 +1,21 @@
+{
+  "id": "tinbase__tinbase__e7a514b",
+  "source": "git",
+  "repo": "tinbase/tinbase",
+  "sha": "e7a514b15e3296b3dccd24845376d63bca9d4be2",
+  "parent": "dfc5a12d1bba5b953a2e728d84061adb093dc5fa",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/tinbase/tinbase/commit/e7a514b15e3296b3dccd24845376d63bca9d4be2",
+  "files": [
+    "src/index.ts",
+    "src/storage/handler.ts",
+    "test/storage.test.ts"
+  ],
+  "wave": 2,
+  "signal": "supabase-service-role",
+  "signals": [
+    "supabase-service-role",
+    "test-case"
+  ]
+}

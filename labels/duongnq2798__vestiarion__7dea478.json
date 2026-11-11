@@ -1,0 +1,474 @@
+{
+  "diff": "duongnq2798__vestiarion__7dea478",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/lib/linear/acceptance.ts",
+      "line": 161,
+      "id": "dad43b414d656cc1",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: `export interface AcceptanceActions` is new; git grep -n AcceptanceActions at the commit hits only src/lib/linear/acceptance.ts (161, 166, 172), and jira/acceptance.ts re-exports other names from it (lines 28, 123), not this one pass two: `export interface AcceptanceActions {` is new in this diff; git grep -w AcceptanceActions at the commit matches only src/lib/linear/acceptance.ts (lines 161, 166, 172), so nothing imports it"
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "tests/support/jira-world.ts",
+      "line": 57,
+      "id": "21be51ced7bf82e0",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: tests/support/jira-world.ts is a node test helper (line 1 `import crypto from \"node:crypto\"`), not client code, and line 57 passes the placeholder `SUPABASE_SERVICE_ROLE_KEY: \"k\"` pass two: line 57 passes the literal `SUPABASE_SERVICE_ROLE_KEY: \"k\"` to configFromEnv in a vitest support file whose line 1 is `import crypto from \"node:crypto\"` and whose only importers are tests/jira-flow.test.ts:41 and tests/jira-sites.test.ts:6; it runs under node in tests, not on a client"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/links.ts",
+      "line": 267,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export interface DeliverablesWrite {` (new file); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export interface DeliverablesWrite {` in a file this diff adds; git grep -w DeliverablesWrite at the commit matches only src/lib/jira/links.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/reads.ts",
+      "line": 42,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const saidDone = (link: ...) =>` (new file); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export const saidDone = (link: Pick<IssueLink, \"statusCategory\" | \"state\">) => ...` in a file this diff adds; git grep -w saidDone at the commit matches only src/lib/jira/reads.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/reads.ts",
+      "line": 48,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export async function readIssue(ctx, ref, depth)` (new file); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export async function readIssue(ctx: Pick<ReadContext, \"session\" | \"reader\" | \"site\">, ref: string, depth: LinkDepth): Promise<IssueRead> {` in a file this diff adds; git grep -w readIssue at the commit matches only src/lib/jira/reads.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/sites.ts",
+      "line": 85,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const MAX_IDS = 5;` (new file); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export const MAX_IDS = 5;` in a file this diff adds; git grep -w MAX_IDS at the commit matches only src/lib/jira/sites.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/sites.ts",
+      "line": 87,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const DELIVERY_ROWS = 20;` (new file); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export const DELIVERY_ROWS = 20;` in a file this diff adds; git grep -w DELIVERY_ROWS at the commit matches only src/lib/jira/sites.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/webhooks.ts",
+      "line": 227,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export interface UpkeepOptions {` (name absent from the parent webhooks.ts); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export interface UpkeepOptions {` is new in this diff; git grep -w UpkeepOptions at the commit matches only src/lib/jira/webhooks.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/webhooks.ts",
+      "line": 237,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export type UpkeepOutcome =` (name absent from the parent webhooks.ts); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export type UpkeepOutcome =` is new in this diff; git grep -w UpkeepOutcome at the commit matches only src/lib/jira/webhooks.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/webhooks.ts",
+      "line": 262,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const UPKEEP_EVERY_MS = DAY_MS;` (name absent from the parent webhooks.ts); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export const UPKEEP_EVERY_MS = DAY_MS;` is new in this diff; git grep -w UPKEEP_EVERY_MS at the commit matches only src/lib/jira/webhooks.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/webhooks.ts",
+      "line": 264,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const RENEW_WITHIN_MS = 7 * DAY_MS;` (name absent from the parent webhooks.ts); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export const RENEW_WITHIN_MS = 7 * DAY_MS;` is new in this diff; git grep -w RENEW_WITHIN_MS at the commit matches only src/lib/jira/webhooks.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/webhooks.ts",
+      "line": 266,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const WEBHOOK_LIFE_MS = 30 * DAY_MS;` (name absent from the parent webhooks.ts); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export const WEBHOOK_LIFE_MS = 30 * DAY_MS;` is new in this diff; git grep -w WEBHOOK_LIFE_MS at the commit matches only src/lib/jira/webhooks.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/webhooks.ts",
+      "line": 268,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const RETIRED_FOR_MS = 2 * 60 * 60_000;` (name absent from the parent webhooks.ts); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export const RETIRED_FOR_MS = 2 * 60 * 60_000;` is new in this diff; git grep -w RETIRED_FOR_MS at the commit matches only src/lib/jira/webhooks.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/webhooks.ts",
+      "line": 270,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const SITE_GONE_AFTER_MS = 10 * 60_000;` (name absent from the parent webhooks.ts); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export const SITE_GONE_AFTER_MS = 10 * 60_000;` is new in this diff; git grep -w SITE_GONE_AFTER_MS at the commit matches only src/lib/jira/webhooks.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/webhooks.ts",
+      "line": 277,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const jiraWebhookUrl = (origin: string) => ...` (name absent from the parent webhooks.ts); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export const jiraWebhookUrl = (origin: string) => ...` is new in this diff; git grep -w jiraWebhookUrl at the commit matches only src/lib/jira/webhooks.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 41,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export type JiraMissing = \"off\" | ...` (new file); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export type JiraMissing = \"off\" | \"not_set_up\" | \"not_connected\" | \"reconnect\";` in a file this diff adds; git grep -w JiraMissing at the commit matches only src/lib/jira/workspace.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 65,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export async function siteOf(context: JiraContext, ...)` (new file); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export async function siteOf(context: JiraContext, options: { now?: () => number } = {}): Promise<StoredSite | null> {` in a file this diff adds; git grep -w siteOf at the commit matches only src/lib/jira/workspace.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 176,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const SWEEP_LINKS = 100;` (new file); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export const SWEEP_LINKS = 100;` in a file this diff adds; git grep -w SWEEP_LINKS at the commit matches only src/lib/jira/workspace.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 180,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const ACCEPTED_FLOOR_MS = 60 * 60_000;` (new file); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export const ACCEPTED_FLOOR_MS = 60 * 60_000;` in a file this diff adds; git grep -w ACCEPTED_FLOOR_MS at the commit matches only src/lib/jira/workspace.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 181,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const OTHER_FLOOR_MS = 24 * 60 * 60_000;` (new file); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export const OTHER_FLOOR_MS = 24 * 60 * 60_000;` in a file this diff adds; git grep -w OTHER_FLOOR_MS at the commit matches only src/lib/jira/workspace.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 183,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const MISSED_AFTER_MS = 120_000;` (new file); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export const MISSED_AFTER_MS = 120_000;` in a file this diff adds; git grep -w MISSED_AFTER_MS at the commit matches only src/lib/jira/workspace.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 186,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export type JiraSyncOutcome = \"synced\" | ...` (new file); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export type JiraSyncOutcome = \"synced\" | \"busy\" | \"reconnect\" | \"failed\" | \"rate_limited\" | \"unavailable\";` in a file this diff adds; git grep -w JiraSyncOutcome at the commit matches only src/lib/jira/workspace.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 201,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export function chooseReads(links, changed, nowMs)` (new file); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export function chooseReads(links: readonly IssueLink[], changed: Map<string, string> | \"refused\" | \"all\", nowMs: number): IssueLink[] {` in a file this diff adds; git grep -w chooseReads at the commit matches only src/lib/jira/workspace.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 330,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const DELIVERY_SEEN_MS = 5_000;` (new file); git grep -w at the commit over *.ts/*.tsx/*.js/*.jsx/*.mjs/*.cjs finds the name only in its own file, so no importer, and a src/lib module is no entry point pass two: `export const DELIVERY_SEEN_MS = 5_000;` in a file this diff adds; git grep -w DELIVERY_SEEN_MS at the commit matches only src/lib/jira/workspace.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/acceptance.ts",
+      "line": 71,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export type SelfRefusal = \"payee_member\" | \"payee_jira\";` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:3, src/lib/jira/links.ts:2, src/lib/jira/reads.ts:4, tests/jira-acceptance.test.ts:2, tests/jira-flow.test.ts:3, tests/jira-flow.test.ts:5) do not list SelfRefusal, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export type SelfRefusal = \"payee_member\" | \"payee_jira\";` is new in this diff and no import names it: the only imports from jira/acceptance at the commit are tests/jira-acceptance.test.ts:2-15, tests/jira-flow.test.ts:3 and :5, src/lib/jira/identities.ts:3, links.ts:2 and reads.ts:4, none listing SelfRefusal (asana/acceptance.ts and linear/acceptance.ts declare a SelfRefusal of their own)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/links.ts",
+      "line": 102,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const LINK_COLUMNS =` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:4, src/lib/jira/reads.ts:7, src/lib/jira/webhooks.ts:7, src/lib/jira/workspace.ts:11, tests/jira-flow.test.ts:6, tests/support/jira-world.ts:6) do not list LINK_COLUMNS, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export const LINK_COLUMNS =` is new in this diff and no import names it: the only imports from jira/links at the commit are src/lib/jira/identities.ts:4, reads.ts:7, webhooks.ts:7, workspace.ts:11, tests/jira-flow.test.ts:6 and tests/support/jira-world.ts:6, none listing LINK_COLUMNS (the other files git grep -w finds for the name do not import from jira/links)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/links.ts",
+      "line": 107,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export function toIssueLink(row: LinkRow): IssueLink {` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:4, src/lib/jira/reads.ts:7, src/lib/jira/webhooks.ts:7, src/lib/jira/workspace.ts:11, tests/jira-flow.test.ts:6, tests/support/jira-world.ts:6) do not list toIssueLink, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export function toIssueLink(row: LinkRow): IssueLink {` is new in this diff and no import names it: the only imports from jira/links at the commit are src/lib/jira/identities.ts:4, reads.ts:7, webhooks.ts:7, workspace.ts:11, tests/jira-flow.test.ts:6 and tests/support/jira-world.ts:6, none listing toIssueLink (the other git grep -w hit is the toIssueLink linear/links.ts declares itself)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/links.ts",
+      "line": 228,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export type InsertOutcome = { ok: true; link: IssueLink } | { ok: fals...` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:4, src/lib/jira/reads.ts:7, src/lib/jira/webhooks.ts:7, src/lib/jira/workspace.ts:11, tests/jira-flow.test.ts:6, tests/support/jira-world.ts:6) do not list InsertOutcome, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export type InsertOutcome = { ok: true; link: IssueLink } | ...` is new in this diff and no import names it: the only imports from jira/links at the commit are src/lib/jira/identities.ts:4, reads.ts:7, webhooks.ts:7, workspace.ts:11, tests/jira-flow.test.ts:6 and tests/support/jira-world.ts:6, none listing InsertOutcome (asana/links.ts and linear/links.ts declare a InsertOutcome of their own)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/links.ts",
+      "line": 351,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export type AcceptError = \"link_not_found\" | \"already_accepted\" | \"aft...` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:4, src/lib/jira/reads.ts:7, src/lib/jira/webhooks.ts:7, src/lib/jira/workspace.ts:11, tests/jira-flow.test.ts:6, tests/support/jira-world.ts:6) do not list AcceptError, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export type AcceptError = \"link_not_found\" | ...` is new in this diff and no import names it: the only imports from jira/links at the commit are src/lib/jira/identities.ts:4, reads.ts:7, webhooks.ts:7, workspace.ts:11, tests/jira-flow.test.ts:6 and tests/support/jira-world.ts:6, none listing AcceptError (the other files git grep -w finds for the name do not import from jira/links)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/links.ts",
+      "line": 353,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export class AcceptRefusedError extends Error {` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:4, src/lib/jira/reads.ts:7, src/lib/jira/webhooks.ts:7, src/lib/jira/workspace.ts:11, tests/jira-flow.test.ts:6, tests/support/jira-world.ts:6) do not list AcceptRefusedError, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export class AcceptRefusedError extends Error {` is new in this diff and no import names it: the only imports from jira/links at the commit are src/lib/jira/identities.ts:4, reads.ts:7, webhooks.ts:7, workspace.ts:11, tests/jira-flow.test.ts:6 and tests/support/jira-world.ts:6, none listing AcceptRefusedError (the other files git grep -w finds for the name do not import from jira/links)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/links.ts",
+      "line": 376,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export async function unlinkLink(link: IssueLink, by: string, nowIso: ...` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:4, src/lib/jira/reads.ts:7, src/lib/jira/webhooks.ts:7, src/lib/jira/workspace.ts:11, tests/jira-flow.test.ts:6, tests/support/jira-world.ts:6) do not list unlinkLink, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export async function unlinkLink(link: IssueLink, by: string, nowIso: string): Promise<boolean> {` is new in this diff and no import names it: the only imports from jira/links at the commit are src/lib/jira/identities.ts:4, reads.ts:7, webhooks.ts:7, workspace.ts:11, tests/jira-flow.test.ts:6 and tests/support/jira-world.ts:6, none listing unlinkLink (the other files git grep -w finds for the name do not import from jira/links)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/reads.ts",
+      "line": 26,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export interface ReadContext {` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/workspace.ts:13, tests/jira-flow.test.ts:7) do not list ReadContext, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export interface ReadContext {` is new in this diff and no import names it: the only imports from jira/reads at the commit are src/lib/jira/workspace.ts:13 (readLinks, LinkReadOutcome, ReadSummary) and tests/jira-flow.test.ts:7 (readLink, LinkDepth), none listing ReadContext (asana/reads.ts and linear/reads.ts declare a ReadContext of their own)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/reads.ts",
+      "line": 59,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export function factsFromRead(` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/workspace.ts:13, tests/jira-flow.test.ts:7) do not list factsFromRead, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export function factsFromRead(` is new in this diff and no import names it: the only imports from jira/reads at the commit are src/lib/jira/workspace.ts:13 (readLinks, LinkReadOutcome, ReadSummary) and tests/jira-flow.test.ts:7 (readLink, LinkDepth), none listing factsFromRead (the other files git grep -w finds for the name do not import from jira/reads)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/reads.ts",
+      "line": 104,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export function readFailureWords(error: unknown): string {` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/workspace.ts:13, tests/jira-flow.test.ts:7) do not list readFailureWords, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export function readFailureWords(error: unknown): string {` is new in this diff and no import names it: the only imports from jira/reads at the commit are src/lib/jira/workspace.ts:13 (readLinks, LinkReadOutcome, ReadSummary) and tests/jira-flow.test.ts:7 (readLink, LinkDepth), none listing readFailureWords (the other files git grep -w finds for the name do not import from jira/reads)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/reads.ts",
+      "line": 119,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const REASON_WORDS: Record<WithdrawReason, string> = {` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/workspace.ts:13, tests/jira-flow.test.ts:7) do not list REASON_WORDS, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export const REASON_WORDS: Record<WithdrawReason, string> = {` is new in this diff and no import names it: the only imports from jira/reads at the commit are src/lib/jira/workspace.ts:13 (readLinks, LinkReadOutcome, ReadSummary) and tests/jira-flow.test.ts:7 (readLink, LinkDepth), none listing REASON_WORDS (the other git grep -w hits, asana/reads.ts and linear/reads.ts, do not import from jira/reads)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/webhooks.ts",
+      "line": 280,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export function reachable(origin: string): boolean {` is absent from the parent webhooks.ts; the only imports of this module at the commit (src/lib/jira/provider.ts:6, src/lib/jira/reads.ts:9, src/lib/jira/webhook.ts:3, src/lib/jira/workspace.ts:18, tests/jira-api.test.ts:28, tests/jira-sites.test.ts:2) do not list reachable, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export function reachable(origin: string): boolean {` is new in this diff and no import names it: the only imports from jira/webhooks at the commit are src/lib/jira/provider.ts:6, reads.ts:9, webhook.ts:3, workspace.ts:18, tests/jira-api.test.ts:28 and tests/jira-sites.test.ts:2, none listing reachable (the other git grep -w hits for the word are in files that do not import from jira/webhooks)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 76,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export async function markReconnect(connection: Pick<Connection, \"id\">...` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:6, tests/jira-flow.test.ts:10, tests/jira-sites.test.ts:5) do not list markReconnect, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export async function markReconnect(connection: Pick<Connection, \"id\">, nowIso: string, ...` is new in this diff and no import names it: the only imports from jira/workspace at the commit are src/lib/jira/identities.ts:6 (JiraContext), tests/jira-flow.test.ts:10 and tests/jira-sites.test.ts:5 (syncJiraConnection), none listing markReconnect (the other files git grep -w finds for the name do not import from jira/workspace)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 88,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const needsReconnect = (error: unknown) =>` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:6, tests/jira-flow.test.ts:10, tests/jira-sites.test.ts:5) do not list needsReconnect, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export const needsReconnect = (error: unknown) =>` is new in this diff and no import names it: the only imports from jira/workspace at the commit are src/lib/jira/identities.ts:6 (JiraContext), tests/jira-flow.test.ts:10 and tests/jira-sites.test.ts:5 (syncJiraConnection), none listing needsReconnect (the other files git grep -w finds for the name do not import from jira/workspace)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 95,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const CYCLE_READS = 10;` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:6, tests/jira-flow.test.ts:10, tests/jira-sites.test.ts:5) do not list CYCLE_READS, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export const CYCLE_READS = 10;` is new in this diff and no import names it: the only imports from jira/workspace at the commit are src/lib/jira/identities.ts:6 (JiraContext), tests/jira-flow.test.ts:10 and tests/jira-sites.test.ts:5 (syncJiraConnection), none listing CYCLE_READS (asana/workspace.ts and linear/workspace.ts declare a CYCLE_READS of their own)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 97,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const CYCLE_BUDGET_MS = 30_000;` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:6, tests/jira-flow.test.ts:10, tests/jira-sites.test.ts:5) do not list CYCLE_BUDGET_MS, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export const CYCLE_BUDGET_MS = 30_000;` is new in this diff and no import names it: the only imports from jira/workspace at the commit are src/lib/jira/identities.ts:6 (JiraContext), tests/jira-flow.test.ts:10 and tests/jira-sites.test.ts:5 (syncJiraConnection), none listing CYCLE_BUDGET_MS (asana/workspace.ts and linear/workspace.ts declare a CYCLE_BUDGET_MS of their own)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 113,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const SEND_BUDGET_MS = 10_000;` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:6, tests/jira-flow.test.ts:10, tests/jira-sites.test.ts:5) do not list SEND_BUDGET_MS, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export const SEND_BUDGET_MS = 10_000;` is new in this diff and no import names it: the only imports from jira/workspace at the commit are src/lib/jira/identities.ts:6 (JiraContext), tests/jira-flow.test.ts:10 and tests/jira-sites.test.ts:5 (syncJiraConnection), none listing SEND_BUDGET_MS (asana/workspace.ts and linear/workspace.ts declare a SEND_BUDGET_MS of their own)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 114,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const SEND_DEADLINE_MS = 20_000;` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:6, tests/jira-flow.test.ts:10, tests/jira-sites.test.ts:5) do not list SEND_DEADLINE_MS, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export const SEND_DEADLINE_MS = 20_000;` is new in this diff and no import names it: the only imports from jira/workspace at the commit are src/lib/jira/identities.ts:6 (JiraContext), tests/jira-flow.test.ts:10 and tests/jira-sites.test.ts:5 (syncJiraConnection), none listing SEND_DEADLINE_MS (asana/workspace.ts and linear/workspace.ts declare a SEND_DEADLINE_MS of their own)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 177,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const SWEEP_READS = 20;` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:6, tests/jira-flow.test.ts:10, tests/jira-sites.test.ts:5) do not list SWEEP_READS, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export const SWEEP_READS = 20;` is new in this diff and no import names it: the only imports from jira/workspace at the commit are src/lib/jira/identities.ts:6 (JiraContext), tests/jira-flow.test.ts:10 and tests/jira-sites.test.ts:5 (syncJiraConnection), none listing SWEEP_READS (asana/workspace.ts and linear/workspace.ts declare a SWEEP_READS of their own)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 178,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const SWEEP_LINK_BUDGET_MS = 60_000;` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:6, tests/jira-flow.test.ts:10, tests/jira-sites.test.ts:5) do not list SWEEP_LINK_BUDGET_MS, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export const SWEEP_LINK_BUDGET_MS = 60_000;` is new in this diff and no import names it: the only imports from jira/workspace at the commit are src/lib/jira/identities.ts:6 (JiraContext), tests/jira-flow.test.ts:10 and tests/jira-sites.test.ts:5 (syncJiraConnection), none listing SWEEP_LINK_BUDGET_MS (asana/workspace.ts and linear/workspace.ts declare a SWEEP_LINK_BUDGET_MS of their own)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 328,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const DELIVERY_READS = 5;` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:6, tests/jira-flow.test.ts:10, tests/jira-sites.test.ts:5) do not list DELIVERY_READS, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export const DELIVERY_READS = 5;` is new in this diff and no import names it: the only imports from jira/workspace at the commit are src/lib/jira/identities.ts:6 (JiraContext), tests/jira-flow.test.ts:10 and tests/jira-sites.test.ts:5 (syncJiraConnection), none listing DELIVERY_READS (the other git grep -w hit, linear/workspace.ts, does not import from jira/workspace)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/jira/workspace.ts",
+      "line": 339,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export async function rereadIssueInScope(` is in a file this diff adds; the only imports of this module at the commit (src/lib/jira/identities.ts:6, tests/jira-flow.test.ts:10, tests/jira-sites.test.ts:5) do not list rereadIssueInScope, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export async function rereadIssueInScope(` is new in this diff and no import names it: the only imports from jira/workspace at the commit are src/lib/jira/identities.ts:6 (JiraContext), tests/jira-flow.test.ts:10 and tests/jira-sites.test.ts:5 (syncJiraConnection), none listing rereadIssueInScope (the other git grep -w hits are linear/workspace.ts, which declares one itself, and tests/linear-flow.test.ts)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "tests/support/jira-world.ts",
+      "line": 42,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const NEW_SITE_URL = \"https://southwind.atlassian.net\";` is in a file this diff adds; the only imports of this module at the commit (tests/jira-flow.test.ts:11, tests/jira-sites.test.ts:6) do not list NEW_SITE_URL, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export const NEW_SITE_URL = \"https://southwind.atlassian.net\";` in a file this diff adds; git grep -w NEW_SITE_URL at the commit matches only tests/support/jira-world.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "tests/support/jira-world.ts",
+      "line": 51,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const NOW = Date.parse(\"2026-11-09T09:00:00Z\");` is in a file this diff adds; the only imports of this module at the commit (tests/jira-flow.test.ts:11, tests/jira-sites.test.ts:6) do not list NOW, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export const NOW = Date.parse(\"2026-11-09T09:00:00Z\");` is new in this diff and no import names it: the only imports from support/jira-world at the commit are tests/jira-flow.test.ts:11-41 and tests/jira-sites.test.ts:6, none listing NOW (the other git grep -w hits for NOW are files that do not import from support/jira-world)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "tests/support/jira-world.ts",
+      "line": 84,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const LINK_TABLE_COLUMNS = new Set(` is in a file this diff adds; the only imports of this module at the commit (tests/jira-flow.test.ts:11, tests/jira-sites.test.ts:6) do not list LINK_TABLE_COLUMNS, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export const LINK_TABLE_COLUMNS = new Set(` in a file this diff adds; git grep -w LINK_TABLE_COLUMNS at the commit matches only tests/support/jira-world.ts, so nothing imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "tests/support/jira-world.ts",
+      "line": 137,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export interface FakeIssue {` is in a file this diff adds; the only imports of this module at the commit (tests/jira-flow.test.ts:11, tests/jira-sites.test.ts:6) do not list FakeIssue, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export interface FakeIssue {` is new in this diff and no import names it: the only imports from support/jira-world at the commit are tests/jira-flow.test.ts:11-41 and tests/jira-sites.test.ts:6, none listing FakeIssue (the other git grep -w hit, tests/linear-flow.test.ts, does not import from support/jira-world)"
+    },
+    {
+      "rule": "dead-export",
+      "file": "tests/support/jira-world.ts",
+      "line": 164,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: `export const adfLink = (word: string, href: string) => ({` is in a file this diff adds; the only imports of this module at the commit (tests/jira-flow.test.ts:11, tests/jira-sites.test.ts:6) do not list adfLink, there is no re-export or import * of it, and the file is a library module, not an entry point (git grep could not read src/app/admin/growth/leads.csv/route.ts, blob absent); `export const adfLink = (word: string, href: string) => ({` in a file this diff adds; git grep -w adfLink at the commit matches only tests/support/jira-world.ts, so nothing imports it"
+    }
+  ]
+}

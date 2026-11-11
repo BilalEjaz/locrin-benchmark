@@ -1,0 +1,24 @@
+{
+  "diff": "devswha__ovis__cb25d68",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "html-injection",
+      "file": "scripts/keyboard-viewport-regression.ts",
+      "line": 353,
+      "id": "6c5c3e81bb899c4c",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: insertAdjacentHTML interpolates ${token}, which is the page.evaluate argument `width < 641 ? \"--fs-md\" : \"--fs-sm\"` on the same line: a fixed constant in a Playwright regression script, no user-controlled input pass two: the only interpolation is `var(${token})` and `token` is the second argument of the same page.evaluate call on line 353, `width < 641 ? \"--fs-md\" : \"--fs-sm\"`: one of two string literals, in a Playwright regression script building its own fixture, so no outside data reaches insertAdjacentHTML"
+    }
+  ]
+}

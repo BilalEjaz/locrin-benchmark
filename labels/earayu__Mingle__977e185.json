@@ -1,0 +1,312 @@
+{
+  "diff": "earayu__Mingle__977e185",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-file",
+      "file": "spikes/oar-session.mjs",
+      "line": 1,
+      "id": "11ee62349927ddce",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: new file; git grep at the commit finds no import of oar-session anywhere; package.json scripts (build/typecheck/test/lint/format/check) and bin ('./dist/cli/main.js') do not name it; only spikes/README.md documents copying it to run.mjs as a throwaway pass two: no importer: git grep for `oar-session` over the source pathspecs at the commit returns nothing; package.json names no script or bin for it (scripts are build, typecheck, test, lint, format, check; bin is `\"mingle\": \"./dist/cli/main.js\"`); only spikes/README.md mentions it, as a throwaway script copied out and run by hand"
+    },
+    {
+      "rule": "dead-file",
+      "file": "src/channels/channel.ts",
+      "line": 1,
+      "id": "fc95310b3b904c56",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: new types-only file; git grep for 'channel' at the commit hits only channel.ts itself (line 3 comment), no file imports it, and nothing in package.json names it pass two: no importer at the commit: git grep -i `channel` over the source pathspecs matches only lines inside src/channels/channel.ts itself, and package.json (bin `./dist/cli/main.js`, scripts build/typecheck/test/lint/format/check) does not name it"
+    },
+    {
+      "rule": "dead-file",
+      "file": "src/cli/main.ts",
+      "line": 1,
+      "id": "6de1282860a509cf",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: entry point: line 1 '#!/usr/bin/env node' and package.json bin '\"mingle\": \"./dist/cli/main.js\"', the build output of this file pass two: entry point: package.json has `\"bin\": { \"mingle\": \"./dist/cli/main.js\" }` and tsconfig.build.json compiles `\"rootDir\": \"src\"` to `\"outDir\": \"dist\"`, so the bin is this file's build output; line 1 is `#!/usr/bin/env node`"
+    },
+    {
+      "rule": "injection-sink",
+      "file": "test/schema.test.ts",
+      "line": 10,
+      "id": "47307e9bc9ed98d4",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: db.exec(schema) runs the repo's own migration file read at line 5 (readFileSync(new URL(\"../src/store/migrations/001_init.sql\", ...))); no user-controlled input reaches it pass two: `db.exec(schema)` runs the repository's own migration, line 5 `const schema = readFileSync(new URL(\"../src/store/migrations/001_init.sql\", import.meta.url), \"utf8\")`; no user-controlled input reaches it"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "spikes/oar-session.mjs",
+      "line": 7,
+      "id": "b8e08b6479d1b61a",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: spikes/oar-session.mjs is a standalone CLI script (line 4 'const [rt, cwd, resume] = process.argv.slice(2);', run as 'node ../run.mjs claude \"$PWD\"' per spikes/README.md); this print is its main-path output pass two: print in a CLI script's main path: the file is a stand-alone script (line 1 `// Usage: node run.mjs <runtime> <cwd> [resumeId]`, line 4 reads `process.argv.slice(2)`, line 39 `process.exit(0)`) and its console.log lines are the output it exists to produce"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "spikes/oar-session.mjs",
+      "line": 15,
+      "id": "422bf36fb4585db8",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: spikes/oar-session.mjs is a standalone CLI script (line 4 'const [rt, cwd, resume] = process.argv.slice(2);', run as 'node ../run.mjs claude \"$PWD\"' per spikes/README.md); this print is its main-path output pass two: print in a CLI script's main path: the file is a stand-alone script (line 1 `// Usage: node run.mjs <runtime> <cwd> [resumeId]`, line 4 reads `process.argv.slice(2)`, line 39 `process.exit(0)`) and its console.log lines are the output it exists to produce"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "spikes/oar-session.mjs",
+      "line": 20,
+      "id": "a4261247f7c4a4bf",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: spikes/oar-session.mjs is a standalone CLI script (line 4 'const [rt, cwd, resume] = process.argv.slice(2);', run as 'node ../run.mjs claude \"$PWD\"' per spikes/README.md); this print is its main-path output pass two: print in a CLI script's main path: the file is a stand-alone script (line 1 `// Usage: node run.mjs <runtime> <cwd> [resumeId]`, line 4 reads `process.argv.slice(2)`, line 39 `process.exit(0)`) and its console.log lines are the output it exists to produce"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "spikes/oar-session.mjs",
+      "line": 21,
+      "id": "aa3119da9458be62",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: spikes/oar-session.mjs is a standalone CLI script (line 4 'const [rt, cwd, resume] = process.argv.slice(2);', run as 'node ../run.mjs claude \"$PWD\"' per spikes/README.md); this print is its main-path output pass two: print in a CLI script's main path: the file is a stand-alone script (line 1 `// Usage: node run.mjs <runtime> <cwd> [resumeId]`, line 4 reads `process.argv.slice(2)`, line 39 `process.exit(0)`) and its console.log lines are the output it exists to produce"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "spikes/oar-session.mjs",
+      "line": 22,
+      "id": "945dc908baca9bad",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: spikes/oar-session.mjs is a standalone CLI script (line 4 'const [rt, cwd, resume] = process.argv.slice(2);', run as 'node ../run.mjs claude \"$PWD\"' per spikes/README.md); this print is its main-path output pass two: print in a CLI script's main path: the file is a stand-alone script (line 1 `// Usage: node run.mjs <runtime> <cwd> [resumeId]`, line 4 reads `process.argv.slice(2)`, line 39 `process.exit(0)`) and its console.log lines are the output it exists to produce"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "spikes/oar-session.mjs",
+      "line": 28,
+      "id": "c479e3cf39866cd0",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: spikes/oar-session.mjs is a standalone CLI script (line 4 'const [rt, cwd, resume] = process.argv.slice(2);', run as 'node ../run.mjs claude \"$PWD\"' per spikes/README.md); this print is its main-path output pass two: print in a CLI script's main path: the file is a stand-alone script (line 1 `// Usage: node run.mjs <runtime> <cwd> [resumeId]`, line 4 reads `process.argv.slice(2)`, line 39 `process.exit(0)`) and its console.log lines are the output it exists to produce"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "spikes/oar-session.mjs",
+      "line": 30,
+      "id": "40d1e4bf85187b2f",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: spikes/oar-session.mjs is a standalone CLI script (line 4 'const [rt, cwd, resume] = process.argv.slice(2);', run as 'node ../run.mjs claude \"$PWD\"' per spikes/README.md); this print is its main-path output pass two: print in a CLI script's main path: the file is a stand-alone script (line 1 `// Usage: node run.mjs <runtime> <cwd> [resumeId]`, line 4 reads `process.argv.slice(2)`, line 39 `process.exit(0)`) and its console.log lines are the output it exists to produce"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "spikes/oar-session.mjs",
+      "line": 32,
+      "id": "78f30a2f6445026b",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: spikes/oar-session.mjs is a standalone CLI script (line 4 'const [rt, cwd, resume] = process.argv.slice(2);', run as 'node ../run.mjs claude \"$PWD\"' per spikes/README.md); this print is its main-path output pass two: print in a CLI script's main path: the file is a stand-alone script (line 1 `// Usage: node run.mjs <runtime> <cwd> [resumeId]`, line 4 reads `process.argv.slice(2)`, line 39 `process.exit(0)`) and its console.log lines are the output it exists to produce"
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "spikes/oar-session.mjs",
+      "line": 36,
+      "id": "94da9291ec7e87d5",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: spikes/oar-session.mjs is a standalone CLI script (line 4 'const [rt, cwd, resume] = process.argv.slice(2);', run as 'node ../run.mjs claude \"$PWD\"' per spikes/README.md); this print is its main-path output pass two: print in a CLI script's main path: the file is a stand-alone script (line 1 `// Usage: node run.mjs <runtime> <cwd> [resumeId]`, line 4 reads `process.argv.slice(2)`, line 39 `process.exit(0)`) and its console.log lines are the output it exists to produce"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 11,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export type Platform = \"feishu\" | \"dingtalk\" | \"wecom\" | \"slack\" | \"discord\" | \"' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so Platform has no importer pass two: missed: line 11 reads 'export type Platform = \"feishu\" | \"dingtalk\" | \"wecom\" | \"slack\" | \"di...' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (line 137), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so Platform has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 13,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export type ChatKind = \"dm\" | \"group\" | \"thread\";' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so ChatKind has no importer pass two: missed: line 13 reads 'export type ChatKind = \"dm\" | \"group\" | \"thread\";' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (line 72), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so ChatKind has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 16,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export interface Capabilities {' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so Capabilities has no importer pass two: missed: line 16 reads 'export interface Capabilities {' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (line 150), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so Capabilities has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 30,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export type OnboardingMethod =' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so OnboardingMethod has no importer pass two: missed: line 30 reads 'export type OnboardingMethod =' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (line 138), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so OnboardingMethod has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 34,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export interface CredentialField {' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so CredentialField has no importer pass two: missed: line 34 reads 'export interface CredentialField {' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (line 32), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so CredentialField has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 41,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export type OnboardingEvent =' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so OnboardingEvent has no importer pass two: missed: line 41 reads 'export type OnboardingEvent =' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (line 141), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so OnboardingEvent has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 48,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export type OnboardingFailure = \"expired\" | \"denied\" | \"cancelled\" | \"invalid_cr' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so OnboardingFailure has no importer pass two: missed: line 48 reads 'export type OnboardingFailure = \"expired\" | \"denied\" | \"cancelled\" | \"...' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (line 46), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so OnboardingFailure has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 51,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export type Credentials = Readonly<Record<string, string>>;' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so Credentials has no importer pass two: missed: line 51 reads 'export type Credentials = Readonly<Record<string, string>>;' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (lines 45, 141, 144), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so Credentials has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 53,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export interface BotIdentity {' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so BotIdentity has no importer pass two: missed: line 53 reads 'export interface BotIdentity {' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (lines 45, 149), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so BotIdentity has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 60,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export type ConnectionState =' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so ConnectionState has no importer pass two: missed: line 60 reads 'export type ConnectionState =' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (line 130), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so ConnectionState has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 69,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export interface ChatRef {' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so ChatRef has no importer pass two: missed: line 69 reads 'export interface ChatRef {' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (lines 92, 105, 132, 154, 156, 159), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so ChatRef has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 76,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export interface Sender {' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so Sender has no importer pass two: missed: line 76 reads 'export interface Sender {' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (lines 93, 159), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so Sender has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 82,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export interface InboundAttachment {' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so InboundAttachment has no importer pass two: missed: line 82 reads 'export interface InboundAttachment {' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (lines 96, 158), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so InboundAttachment has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 90,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export interface InboundMessage {' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so InboundMessage has no importer pass two: missed: line 90 reads 'export interface InboundMessage {' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (line 129), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so InboundMessage has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 104,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export interface OutboundMessage {' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so OutboundMessage has no importer pass two: missed: line 104 reads 'export interface OutboundMessage {' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (line 152), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so OutboundMessage has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 113,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export type SendResult =' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so SendResult has no importer pass two: missed: line 113 reads 'export type SendResult =' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (line 152), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so SendResult has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 124,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export type Degradation = \"quote_dropped\" | \"files_dropped\" | \"markdown_flattene' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so Degradation has no importer pass two: missed: line 124 reads 'export type Degradation = \"quote_dropped\" | \"files_dropped\" | \"markdow...' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (line 114), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so Degradation has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 128,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export interface ChannelEvents {' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so ChannelEvents has no importer pass two: missed: line 128 reads 'export interface ChannelEvents {' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (line 144), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so ChannelEvents has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 136,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export interface Channel {' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so Channel has no importer pass two: missed: line 136 reads 'export interface Channel {' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); the name appears nowhere else in channel.ts; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so Channel has no importer and the file is not an entry point"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/channels/channel.ts",
+      "line": 148,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "'export interface ChannelConnection {' in the new channel.ts; no file in the repository imports channel.ts at the commit (git grep for 'channel' hits only channel.ts line 3), so ChannelConnection has no importer pass two: missed: line 148 reads 'export interface ChannelConnection {' in a file this diff added (show --stat: 'src/channels/channel.ts | 162 +++', no before copy); its only other uses are inside channel.ts (line 144), which are not imports; git grep -i 'channel' at the commit over the source pathspecs hits no file but channel.ts, the only relative import in the repository is src/cli/main.ts:2 'import { VERSION } from \"../version.ts\";', and package.json names only bin '\"mingle\": \"./dist/cli/main.js\"', so ChannelConnection has no importer and the file is not an entry point"
+    }
+  ]
+}

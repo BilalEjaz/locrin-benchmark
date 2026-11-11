@@ -1,0 +1,25 @@
+{
+  "id": "sugianand__whereabout__a1ebfd6",
+  "source": "git",
+  "repo": "sugianand/whereabout",
+  "sha": "a1ebfd630d8823cea07068bc69f9a103c34645f1",
+  "parent": "074c18af18b67b0486f32b6f60be73e8e6e145f0",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/sugianand/whereabout/commit/a1ebfd630d8823cea07068bc69f9a103c34645f1",
+  "files": [
+    "web/e2e/survival.spec.ts",
+    "web/src/components/Survival.test.tsx",
+    "web/src/components/Survival.tsx",
+    "web/src/lib/game/survival.test.ts",
+    "web/src/lib/game/survival.ts",
+    "web/src/lib/game/survivalChallenge.test.ts",
+    "web/src/lib/game/survivalChallenge.ts"
+  ],
+  "wave": 2,
+  "signal": "test-skip",
+  "signals": [
+    "test-skip",
+    "test-case"
+  ]
+}

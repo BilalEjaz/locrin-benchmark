@@ -1,0 +1,69 @@
+{
+  "diff": "sugianand__whereabout__35e8619",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "web/src/components/CountryStreak.tsx",
+      "line": 68,
+      "id": "cdcbb02894cb9f4f",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: STREAK_CHALLENGE_NOTICE is used only inside CountryStreak.tsx (line 142); git grep -w at the commit finds no other file naming it, and CountryStreak.test.tsx does not import it pass two: git grep -w STREAK_CHALLENGE_NOTICE at the commit finds only web/src/components/CountryStreak.tsx:68 (the export) and :142 `setNotice(linked && !linked.ok ? STREAK_CHALLENGE_NOTICE[linked.reason] : null);`; no file imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "web/src/lib/game/streakChallenge.ts",
+      "line": 25,
+      "id": "0abf0755c1a60abe",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: STREAK_CHALLENGE_PARAM is imported by web/src/components/CountryStreak.tsx:25 (\"  STREAK_CHALLENGE_PARAM,\" in the import from \"@/lib/game/streakChallenge\") and used at lines 75, 82, 83 pass two: imported: web/src/components/CountryStreak.tsx:25 `STREAK_CHALLENGE_PARAM,` in the import that closes at :33 `} from \"@/lib/game/streakChallenge\";`, used at :75"
+    },
+    {
+      "rule": "dead-export",
+      "file": "web/src/lib/game/streakChallenge.ts",
+      "line": 41,
+      "id": "a06f416f6e76d9d9",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: type StreakChallengeParse appears only in streakChallenge.ts (lines 41, 65); git grep -w at the commit finds no importer pass two: git grep -w StreakChallengeParse at the commit finds only web/src/lib/game/streakChallenge.ts:41 (the export) and :65 `): StreakChallengeParse {`; no file imports it"
+    },
+    {
+      "rule": "dead-export",
+      "file": "web/src/lib/game/streakChallenge.ts",
+      "line": 109,
+      "id": "f3b2924d91a9a802",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: FinishedStreakRun is imported by web/src/components/CountryStreak.tsx:31 (\"  type FinishedStreakRun,\") and used there at lines 245, 493, 597 pass two: imported: web/src/components/CountryStreak.tsx:31 `type FinishedStreakRun,` in the import that closes at :33 `} from \"@/lib/game/streakChallenge\";`, used at :245"
+    },
+    {
+      "rule": "dead-export",
+      "file": "web/src/lib/game/streakChallenge.ts",
+      "line": 150,
+      "id": "88ff211905a99a30",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: streakChallengeOutcome is called only inside streakChallenge.ts (lines 168, 186); git grep -w at the commit finds no other file naming it pass two: git grep -w streakChallengeOutcome at the commit finds only web/src/lib/game/streakChallenge.ts lines 150, 168 and 186; web/src/lib/game/streakChallenge.test.ts and CountryStreak.tsx do not import it"
+    },
+    {
+      "rule": "test-newly-skipped",
+      "file": "web/e2e/streak.spec.ts",
+      "line": 281,
+      "id": "e96efd353692bdc5",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: test.skip((page.viewportSize()?.width ?? 1000) >= 768, \"a phone layout check\") is a runtime viewport gate inside a new test that runs on phone-width projects, not a test marked skipped pass two: conditional viewport gate on a new test, not a disabled test: line 281 is `test.skip((page.viewportSize()?.width ?? 1000) >= 768, \"a phone layout check\");` inside the test body, and web/playwright.config.ts lists a project it runs in: `{ name: \"phone\", use: { ...devices[\"Pixel 7\"] } }`"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "diff": "callstack__agent-device__ca7c6fc",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "weak-crypto",
+      "file": "packages/tv-cdp/src/cdp.test.ts",
+      "line": 41,
+      "id": "785a098a5893e372",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: createHash('sha1') computes the RFC 6455 Sec-WebSocket-Accept value from sec-websocket-key + the protocol GUID in a test WebSocket server; protocol-mandated, not a security use. pass two: Not sha1 for a security purpose: lines 41-43 are `createHash('sha1').update(`${request.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64')`, the fixed WebSocket handshake Sec-WebSocket-Accept value, in a fake page server inside a test file."
+    }
+  ]
+}

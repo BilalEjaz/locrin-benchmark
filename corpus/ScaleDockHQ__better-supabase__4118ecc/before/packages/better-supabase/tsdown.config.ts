@@ -1,0 +1,527 @@
+// Outside tsconfig.json's include, so linting this file alone needs Node's types here.
+/// <reference types="node" />
+import { dirname, relative, resolve } from "node:path";
+import { defineConfig } from "tsdown";
+
+const entries = [
+  "index",
+  "config/index",
+  "preset/index",
+  "create/index",
+  "create/lite/index",
+  "create/oauth/index",
+  "create/supabase/index",
+  "client/index",
+  "client/lite/index",
+  "client/native/index",
+  "react/index",
+  "react/server",
+  "react/session",
+  "react/native/index",
+  "query/index",
+  "records/index",
+  "claims/index",
+  "auth/index",
+  "contract/index",
+  "server/index",
+  "server/accounts/index",
+  "server/account/index",
+  "server/csv/index",
+  "server/rate-limit/index",
+  "postgres/index",
+  "ssr/index",
+  "next/index",
+  "next/image/index",
+  "next/proxy/index",
+  "next/auth-gate/index",
+  "next/auth-gate/user",
+  "next/client/index",
+  "next/offline/index",
+  "hono/index",
+  "orpc/index",
+  "edge/index",
+  "expo/index",
+  "tanstack-start/index",
+  "sveltekit/index",
+  "react-router/index",
+  "h3/index",
+  "elysia/index",
+  "node/index",
+  "nestjs/index",
+  "astro/index",
+  "h3/v1/index",
+  "nuxt/index",
+  "solid-start/index",
+  "vue/index",
+  "solid/index",
+  "svelte/index",
+  "mcp/index",
+  "mcp/sdk/index",
+  "webmcp/index",
+  "blocks/queue/index",
+  "blocks/index",
+  "blocks/audit/index",
+  "blocks/outbox/index",
+  "blocks/organizations/index",
+  "blocks/profiles/index",
+  "blocks/notifications/index",
+  "blocks/webhooks/index",
+  "blocks/entitlements/index",
+  "blocks/permissions/index",
+  "blocks/subjects/index",
+  "blocks/ai-chat/index",
+  "blocks/ai-files/index",
+  "blocks/knowledge/index",
+  "blocks/memory/index",
+  "blocks/messaging/index",
+  "blocks/channels/index",
+  "blocks/agents/index",
+  "blocks/connectors/index",
+  "blocks/ai-schedules/index",
+  "blocks/ai-cache/index",
+  "blocks/prompts/index",
+  "blocks/ai-evals/index",
+  "blocks/ai-guardrails/index",
+  "blocks/ai-keys/index",
+  "blocks/numbering/index",
+  "blocks/teams/index",
+  "blocks/undo/index",
+  "blocks/tags/index",
+  "blocks/state-machine/index",
+  "blocks/custom-fields/index",
+  "blocks/share-links/index",
+  "blocks/signing-keys/index",
+  "blocks/oauth-server/index",
+  "blocks/domains/index",
+  "blocks/automations/index",
+  "blocks/vercel-marketplace/index",
+  "blocks/reviews/index",
+  "blocks/leave/index",
+  "blocks/ledger/index",
+  "blocks/assets/index",
+  "blocks/scores/index",
+  "blocks/moderation/index",
+  "blocks/enrollments/index",
+  "blocks/guests/index",
+  "blocks/passes/index",
+  "blocks/billable-time/index",
+  "blocks/leases/index",
+  "blocks/expenses/index",
+  "blocks/donations/index",
+  "blocks/dispatch/index",
+  "blocks/shipments/index",
+  "blocks/contracts/index",
+  "blocks/compliance/index",
+  "blocks/accounting/index",
+  "blocks/acknowledgements/index",
+  "blocks/incidents/index",
+  "blocks/courses/index",
+  "blocks/sequences/index",
+  "blocks/lead-scoring/index",
+  "blocks/posts/index",
+  "blocks/content/index",
+  "blocks/qualifications/index",
+  "blocks/risks/index",
+  "blocks/cases/index",
+  "blocks/inspections/index",
+  "blocks/meetings/index",
+  "blocks/dam/index",
+  "blocks/lims/index",
+  "blocks/rfqs/index",
+  "blocks/sales/index",
+  "blocks/saas/index",
+  "blocks/collaboration/index",
+  "blocks/governance/index",
+  "blocks/commerce/index",
+  "blocks/procurement/index",
+  "blocks/finance/index",
+  "blocks/support/index",
+  "blocks/projects/index",
+  "blocks/service/index",
+  "blocks/people/index",
+  "blocks/recruiting/index",
+  "blocks/scheduling/index",
+  "blocks/learning/index",
+  "blocks/events/index",
+  "blocks/cms/index",
+  "blocks/care/index",
+  "blocks/filespace/index",
+  "blocks/crm/index",
+  "blocks/tills/index",
+  "blocks/periods/index",
+  "blocks/deadlines/index",
+  "blocks/commissions/index",
+  "blocks/referrals/index",
+  "blocks/agent-checkout/index",
+  "blocks/clinical-decision-support/index",
+  "blocks/e-prescribing/index",
+  "blocks/advisories/index",
+  "blocks/maintenance/index",
+  "blocks/appraisals/index",
+  "blocks/warehouse/index",
+  "blocks/warranty/index",
+  "blocks/manufacturing/index",
+  "blocks/banking/index",
+  "blocks/tax/index",
+  "blocks/legal-entities/index",
+  "blocks/document-templates/index",
+  "blocks/funding/index",
+  "blocks/payroll-export/index",
+  "blocks/shifts/index",
+  "blocks/consents/index",
+  "blocks/observations/index",
+  "blocks/medications/index",
+  "blocks/care-plans/index",
+  "blocks/security-events/index",
+  "blocks/identities/index",
+  "blocks/service-accounts/index",
+  "blocks/reminders/index",
+  "blocks/imports/index",
+  "blocks/rank/index",
+  "blocks/saved-views/index",
+  "blocks/relations/index",
+  "blocks/bulk-actions/index",
+  "blocks/search/index",
+  "blocks/metrics/index",
+  "commerce/index",
+  "blocks/calendar/index",
+  "blocks/bookings/index",
+  "blocks/versions/index",
+  "blocks/trash/index",
+  "blocks/memberships/index",
+  "blocks/created-by/index",
+  "blocks/updated-at/index",
+  "blocks/reactions/index",
+  "blocks/approvals/index",
+  "blocks/access-requests/index",
+  "blocks/documents/index",
+  "blocks/drive/index",
+  "blocks/signatures/index",
+  "blocks/forms/index",
+  "blocks/time-entries/index",
+  "blocks/templates/index",
+  "blocks/option-sets/index",
+  "blocks/pipelines/index",
+  "blocks/contacts/index",
+  "blocks/collections/index",
+  "blocks/activities/index",
+  "blocks/mail-sync/index",
+  "blocks/segments/index",
+  "blocks/assignment/index",
+  "blocks/enrichment/index",
+  "blocks/field-history/index",
+  "blocks/forecasts/index",
+  "blocks/deals/index",
+  "blocks/tasks/index",
+  "blocks/quotes/index",
+  "blocks/invoices/index",
+  "blocks/sla/index",
+  "blocks/goals/index",
+  "blocks/hiring/index",
+  "blocks/employees/index",
+  "blocks/catalog/index",
+  "blocks/inventory/index",
+  "blocks/orders/index",
+  "blocks/promotions/index",
+  "ai-sdk/index",
+  "ai-sdk/chat/index",
+  "ai-sdk/files/index",
+  "ai-sdk/cache/index",
+  "ai-sdk/batches/index",
+  "ai-sdk/embeddings/index",
+  "ai-sdk/memory/index",
+  "ai-sdk/agents/index",
+  "ai-sdk/mcp/index",
+  "ai-sdk/react/index",
+  "ai-sdk/react/server",
+  "ai-sdk/workflow/index",
+  "ai-sdk/workflow-react/index",
+  "ai-sdk/workflow-react/server",
+  "blocks/announcements/index",
+  "blocks/waitlist/index",
+  "streams/index",
+  "streams/redis/index",
+  "streams/resumable/index",
+  "json-render/index",
+  "credentials/index",
+  "vercel-connect/index",
+  "vercel-sandbox/index",
+  "stripe/index",
+  "yjs/index",
+  "e-invoicing/index",
+  "audit-files/index",
+  "verifiable-credentials/index",
+  "better-result/index",
+  "fhir/index",
+  "normalize/index",
+  "blocks/inbox/index",
+  "chat-sdk/index",
+  "blocks/onboarding/index",
+  "blocks/workflows/index",
+  "blocks/workflow-editor/index",
+  "workflow-sdk/index",
+  "workflow-sdk/world/index",
+  "eve/index",
+  "flags-sdk/index",
+  "workflow-sdk/builder/index",
+  "blocks/sso/index",
+  "blocks/data-lifecycle/index",
+  "blocks/attachments/index",
+  "blocks/comments/index",
+  "blocks/timeline/index",
+  "blocks/flags/index",
+  "blocks/billing/index",
+  "blocks/usage/index",
+  "blocks/settings/index",
+  "blocks/api-keys/index",
+  "blocks/mfa/index",
+  "blocks/sessions/index",
+  "env/index",
+  "list/index",
+  "list/export/index",
+  "storage/index",
+  "storage/client/index",
+  "realtime/index",
+  "rate-limit/index",
+  "recurrence/index",
+  "generators/index",
+  "plugins/index",
+  "generators/zod/index",
+  "generators/valibot/index",
+  "generators/json-schema/index",
+  "generators/standard-schema/index",
+  "generators/factories/index",
+  "generators/nuqs/index",
+  "events/index",
+  "spec/index",
+  "otel/index",
+  "powersync/index",
+  "lint/index",
+  "sql/index",
+  "sqlite/index",
+  "tanstack-db/index",
+  "blocks/push/index",
+  "testing/index",
+];
+
+const src = resolve(import.meta.dirname, "src");
+
+const USE_CLIENT_MODULE =
+  /src\/(react\/(index|hooks|session)|next\/auth-gate\/user)\.ts$/;
+
+/**
+ * The subpath of a library entry (`src/sql/index.ts` is `sql`), or undefined
+ * for any other file. Declaration builds ask for `.d.ts` and `.js` names too.
+ */
+function librarySubpath(file: string): string | undefined {
+  const path = relative(src, file).replace(/(\.d)?\.(ts|js)$/, "");
+
+  if (path === "index") {
+    return "";
+  }
+
+  if (!path.endsWith("/index") || path.startsWith("cli/")) {
+    return undefined;
+  }
+
+  const subpath = path.slice(0, -"/index".length);
+
+  return entries.includes(`${subpath}/index`) ? subpath : undefined;
+}
+
+const library = defineConfig({
+  entry: Object.fromEntries(entries.map((name) => [name, `src/${name}.ts`])),
+  platform: "neutral",
+  format: "esm",
+  dts: true,
+  clean: true,
+  exports: false,
+  // Library modules only declare; the "use client" React modules keep theirs
+  // so their directive survives in the entry chunks.
+  treeshake: {
+    moduleSideEffects: (id) =>
+      USE_CLIENT_MODULE.test(id) || !id.startsWith(src),
+  },
+  plugins: [
+    {
+      // The declaration bundler drops `/// <reference lib>` directives, and
+      // consumers need the Temporal lib wherever the types name it
+      // (docs/decisions/0005-temporal.md).
+      name: "temporal-lib-reference",
+      renderChunk(code, chunk) {
+        if (!chunk.fileName.endsWith(".d.ts") || !code.includes("Temporal.")) {
+          return null;
+        }
+
+        return `/// <reference lib="esnext.temporal" />\n${code}`;
+      },
+    },
+    {
+      // The react-server build imports the provider from the built
+      // `react/session.js` entry, so it stays a "use client" reference.
+      name: "react-session-reference",
+      resolveId(source, importer) {
+        if (
+          source === "./session.js" &&
+          importer?.endsWith("src/react/server.ts")
+        ) {
+          return { id: "./session.js", external: true };
+        }
+
+        // The auth gate's Server Component renders its provider from the built
+        // `next/auth-gate/user.js` entry, so it stays a "use client" reference.
+        if (
+          source === "./user.js" &&
+          importer?.endsWith("src/next/auth-gate/index.ts")
+        ) {
+          return { id: "./user.js", external: true };
+        }
+
+        return null;
+      },
+    },
+  ],
+  inputOptions: {
+    onLog(level, log, handler) {
+      // Rolldown keeps "use client" on the react entry chunks; tests/bundle asserts it.
+      if (
+        log.code === "MODULE_LEVEL_DIRECTIVE" &&
+        USE_CLIENT_MODULE.test(log.id ?? "")
+      ) {
+        return;
+      }
+
+      handler(level, log);
+    },
+  },
+  deps: {
+    neverBundle: [
+      /^@supabase\//,
+      /^@supabase-labs\//,
+      /^@opentelemetry\//,
+      /^@orpc\//,
+      /^@tanstack\//,
+      /^@ai-sdk\//,
+      /^@workflow\//,
+      /^node:/,
+      "ai",
+      "hono",
+      "next",
+      /^next\//,
+      "pg",
+      "react",
+      "react-dom",
+      "workflow",
+      /^workflow\//,
+    ],
+  },
+});
+
+// The CLI and the TypeScript content mapper run on Node and inline their own
+// packages (citty, c12, valibot and the rest are devDependencies), so apps
+// install no CLI dependency (invariant 1). They load the library from the
+// package's own entries, so a command and the app's config share one copy of
+// `defineSchema` and the block registry.
+const cli = defineConfig({
+  entry: {
+    "cli/index": "src/cli/index.ts",
+    "cli/bin": "src/cli/bin.ts",
+    "cli/generator-worker": "src/cli/generators/worker.ts",
+    "mapper/bin": "src/mapper/bin.ts",
+  },
+  platform: "node",
+  format: "esm",
+  fixedExtension: false,
+  dts: true,
+  clean: false,
+  exports: false,
+  outputOptions: { chunkFileNames: "cli/[name]-[hash].js" },
+  plugins: [
+    {
+      name: "library-entries",
+      resolveId(source, importer) {
+        if (!importer || !source.startsWith(".")) {
+          return null;
+        }
+
+        const subpath = librarySubpath(resolve(dirname(importer), source));
+
+        if (subpath === undefined) {
+          return null;
+        }
+
+        return {
+          id: subpath === "" ? "better-supabase" : `better-supabase/${subpath}`,
+          external: true,
+        };
+      },
+    },
+    {
+      // The bins and the generator worker are entry points, not modules anyone imports, so they ship no types.
+      name: "no-bin-types",
+      generateBundle: {
+        order: "post",
+        handler(_options, bundle) {
+          for (const file of Object.keys(bundle)) {
+            if (
+              /^(cli\/(bin|generator-worker)|mapper\/bin)\.d\.[cm]?ts(\.map)?$/.test(
+                file,
+              )
+            ) {
+              delete bundle[file];
+            }
+          }
+        },
+      },
+    },
+  ],
+  deps: {
+    neverBundle: [
+      /^@supabase\//,
+      /^better-supabase(\/|$)/,
+      /^node:/,
+      "pg",
+      // c12's optional peers, each loaded through import() with a fallback.
+      "dotenv",
+      "giget",
+      "jiti",
+      "magicast",
+    ],
+    // valibot and jsonpath-rfc9535 are also optional peers, which tsdown keeps external; the CLI
+    // needs its own copy, since apps install no CLI dependency.
+    alwaysBundle: ["jsonpath-rfc9535", "valibot"],
+    onlyBundle: [
+      "@clack/core",
+      "@clack/prompts",
+      "@t3-oss/env-core",
+      "ajv",
+      "ajv-formats",
+      "c12",
+      "citty",
+      "confbox",
+      "defu",
+      "destr",
+      "diff",
+      "exsolve",
+      "fast-deep-equal",
+      "fast-string-truncated-width",
+      "fast-string-width",
+      "fast-uri",
+      "fast-wrap-ansi",
+      "fastest-levenshtein",
+      "json-schema-traverse",
+      "jsonpath-rfc9535",
+      "pathe",
+      "pkg-types",
+      "rc9",
+      "require-from-string",
+      "sisteransi",
+      "smol-toml",
+      "tinyexec",
+      "valibot",
+      "yaml",
+    ],
+  },
+});
+
+export default [library, cli];

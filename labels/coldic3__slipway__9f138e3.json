@@ -1,0 +1,24 @@
+{
+  "diff": "coldic3__slipway__9f138e3",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/mcp/hook.ts",
+      "line": 96,
+      "id": "728cef0fab411379",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: graphqlPublishes (new name; parent had the private graphqlWrites) has no importer: git grep -w at 9f138e3 finds it only in src/mcp/hook.ts:96,146 and the generated plugin/dist bundle, and tests/unit/hook.test.ts:5 does not import it pass two: the change replaced `function graphqlWrites(` with `export function graphqlPublishes(`; git grep at the commit finds it only at src/mcp/hook.ts:96 (definition) and :146 `if (endpoint === 'graphql') return graphqlPublishes(w, command, cwd);` plus the bundle plugin/dist/slipway-hook.mjs; tests/unit/hook.test.ts:5 imports `decide, ghPrSelector, pushedBranches, restPublishes` and src/mcp/entry-hook.ts:1 imports only `main`"
+    }
+  ]
+}

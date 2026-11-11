@@ -1,0 +1,69 @@
+{
+  "diff": "ratelworks__agent-safety-oss__3fcfcc5",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/lib/a2ui.ts",
+      "line": 18,
+      "id": "4de54a7c0f6bd217",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export const DRAFT_ROOT: git grep at the commit finds no use outside src/lib/a2ui.ts; no namespace import of a2ui.js pass two: `export const DRAFT_ROOT`: git grep -w DRAFT_ROOT at the commit finds it only in src/lib/a2ui.ts"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/a2ui.ts",
+      "line": 53,
+      "id": "1210e9b9b472ff71",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export type TextKind: git grep at the commit finds no use outside src/lib/a2ui.ts pass two: `export type TextKind`: git grep -w TextKind at the commit finds it only in src/lib/a2ui.ts"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/a2ui.ts",
+      "line": 55,
+      "id": "d3ee82fa22f3ed0e",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export interface FieldSpec: only other hit is a local 'interface FieldSpec' in scripts/seed/seed-standard-form-fields.ts:29, not an import pass two: `export interface FieldSpec`: no file imports it; the only other FieldSpec is a local `interface FieldSpec {` at scripts/seed/seed-standard-form-fields.ts:29, which imports nothing from a2ui"
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/lib/a2ui.ts",
+      "line": 138,
+      "id": "73243beda8e57b3a",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: export function buttonComponent: git grep at the commit finds no use outside src/lib/a2ui.ts pass two: `export function buttonComponent(`: git grep -w buttonComponent at the commit finds it only in src/lib/a2ui.ts"
+    },
+    {
+      "rule": "unused-import",
+      "file": "src/tools/analyze-work-context.ts",
+      "line": 35,
+      "id": "2d92ecc6bc4d3352",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: Only the type binding A2UIMessage is unused; updateComponentsMessage, textComponent and assistPanelComponent are all used in the a2uiUpdate array, so not every binding is unused pass two: not every binding is unused: line 436 calls `updateComponentsMessage(args.surfaceId, [`, line 437 `assistPanelComponent([cardId])`, line 444 `textComponent(titleId, ...`; only `type A2UIMessage` has no use in the file"
+    },
+    {
+      "rule": "dead-export",
+      "file": "scripts/test/a2ui-schema-validator.ts",
+      "line": 24,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: 'export interface A2uiValidation {' in a file the change added; its only importer test-a2ui-schema.ts:18-23 imports validateA2uiJsonl, validateA2uiMessage, A2UI_VERSION, BASIC_CATALOG_ID; git grep finds no other use pass two: `export interface A2uiValidation {` in a new file: git grep finds the name only in scripts/test/a2ui-schema-validator.ts (lines 24, 33, 55, 58, 64); test-a2ui-schema.ts:18-23 imports four other names from it"
+    }
+  ]
+}

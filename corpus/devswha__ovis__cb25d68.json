@@ -1,0 +1,20 @@
+{
+  "id": "devswha__ovis__cb25d68",
+  "source": "git",
+  "repo": "devswha/ovis",
+  "sha": "cb25d683edfa250f5550d47a597273fcebe517f5",
+  "parent": "9f4e978022300dc15b37d64235990804bb9fb460",
+  "licence": "MIT",
+  "language": "typescript",
+  "url": "https://github.com/devswha/ovis/commit/cb25d683edfa250f5550d47a597273fcebe517f5",
+  "files": [
+    "scripts/diff-find-demo-regression.ts",
+    "scripts/keyboard-viewport-regression.ts",
+    "src/lib/viewport.ts"
+  ],
+  "wave": 2,
+  "signal": "html-sink",
+  "signals": [
+    "html-sink"
+  ]
+}

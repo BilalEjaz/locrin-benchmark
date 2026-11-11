@@ -1,0 +1,87 @@
+{
+  "diff": "aswanthwuhan__BCBR-QUIZ-APP__23187ec",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "generate_missing_explanations.ts",
+      "line": 51,
+      "id": "f918d3d9e9c1d12e",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: server-side Node script, not client code: the same block calls `process.exit(1)` (line 54) and the comment at line 50 says `// Server-side script`; nothing imports the file (git grep generate_missing finds no importer) pass two: `const SUPABASE_ANON_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;` reads the key from the environment; not client code: generate_missing_explanations.ts is a Node command-line script (line 54 `process.exit(1);`, line 267 `main().catch(console.error);`) and git grep -F generate_missing_explanations at 23187ec finds no source file importing it"
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "generate_missing_explanations.ts",
+      "line": 53,
+      "id": "61afe17205751609",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: server-side Node script, not client code: the same block calls `process.exit(1)` (line 54) and the comment at line 50 says `// Server-side script`; nothing imports the file (git grep generate_missing finds no importer) pass two: `console.error(\"ERROR: set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your environment.\");` only names the variable in a message; not client code: generate_missing_explanations.ts is a Node command-line script (line 54 `process.exit(1);`, line 267 `main().catch(console.error);`) and git grep -F generate_missing_explanations at 23187ec finds no source file importing it"
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "generate_parallel.ts",
+      "line": 38,
+      "id": "239980e6ea0bda09",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: server-side Node script, not client code: the same block calls `process.exit(1)` (line 41) and line 37 says `// Server-side script`; nothing imports the file (git grep generate_parallel finds no importer; src/lib/gemini.ts:26 has its own sanitizeLaTeX) pass two: `const SUPABASE_ANON_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;` reads the key from the environment; not client code: generate_parallel.ts is a Node command-line script (line 41 `process.exit(1);`, line 188 `main().catch(console.error);`) and git grep -F generate_parallel at 23187ec finds no source file importing it"
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "generate_parallel.ts",
+      "line": 40,
+      "id": "304b2661b416b480",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: server-side Node script, not client code: the same block calls `process.exit(1)` (line 41) and line 37 says `// Server-side script`; nothing imports the file (git grep generate_parallel finds no importer; src/lib/gemini.ts:26 has its own sanitizeLaTeX) pass two: `console.error(\"ERROR: set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your environment.\");` only names the variable in a message; not client code: generate_parallel.ts is a Node command-line script (line 41 `process.exit(1);`, line 188 `main().catch(console.error);`) and git grep -F generate_parallel at 23187ec finds no source file importing it"
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "server.ts",
+      "line": 34,
+      "id": "b88a265d4120b94f",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: server.ts is the Express server (`import express from \"express\"` line 1, package.json `\"start\": \"tsx server.ts\"`), so the service-role key is read on the server, not in client code pass two: `const SUPABASE_SERVER_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_ANON_KEY;` reads the key from the server environment; not client code: server.ts is the Express server (line 1 `import express from \"express\";`, line 551 `app.listen(PORT, \"0.0.0.0\", () => {`) that package.json runs with `\"start\": \"tsx server.ts\"`"
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "server.ts",
+      "line": 35,
+      "id": "b2dbc00d7359cf9d",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: server.ts is the Express server (`import express from \"express\"` line 1, package.json `\"start\": \"tsx server.ts\"`), so the service-role key is read on the server, not in client code pass two: `if (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_SECRET_KEY && process.env.SUPABASE_ANON_KEY) {` is a server-side environment check; not client code: server.ts is the Express server (line 1 `import express from \"express\";`, line 551 `app.listen(PORT, \"0.0.0.0\", () => {`) that package.json runs with `\"start\": \"tsx server.ts\"`"
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "server.ts",
+      "line": 36,
+      "id": "e696f84d45dafef8",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: server.ts is the Express server (`import express from \"express\"` line 1, package.json `\"start\": \"tsx server.ts\"`), so the service-role key is read on the server, not in client code pass two: `console.warn(\"WARNING: using SUPABASE_ANON_KEY on the server. Set SUPABASE_SERVICE_ROLE_KEY and enable row level security (supabase/enable-rls.sql).\");` only names the variable in a server log message; not client code: server.ts is the Express server (line 1 `import express from \"express\";`, line 551 `app.listen(PORT, \"0.0.0.0\", () => {`) that package.json runs with `\"start\": \"tsx server.ts\"`"
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "server.ts",
+      "line": 45,
+      "id": "f21b9d95483b5d78",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: server.ts is the Express server (`import express from \"express\"` line 1, package.json `\"start\": \"tsx server.ts\"`), so the service-role key is read on the server, not in client code pass two: `console.error(\"CRITICAL: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not found in environment!\");` only names the variable in a server log message; not client code: server.ts is the Express server (line 1 `import express from \"express\";`, line 551 `app.listen(PORT, \"0.0.0.0\", () => {`) that package.json runs with `\"start\": \"tsx server.ts\"`"
+    }
+  ]
+}

@@ -1,0 +1,1450 @@
+/**
+ * JsDebugAdapterPolicy - policy for VS Code js-debug (pwa-node)
+ *
+ * Encodes js-debug specific multi-session behavior while preserving
+ * generic DAP flow in core code.
+ */
+import type { DebugProtocol } from '@vscode/debugprotocol';
+import * as path from 'path';
+import type { AdapterPolicy, AdapterSpecificState, CommandHandling, LocalVariableExtraction, QueuedDapCommand, StopReasonContext, PendingStopContext, UnresolvedSourceContext, GeneratedFileCandidate, GeneratedFileContext } from './adapter-policy.js';
+import { generatedFileCandidatesFrom } from './adapter-policy.js';
+import {
+  jsLaunchBlackboxesNodeModules,
+  jsLaunchSkipsNodeInternals,
+  resolveJsLaunchSmartStep,
+  resolveJsLaunchWorkspaceFolder,
+  resolveJsPauseForSourceMap
+} from './js-launch-defaults.js';
+import { emptyLocalVariableExtraction, extractionFromScope, resolveExceptionFilters } from './adapter-policy.js';
+import type { StackFrame, Variable } from '../models/index.js';
+import { toSourceBreakpoint, type BreakpointFields } from '../utils/to-source-breakpoint.js';
+import { compileJsLogpoint, validateJsLogpoint } from '../utils/js-logpoint.js';
+import type { DapClientBehavior, DapClientContext, ReverseRequestResult } from './dap-client-behavior.js';
+import type { ChildAdoptionContract, ChildReport } from './child-adoption.js';
+
+/**
+ * Every js-debug scope name this adapter knows, grouped by kind.
+ *
+ * Single source of truth for the two places that each used to hold their own
+ * copy: the extractor's predicates and `getLocalScopeName()` (which the
+ * session layer then matches against to name the reported scope). Commit
+ * 4f469d71 shipped a false-note bug precisely because those two disagreed —
+ * the extractor learned the exact `Block` name and the reported list did not.
+ * A spec test asserts the list is exactly this table, flattened.
+ *
+ * A name ending in ':' matches as a prefix (`Block:loop`); every other name
+ * matches exactly. Two historical spellings are matched by the predicates but
+ * not spelled out here: `Closure (fn)` (the session layer's canonical
+ * `name + ' '` rule covers it) and `module` in any other casing (the module
+ * predicate compares case-insensitively).
+ */
+export const JS_SCOPE_KINDS = {
+  local: ['Local', 'Locals', 'Local:'],
+  block: ['Block', 'Catch Block', 'With Block', 'Block:'],
+  closure: ['Closure', 'Closure:'],
+  module: ['Script', 'Module', 'module']
+} as const;
+
+/**
+ * The TypeScript sources js-debug binds through a source map, and what tsc
+ * emits for each (issue #938). `.tsx` under `jsx: preserve` emits `.jsx`,
+ * which is not a candidate; a declaration file is never run.
+ */
+const TS_GENERATED_EXTENSION: Readonly<Record<string, string>> = {
+  '.ts': '.js',
+  '.tsx': '.js',
+  '.mts': '.mjs',
+  '.cts': '.cjs'
+};
+const DECLARATION_FILE = /\.d\.[mc]?ts$/i;
+/**
+ * js-debug's `_createPausedDetails` fallback for a CDP pause it has no
+ * breakpoint for: a real `debugger;` statement, and (issue #1097) its own
+ * leaked module-entry break. The body is the same for both.
+ */
+const isDebuggerStatementPause = (body: DebugProtocol.StoppedEvent['body'] | undefined): boolean =>
+  /debugger statement/i.test(body?.description ?? '');
+/** Output directories tried under the nearest package when no tsconfig names an outDir. */
+const CONVENTIONAL_OUT_DIRS = ['dist', 'build', 'out', 'lib'] as const;
+
+/** `file` relative to `base` when it lies inside it, else undefined. */
+function relativeInside(base: string, file: string): string | undefined {
+  const rel = path.relative(base, file);
+  return rel === '' || rel.startsWith('..') || path.isAbsolute(rel) ? undefined : rel;
+}
+
+/** `a/b.ts` for `src/a/b.ts`; undefined when the path does not start with a `src` segment. */
+function withoutLeadingSrc(rel: string): string | undefined {
+  const [head, ...rest] = rel.split(/[\\/]/);
+  return head === 'src' && rest.length > 0 ? path.join(...rest) : undefined;
+}
+
+/** Exact match, or prefix match for a name written with a trailing ':'. */
+function matchesScopeNames(scope: DebugProtocol.Scope, names: readonly string[]): boolean {
+  return names.some(name =>
+    name.endsWith(':') ? scope.name.startsWith(name) : scope.name === name
+  );
+}
+
+const isLocalScope = (scope: DebugProtocol.Scope): boolean =>
+  matchesScopeNames(scope, JS_SCOPE_KINDS.local);
+/**
+ * js-debug names a lexical block scope exactly 'Block' (and 'Catch Block' /
+ * 'With Block'); only some legacy builds use the 'Block:<label>' form. That is
+ * where `let`/`const` bindings declared inside a `for` body or a `catch (e)`
+ * live (issue #558).
+ */
+const isBlockScope = (scope: DebugProtocol.Scope): boolean =>
+  matchesScopeNames(scope, JS_SCOPE_KINDS.block);
+/**
+ * "Local-like" is local OR block: either proves the frame is a real
+ * function/block frame rather than a top-level script frame, which is what the
+ * Global gate turns on.
+ */
+const isLocalLikeScope = (scope: DebugProtocol.Scope): boolean =>
+  isLocalScope(scope) || isBlockScope(scope);
+const isClosureScope = (scope: DebugProtocol.Scope): boolean =>
+  matchesScopeNames(scope, JS_SCOPE_KINDS.closure) || scope.name.startsWith('Closure ');
+const isModuleScope = (scope: DebugProtocol.Scope): boolean =>
+  matchesScopeNames(scope, JS_SCOPE_KINDS.module) || scope.name.toLowerCase() === 'module';
+const JS_NO_LOCAL_SCOPE_NOTE =
+  'This JavaScript frame exposes no Local or block scope, so get_local_variables intentionally returned no variables; use get_scopes with this frame ID, then get_variables for an explicit scope (for example Global).';
+
+/**
+ * JavaScript-specific adapter state
+ */
+export interface JsAdapterState extends AdapterSpecificState {
+  initializeResponded: boolean;
+  startSent: boolean;
+  pendingCommands: QueuedDapCommand[];
+}
+
+/** A `node_modules` path *segment*, either separator (issue #655). */
+const NODE_MODULES_SEGMENT = /[\\/]node_modules[\\/]/;
+
+/** No source at all: the resolver's `<unknown_source>` placeholder or an empty path. */
+function hasNoSource(filePath: string): boolean {
+  return filePath === '' || filePath === '<unknown_source>';
+}
+
+/**
+ * The attach a connection sends to adopt one of js-debug's pending targets —
+ * the program's own (the launch session's single in-session child) and, with
+ * the session tree, every fork after it (issue #1082).
+ */
+function buildJsChildStartArgs(
+  pendingId: string,
+  parentConfig: Record<string, unknown>,
+  attachArguments?: Readonly<Record<string, unknown>>
+): { command: 'launch' | 'attach'; args: Record<string, unknown> } {
+  // js-debug's reverse-request values take precedence over parent extras.
+  // Our request/stopOnEntry intent never enters either adapter argument bag.
+  const config = { ...attachArguments, ...parentConfig };
+  const type = typeof config.type === 'string' ? config.type : 'pwa-node';
+  // Carry the parent's forwardable attach extras (localRoot/remoteRoot,
+  // sourceMaps, skipFiles, …) into the child — source resolution happens
+  // here, so this is where they take effect (issue #466). The orchestration
+  // keys stay pinned/excluded: address/port/attachSimplePort would make the
+  // child a second direct attach to the same inspector (the #124
+  // fight-over-the-process failure). These are adapter connection fields,
+  // not a deny-list of our start-intent fields (issue #730).
+  const {
+    name: _name,
+    __pendingTargetId: _pendingTargetId,
+    host: _host,
+    address: _address,
+    port: _port,
+    attachSimplePort: _attachSimplePort,
+    attachExistingChildren: _attachExistingChildren,
+    continueOnAttach: _continueOnAttach,
+    type: _type,
+    ...parentExtras
+  } = config;
+  void _name; void _pendingTargetId; void _host; void _address;
+  void _port; void _attachSimplePort; void _attachExistingChildren;
+  void _continueOnAttach; void _type;
+  return {
+    command: 'attach',
+    args: {
+      ...parentExtras,
+      type,
+      request: 'attach',
+      __pendingTargetId: pendingId,
+      continueOnAttach: true  // js-debug requires true to work properly
+    }
+  };
+}
+
+/**
+ * A js-debug process report (issue #1082): a `startDebugging` whose
+ * configuration carries a `__pendingTargetId` — the program itself on the
+ * root connection, a fork or a cluster worker on the program's connection, a
+ * grandchild on the fork's (docs/javascript/spike-notes-forks.md). The
+ * request says `request: "launch"` whatever the adoption is; `name` is
+ * `<script> [<pid>]`, the only hint at what the process is.
+ */
+function readJsDebugChildReport(request: DebugProtocol.Request): ChildReport | undefined {
+  if (request.command !== 'startDebugging') {
+    return undefined;
+  }
+  const args = (request.arguments ?? {}) as { configuration?: unknown };
+  const configuration = args.configuration;
+  if (typeof configuration !== 'object' || configuration === null) {
+    return undefined;
+  }
+  const { __pendingTargetId: pendingId, name } = configuration as { __pendingTargetId?: unknown; name?: unknown };
+  if (typeof pendingId !== 'string' || pendingId.length === 0) {
+    return undefined;
+  }
+  return {
+    targetId: pendingId,
+    name: typeof name === 'string' && name.length > 0 ? name : `target ${pendingId.slice(0, 8)}`,
+    configuration: configuration as Record<string, unknown>
+  };
+}
+
+/** js-debug's pins for the session tree (docs/architecture/session-tree.md, the adapter survey; issue #1082). */
+const jsDebugChildAdoption: ChildAdoptionContract = {
+  // Every connection asks for the request form; js-debug reports on each regardless.
+  advertiseStartDebugging: true,
+  // Rejecting a report parks the child forever (measured); a throwaway
+  // attach-then-detach is the only release (#501).
+  releaseLever: 'throwaway-attach',
+  // The whole tree's output arrives on the root connection; child connections carry none.
+  childOutput: 'launch-session',
+  // `disconnect` on a fork, with either flag, leaves it running (measured).
+  closeChild: 'release',
+  readChildReport: readJsDebugChildReport,
+  // The measured second-connection attach; an attach root's forwardable
+  // extras (localRoot/remoteRoot, sourceMaps, skipFiles, #466) ride along.
+  buildChildAttachArguments: (report: ChildReport, rootConfig?: Readonly<Record<string, unknown>>): Record<string, unknown> =>
+    buildJsChildStartArgs(report.targetId, report.configuration, rootConfig?.request === 'attach' ? rootConfig : undefined).args
+};
+
+export const JsDebugAdapterPolicy = {
+  name: 'js-debug',
+  supportsLogPoints: true,
+  // js-debug delivers a logpoint through the debuggee's console.log — lost
+  // in a program that replaced console (mcp-debugger's own stdio server) —
+  // and lets a condition take precedence over the logMessage (a pausing
+  // breakpoint). So a logpoint goes out as a condition compiled here that
+  // reports through the proxy's CDP binding and never pauses (issues #850,
+  // #861). A message that does not compile is sent as-is: js-debug then
+  // reports the syntax error itself (issue #853).
+  toWireBreakpoint: (bp: BreakpointFields): DebugProtocol.SourceBreakpoint => {
+    const plain = toSourceBreakpoint(bp);
+    if (bp.logMessage === undefined) {
+      return plain;
+    }
+    const compiled = compileJsLogpoint({ logMessage: bp.logMessage, condition: bp.condition });
+    if (!compiled.ok) {
+      return plain;
+    }
+    return {
+      line: bp.line,
+      ...(bp.suspendPolicy !== undefined ? { suspendPolicy: bp.suspendPolicy } : {}),
+      condition: compiled.condition
+    };
+  },
+  validateLogMessage: (logMessage: string, condition?: string): string | undefined =>
+    validateJsLogpoint(logMessage, condition),
+  // js-debug implements no DAP setFunctionBreakpoints (upstream out of scope,
+  // vscode-js-debug#952), so ours are delivered out of band (issue #295): the
+  // proxy's CdpFunctionBreakpointBridge resolves names over the child
+  // session's requestCDPProxy WebSocket and arms V8's
+  // Debugger.setBreakpointOnFunctionCall. The 'cdp' marker below routes
+  // setFunctionBreakpoints to the bridge and tells the gate to ignore
+  // js-debug's live supportsFunctionBreakpoints: false.
+  supportsFunctionBreakpoints: true,
+  functionBreakpointsVia: 'cdp',
+  // Names in late-loaded modules stay verified:false by design and bind at
+  // the next pause — unverified-at-launch is not a failure here (issue #308).
+  functionBreakpointsBindLate: true,
+  // Verified live: "Running with noDebug, so debug domains are disabled" —
+  // the program runs, nothing binds, no stop comes (issue #710).
+  honoursNoDebug: true,
+  supportsReverseStartDebugging: true,
+  childSessionStrategy: 'launchWithPendingTarget',
+  // The session tree (issue #1082): every report after the program's own is a
+  // child session on a fresh connection, released by a throwaway attach.
+  childAdoption: jsDebugChildAdoption,
+  buildChildStartArgs: buildJsChildStartArgs,
+  isChildReadyEvent: (evt: DebugProtocol.Event): boolean => {
+    // js-debug often signals readiness by posting a 'thread' event or an early 'stopped'.
+    // Waiting on these ensures threads() will not be empty.
+    return evt?.event === 'thread' || evt?.event === 'stopped';
+  },
+
+  /**
+   * js-debug reports an explicit pause as reason 'step' with description
+   * 'Paused' — the exact same body a genuine step produces, so the body alone
+   * cannot distinguish them. Normalize to 'pause' only while a user-initiated
+   * pause request is in flight. A step that happens to complete inside that
+   * window is reported as 'pause', which matches what the user asked for.
+   *
+   * A `debugger;` statement arrives as reason 'pause' with description
+   * 'Paused on debugger statement' (js-debug's `_createPausedDetails` for a
+   * CDP pause it did not request). It is a breakpoint the user wrote into the
+   * code: report it as one, so it is never auto-continued as an incidental
+   * first stop and the frame it lands in is treated as the stop location
+   * (issue #672). The raw reason is kept alongside by the session layer.
+   *
+   * The same body is also js-debug's generic answer for a pause it has no
+   * breakpoint for, and under load its own module-entry break — set at 1:1 of
+   * every file that carries a user breakpoint, normally swallowed — surfaces
+   * that way at the module's first statement, on a launch's first stop and on
+   * an adopted child's (issue #1097, measured once with four cluster workers
+   * starting at once; the reading of the bundle: the break's CDP registration
+   * is not awaited, so a `Debugger.paused` that lands first is not recognised
+   * as the entry break, and `continueOnAttach` resumes only "Break on start").
+   * Nothing in the event tells the two apart; the source line under the top
+   * frame does. On the first stop of a launch that did not ask to stop on
+   * entry the policy asks the core for that line (`stopNeedsSourceLine`) and
+   * names a line without a `debugger` token 'entry' — the core's
+   * stopOnEntry:false rule then resumes it, unseen. A line with the token
+   * anywhere on it (a comment included), or no line to go on (no path, a
+   * failed read), keeps 'breakpoint': the check only ever resumes on a
+   * positive read.
+   */
+  stopNeedsSourceLine: (
+    reason: string,
+    body: DebugProtocol.StoppedEvent['body'] | undefined,
+    context: StopReasonContext
+  ): boolean =>
+    reason === 'pause' &&
+    isDebuggerStatementPause(body) &&
+    !body?.hitBreakpointIds?.length &&
+    context.firstStop === true &&
+    context.sessionMode === 'launch' &&
+    context.stopOnEntry === false &&
+    !context.pausePending,
+
+  normalizeStopReason: (
+    reason: string,
+    body: DebugProtocol.StoppedEvent['body'] | undefined,
+    context: StopReasonContext
+  ): string | undefined => {
+    if (reason === 'step' && context.pausePending) {
+      return 'pause';
+    }
+    if (reason === 'pause' && isDebuggerStatementPause(body)) {
+      if (!body?.hitBreakpointIds?.length && context.topFrameLine && !/\bdebugger\b/.test(context.topFrameLine.text)) {
+        return 'entry';
+      }
+      return 'breakpoint';
+    }
+    return undefined;
+  },
+
+  /**
+   * Classify a frame as runtime/dependency glue rather than the user's code
+   * (issue #655). Three rules, all path-based:
+   *
+   * 1. Node internals — `<node_internals>/…` (js-debug already rewrites
+   *    `node:` URLs to that form; the bare `node:` prefix is kept as a
+   *    belt-and-braces for other DAP servers and `source.name` fallbacks).
+   * 2. Any `node_modules` path segment — pnpm's
+   *    `node_modules/.pnpm/express@4/node_modules/express/…`, Windows
+   *    `C:\app\node_modules\…`, and `file:///…/node_modules/…` URLs. A
+   *    *segment* match, not a substring, so `/app/src/node_modules_helper.js`
+   *    stays visible. Workspace packages are realpathed by Node, so a monorepo
+   *    package linked under `node_modules/@scope/pkg` reports its real
+   *    `packages/pkg/…` path and stays visible; only `--preserve-symlinks`
+   *    hides it — the same rule a justMyCode launch applies via `skipFiles`. A
+   *    debuggee that *is* an installed package (`/usr/lib/node_modules/<pkg>`)
+   *    becomes all-internal: the central issue-#346 fallback keeps frame 0 and
+   *    the response note says so; `includeInternals: true` shows everything.
+   *    A breakpoint or step that lands *inside* a dependency while user frames
+   *    survive below is the mixed case: the frame resolver keeps that paused
+   *    frame at the head (issue #672) — this classifier only says what is
+   *    internal, never what the inspection anchor is.
+   * 3. Frames with no source at all: js-debug's async separators (`await` /
+   *    `Promise.then` / `bound-anonymous-fn` labels at `line: 0`) and the
+   *    `<anonymous>` frame a pause lands on between event-loop dispatches
+   *    on an idle server (`<unknown_source>:1`, issue #900) — neither is
+   *    program code, and neither has scopes. When such a frame is the only
+   *    one, the frame resolver keeps it visible with `allFramesInternal`
+   *    (issue #346). An eval'd `VM123` script carries an `<eval>` path and
+   *    is not matched.
+   *
+   * `frame.name` deliberately does not participate: `processTicksAndRejections`
+   * carries a `<node_internals>` path (rule 1), the separators are rule 3, and
+   * a name rule would only add false positives (a user function named `then`).
+   * Unresolvable source-mapped frames (a relative `../src/x.ts` js-debug could
+   * not find on disk) are NOT internal — they are the debuggee's own code and
+   * are annotated with `unresolvedSource` by the frame resolver instead.
+   */
+  isInternalFrame: (frame: StackFrame): boolean => {
+    const filePath = frame.file || '';
+    if (filePath.includes('<node_internals>') || filePath.startsWith('node:')) {
+      return true;
+    }
+    if (NODE_MODULES_SEGMENT.test(filePath)) {
+      return true;
+    }
+    // Rule 3: the async separators and the idle-pause landing alike.
+    return hasNoSource(filePath);
+  },
+
+  /**
+   * Rule 3 above, on its own: the `await` / `Promise.then` / `HTTPINCOMINGMESSAGE`
+   * labels js-debug inserts between async activations. Frames below one of
+   * them are the async ancestors V8 answers "Unable to evaluate on async stack
+   * frame" for — so the frame resolver keeps a paused frame above such a
+   * boundary rather than anchoring below it (issue #672).
+   */
+  isAsyncBoundaryFrame: (frame: StackFrame): boolean =>
+    hasNoSource(frame.file || '') && (frame.line ?? 0) === 0,
+
+  /**
+   * Why a launch-mode pause or step may never stop (issue #678). js-debug's
+   * smart-stepper (`smartStep`, on by default while justMyCode is true) keeps
+   * stepping — in the direction that was asked for, step-out after 256 tries —
+   * while the program is in a frame the skip list blackboxes, and Node
+   * internals are on the default list: on an idle server every pause lands
+   * there, and a request path enters user code by calls, not returns, so
+   * neither the pause nor a step issued from a skipped frame lands. Measured
+   * on the #686 build: default skip list + smartStep:false → the pause landed;
+   * internals-only skip list + smartStep:true → the chase, with node_modules
+   * NOT blackboxed. So the hints key on the effective smartStep plus whether
+   * the frame in question is skipped, both from the helpers the launch
+   * transform uses. A caller's own glob (`**\/vendor/**`) is not matched — this
+   * package has no glob matcher, and an over-match would be a false hint — so
+   * a step from such a frame gets silence. Attach sessions default neither key
+   * (#513) and get nothing here.
+   */
+  describePendingStop: (info: PendingStopContext): string | undefined => {
+    if (info.attachMode) {
+      return undefined;
+    }
+    const merged = { ...(info.launch?.dapLaunchArgs ?? {}), ...(info.launch?.adapterLaunchConfig ?? {}) };
+    if (!resolveJsLaunchSmartStep(merged)) {
+      return undefined;
+    }
+    const internalsSkipped = jsLaunchSkipsNodeInternals(merged);
+    if (info.operation === 'pause') {
+      return internalsSkipped
+        ? "js-debug's smart-stepper is on for this launch (smartStep: true, the default while justMyCode is true) and " +
+          'Node internals are skipped, so a pause that lands in internals — where an idle server always is — is ' +
+          'stepped through instead of reported and may never land. Set a breakpoint in your own code, or relaunch ' +
+          'with dapLaunchArgs.justMyCode: false (or adapterLaunchConfig.smartStep: false) to pause where the program is.'
+        : undefined;
+    }
+    const frame = info.fromFrame;
+    if (!frame) {
+      return undefined;
+    }
+    const file = frame.file || '';
+    const where = `${file}:${frame.line}`;
+    if (internalsSkipped && (file.includes('<node_internals>') || file.startsWith('node:'))) {
+      return `The step was issued from a skipped frame in Node internals (${where}); js-debug's smart-stepper keeps ` +
+        'stepping while the program is in skipped code, so on a request path the step may never land. Use ' +
+        'continue_execution with a breakpoint in your own code, or relaunch with adapterLaunchConfig.smartStep: false ' +
+        'to stop in the next frame V8 does not skip.';
+    }
+    if (jsLaunchBlackboxesNodeModules(merged) && NODE_MODULES_SEGMENT.test(file)) {
+      return `The step was issued from a skipped frame (${where}); this launch blackboxes node_modules ` +
+        "(justMyCode: true) and js-debug's smart-stepper keeps stepping while the program is in skipped code, so on " +
+        'a request path the step may never land. Relaunch with dapLaunchArgs.justMyCode: false to step through ' +
+        'dependencies.';
+    }
+    return undefined;
+  },
+
+  /**
+   * An unresolvedSource frame under js-debug is a source map's `sources`
+   * entry the package did not ship (issue #655): the frame is the debuggee's
+   * own code, reported under a `.ts` label with a non-zero sourceReference.
+   * The remedy is the sourceMaps switch, spelled for the session's mode
+   * (issue #816).
+   */
+  describeUnresolvedSource: (info: UnresolvedSourceContext): string =>
+    `${info.count === 1 ? 'It is' : 'They are'} source-mapped to files the package did not ship ` +
+    '(a .js.map whose sources are not on disk); ' +
+    (info.attachMode
+      ? 'attach with adapterConfig.sourceMaps: false to see the generated .js paths instead.'
+      : 'relaunch with adapterLaunchConfig.sourceMaps: false to see the generated .js paths instead.'),
+
+  /**
+   * Where tsc would have emitted the file a TypeScript source binds through
+   * (issue #938), most specific first: the tsconfig's `outDir` (relative to
+   * `rootDir` when set; then with a leading `src/` stripped, which is what
+   * tsc's inferred root yields for the common layout; then relative to the
+   * tsconfig directory), the conventional `dist|build|out|lib` under the
+   * nearest package when no tsconfig names an outDir, and the sibling `.js`
+   * last. Every candidate is `linkedBy: 'sourceMap'`: the core keeps the
+   * first one whose `.map` names the source, so a wrong guess that exists
+   * costs one map read and is never trusted.
+   *
+   * The launched program says how the sources run (issue #950): one that is
+   * itself a TypeScript source (tsx, ts-node, Node's type stripping) or a
+   * runner under `node_modules` (vitest, jest, mocha) transforms them in
+   * memory, so there is no build to be stale and nothing is answered. Before
+   * a launch nothing says, and the warning's hedge carries that.
+   */
+  generatedFileCandidates: (info: GeneratedFileContext): GeneratedFileCandidate[] | undefined => {
+    const source = info.sourcePath;
+    const ext = path.extname(source).toLowerCase();
+    const outExt = TS_GENERATED_EXTENSION[ext];
+    if (!outExt || DECLARATION_FILE.test(source)) {
+      return undefined;
+    }
+    const program = info.program;
+    if (
+      program !== undefined &&
+      (TS_GENERATED_EXTENSION[path.extname(program).toLowerCase()] !== undefined || NODE_MODULES_SEGMENT.test(program))
+    ) {
+      return undefined;
+    }
+    const emitted = (dir: string, rel: string): string => path.join(dir, rel.slice(0, -ext.length) + outExt);
+    const candidates: string[] = [];
+    const { tsconfig, packageDir } = info;
+    if (tsconfig?.outDir !== undefined) {
+      const outDir = path.resolve(tsconfig.dir, tsconfig.outDir);
+      const fromRoot = tsconfig.rootDir !== undefined
+        ? relativeInside(path.resolve(tsconfig.dir, tsconfig.rootDir), source)
+        : undefined;
+      if (fromRoot) {
+        candidates.push(emitted(outDir, fromRoot));
+      }
+      const fromConfig = relativeInside(tsconfig.dir, source);
+      if (fromConfig) {
+        const stripped = withoutLeadingSrc(fromConfig);
+        if (stripped) {
+          candidates.push(emitted(outDir, stripped));
+        }
+        candidates.push(emitted(outDir, fromConfig));
+      }
+    } else if (packageDir !== undefined) {
+      const fromPackage = relativeInside(packageDir, source);
+      if (fromPackage) {
+        const stripped = withoutLeadingSrc(fromPackage);
+        for (const dir of CONVENTIONAL_OUT_DIRS) {
+          const outDir = path.join(packageDir, dir);
+          if (stripped) {
+            candidates.push(emitted(outDir, stripped));
+          }
+          candidates.push(emitted(outDir, fromPackage));
+        }
+      }
+    }
+    candidates.push(emitted(path.dirname(source), path.basename(source)));
+    // The rootDir and src/-stripped forms coincide for the common layout.
+    return generatedFileCandidatesFrom(candidates, 'sourceMap');
+  },
+
+  /**
+   * Filter stack frames to optionally remove Node.js internals and
+   * dependency frames. No local first-frame fallback: the frame resolver in
+   * the session layer restores the top frame for an all-internal stack and
+   * sets `allFramesInternal` (issue #346); a fallback here used to mask that
+   * flag and report "N-1 hidden" with the wrong note.
+   */
+  filterStackFrames: (frames: StackFrame[], includeInternals: boolean): StackFrame[] => {
+    if (includeInternals) {
+      return frames;
+    }
+    return frames.filter(frame => !JsDebugAdapterPolicy.isInternalFrame!(frame));
+  },
+
+  /**
+   * Extract local variables for JavaScript, filtering out internals by default
+   */
+  extractLocalVariables: (
+    stackFrames: StackFrame[],
+    scopes: Record<number, DebugProtocol.Scope[]>,
+    variables: Record<number, Variable[]>,
+    includeSpecial: boolean = false
+  ): LocalVariableExtraction => {
+    // Get the top frame
+    if (!stackFrames || stackFrames.length === 0) {
+      return emptyLocalVariableExtraction();
+    }
+    
+    const topFrame = stackFrames[0];
+    const frameScopes = scopes[topFrame.id];
+    
+    if (!frameScopes || frameScopes.length === 0) {
+      return emptyLocalVariableExtraction();
+    }
+
+    // Script/Module/Global-only frames have no local-variable contract.
+    // Returning Global can dump hundreds of runtime bindings while labeling
+    // them as locals; leave scope selection explicit instead (#595).
+    if (!frameScopes.some(isLocalLikeScope)) {
+      return emptyLocalVariableExtraction(JS_NO_LOCAL_SCOPE_NOTE);
+    }
+    
+    const variablesForScope = (scope: DebugProtocol.Scope): Variable[] => {
+      let scopeVariables = variables[scope.variablesReference] || [];
+
+      // Filter out special variables unless requested. A scope containing
+      // only these entries is still empty for normal local inspection, so
+      // sibling scopes remain eligible (issue #548).
+      if (!includeSpecial) {
+        scopeVariables = scopeVariables.filter(v => {
+          const name = v.name;
+
+          // Skip 'this' unless explicitly requested
+          if (name === 'this') {
+            return false;
+          }
+
+          // Skip prototype chain variables
+          if (name === '__proto__' || name === 'prototype') {
+            return false;
+          }
+
+          // Skip internal V8/Node variables
+          if (name.startsWith('[[') && name.endsWith(']]')) {
+            return false;
+          }
+
+          // Skip debugger internals
+          if (name.startsWith('$') || name.startsWith('_$')) {
+            return false;
+          }
+
+          return true;
+        });
+      }
+
+      return scopeVariables;
+    };
+
+    // The local-like group COLLECTS: a frame stopped inside a block has both
+    // kinds of scope and either one alone is a wrong answer — reporting only
+    // the block hides the function's parameters and outer locals, reporting
+    // only the function hides the loop variable the user stopped to look at.
+    // V8 lists block scopes innermost-first and ahead of Local, so taking them
+    // in adapter order reads like the language's own shadowing rules
+    // (issue #558). The later groups stay first-match fall-throughs.
+    const collected: Variable[] = [];
+    const collectedRefs: number[] = [];
+    const seenRefs = new Set<number>();
+    const collect = (scope: DebugProtocol.Scope): void => {
+      // Two scopes can share a variablesReference; collecting it twice would
+      // duplicate its variables and double-count its truncation.
+      if (seenRefs.has(scope.variablesReference)) {
+        return;
+      }
+      const scopeVariables = variablesForScope(scope);
+      // A scope that supplied nothing is not a contributing scope: listing its
+      // ref would misattribute another scope's truncation (issue #438).
+      if (scopeVariables.length === 0) {
+        return;
+      }
+      seenRefs.add(scope.variablesReference);
+      // Push in a loop, not `push(...)`: a spread of a very large scope is a
+      // call with that many arguments and blows the stack.
+      for (const variable of scopeVariables) {
+        collected.push(variable);
+      }
+      collectedRefs.push(scope.variablesReference);
+    };
+
+    const localScopes = frameScopes.filter(isLocalScope);
+    for (const scope of frameScopes.filter(isLocalLikeScope)) {
+      collect(scope);
+    }
+    // ESM top-level: js-debug gives a `for (let i...)` or `catch (e)` at module
+    // top level a Block scope with NO Local scope beneath it, and the module's
+    // own consts live in Script/Module. Before block scopes were recognised at
+    // all, such a frame reported those module bindings; collecting only the
+    // block would silently drop them. So when there is no Local scope, the
+    // first Script/Module scope is the frame's base and joins the merge.
+    if (localScopes.length === 0 && collectedRefs.length > 0) {
+      // First module-like scope that has something to show, as the
+      // fall-through below picks it.
+      const baseScope = frameScopes.find(
+        (scope) => isModuleScope(scope) && variablesForScope(scope).length > 0
+      );
+      if (baseScope) {
+        collect(baseScope);
+      }
+    }
+    if (collected.length > 0) {
+      // Keep a Local scope that exists on the frame nameable even when it
+      // contributed nothing — emptied by the `this`-only filter or by a
+      // pushed-down `names` filter. Without its ref the session layer cannot
+      // see that its canonical scope took part and reports the block with a
+      // note blaming Local, which is not what happened (issue #558).
+      for (const scope of localScopes) {
+        if (!seenRefs.has(scope.variablesReference)) {
+          seenRefs.add(scope.variablesReference);
+          collectedRefs.push(scope.variablesReference);
+        }
+      }
+      return { variables: collected, scopeRefs: collectedRefs };
+    }
+
+    // Nothing local-like had anything to show. js-debug can expose a genuinely
+    // empty Local scope while the useful binding lives in Closure or Module on
+    // the same frame; try those in usefulness order before the session layer
+    // walks down to a caller.
+    const fallbackGroups: Array<(scope: DebugProtocol.Scope) => boolean> = [
+      isClosureScope,
+      isModuleScope
+    ];
+    for (const matches of fallbackGroups) {
+      for (const scope of frameScopes.filter(matches)) {
+        const scopeVariables = variablesForScope(scope);
+        if (scopeVariables.length > 0) {
+          return extractionFromScope(scope, scopeVariables);
+        }
+      }
+    }
+
+    return emptyLocalVariableExtraction();
+  },
+  
+  /**
+   * Every scope name this adapter reads, in the preference order the session
+   * layer uses to pick the scope it reports.
+   *
+   * Derived from JS_SCOPE_KINDS so it cannot drift from the extractor's
+   * predicates. The order matters: 'Local' first means a frame with a Local
+   * scope still reports 'Local' after the issue #558 block merge, while a
+   * block-only frame (ESM top-level `for (let i...)`) matches its own block by
+   * name rather than falling through to Module and drawing a note about a
+   * scope that was never consulted.
+   */
+  getLocalScopeName: (): string[] => {
+    return [
+      ...JS_SCOPE_KINDS.local,
+      ...JS_SCOPE_KINDS.block,
+      ...JS_SCOPE_KINDS.closure,
+      ...JS_SCOPE_KINDS.module
+    ];
+  },
+  
+  getDapAdapterConfiguration: () => {
+    return {
+      type: 'pwa-node'  // VS Code JavaScript/TypeScript debugger type
+    };
+  },
+  
+  resolveExecutablePath: (providedPath?: string) => {
+    // JavaScript-specific executable path resolution
+    // Priority: provided path > node executable
+    if (providedPath) {
+      return providedPath;
+    }
+    
+    // Default to node executable  
+    return 'node';
+  },
+  
+  getDebuggerConfiguration: () => {
+    return {
+      // JavaScript debugger configuration for js-debug/pwa-node
+      requiresStrictHandshake: true,  // js-debug requires strict initialization sequence
+      skipConfigurationDone: false,
+      supportsVariableType: true  // JavaScript debugger supports variable type information
+    };
+  },
+
+  /**
+   * js-debug attaches with continueOnAttach, so a running target stays
+   * running; the SessionManager must issue an explicit pause for the PAUSED
+   * state it reports after attach to be real (issue #124).
+   */
+  getAttachBehavior: () => ({ pauseAfterAttach: true }),
+
+  /**
+   * Perform JavaScript-specific handshake sequence for js-debug/pwa-node.
+   * This includes the strict initialization sequence required by js-debug.
+   */
+  performHandshake: async (context) => {
+    const { proxyManager: pm, sessionId, dapLaunchArgs, scriptPath, scriptArgs, breakpoints, launchConfig, breakOnExceptions } = context;
+
+    if (!pm || !pm.isRunning()) {
+      console.warn(
+        `[JsDebugAdapterPolicy] performHandshake skipped: proxy manager not running for session ${sessionId}`
+      );
+      return;
+    }
+
+    // 1) initialize with supportsStartDebuggingRequest.
+    // The 'initialized' listener is attached BEFORE the request goes out:
+    // js-debug can emit the event before the initialize response is processed,
+    // and a listener attached afterwards misses it and burns the full wait
+    // window below (#242).
+    let initializedSeen = false;
+    let notifyInitialized: (() => void) | null = null;
+    const onInitialized = (event: string) => {
+      if (event === 'initialized') {
+        initializedSeen = true;
+        pm.removeListener('dap-event', onInitialized);
+        notifyInitialized?.();
+      }
+    };
+    pm.on('dap-event', onInitialized);
+
+    try {
+      console.info(`[JsDebugAdapterPolicy] [JS] Sending 'initialize' request`);
+      await pm.sendDapRequest('initialize', {
+        clientID: 'mcp',
+        adapterID: 'javascript',
+        linesStartAt1: true,
+        columnsStartAt1: true,
+        pathFormat: 'path',
+        // CRITICAL: Tell js-debug we support multi-session for proper breakpoint handling
+        supportsStartDebuggingRequest: true,
+      });
+    } catch (e) {
+      console.warn(
+        `[JsDebugAdapterPolicy] [JS] 'initialize' failed or deferred: ${
+          e instanceof Error ? e.message : String(e)
+        }`
+      );
+    }
+
+    // 2) wait for DAP 'initialized'. The timeout is armed only now so a slow
+    // initialize round-trip does not consume the wait window.
+    if (!initializedSeen) {
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(() => {
+          pm.removeListener('dap-event', onInitialized);
+          console.warn(`[JsDebugAdapterPolicy] [JS] Timeout waiting for DAP 'initialized' event`);
+          resolve();
+        }, 10000);
+        notifyInitialized = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+      });
+    }
+
+    // 3) setExceptionBreakpoints + setBreakpoints
+    try {
+      const exceptionFilters = resolveExceptionFilters(JsDebugAdapterPolicy, breakOnExceptions);
+      console.info(`[JsDebugAdapterPolicy] [JS] Sending 'setExceptionBreakpoints' ${JSON.stringify(exceptionFilters)}`);
+      await pm.sendDapRequest('setExceptionBreakpoints', { filters: exceptionFilters });
+    } catch (e) {
+      console.warn(
+        `[JsDebugAdapterPolicy] [JS] 'setExceptionBreakpoints' failed or unsupported: ${
+          e instanceof Error ? e.message : String(e)
+        }`
+      );
+    }
+    
+    try {
+      // Group queued breakpoints by file, mapping via this policy's wire
+      // form (logpoints compiled, #850) over the shared toSourceBreakpoint so
+      // no per-breakpoint field is dropped (#235)
+      const grouped: Map<string, DebugProtocol.SourceBreakpoint[]> = new Map();
+      for (const breakpoint of breakpoints.values()) {
+        const arr = grouped.get(breakpoint.file) || [];
+        arr.push(JsDebugAdapterPolicy.toWireBreakpoint(breakpoint));
+        grouped.set(breakpoint.file, arr);
+      }
+      for (const [file, bps] of grouped) {
+        console.info(
+          `[JsDebugAdapterPolicy] [JS] Sending 'setBreakpoints' for ${file} (${bps.length})`
+        );
+        await pm.sendDapRequest('setBreakpoints', {
+          source: { path: file },
+          breakpoints: bps,
+        });
+      }
+    } catch (e) {
+      console.warn(
+        `[JsDebugAdapterPolicy] [JS] 'setBreakpoints' failed: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+
+    // 4) configurationDone
+    try {
+      console.info(`[JsDebugAdapterPolicy] [JS] Sending 'configurationDone'`);
+      await pm.sendDapRequest('configurationDone', {});
+    } catch (e) {
+      console.warn(
+        `[JsDebugAdapterPolicy] [JS] 'configurationDone' failed or deferred: ${
+          e instanceof Error ? e.message : String(e)
+        }`
+      );
+    }
+
+    // 5) start debug target (attach if explicit attach+port; else launch using adapter policy)
+    const a = (dapLaunchArgs || {}) as Record<string, unknown>;
+    const baseLaunchConfig: Record<string, unknown> = launchConfig ? { ...launchConfig } : {};
+    const baseRecord = baseLaunchConfig as Record<string, unknown>;
+
+    // A numeric string counts too (issue #896): the MCP transform converts
+    // one, an embedder bypassing the transform may not.
+    const getPortValue = (value: unknown): number | undefined =>
+      typeof value === 'number' && Number.isFinite(value)
+        ? value
+        : typeof value === 'string' && /^\d+$/.test(value)
+        ? Number(value)
+        : undefined;
+    const stringValue = (value: unknown): string | undefined =>
+      typeof value === 'string' && value.length > 0 ? value : undefined;
+
+    const type =
+      typeof baseLaunchConfig.type === 'string'
+        ? (baseLaunchConfig.type as string)
+        : typeof a.type === 'string'
+        ? (a.type as string)
+        : 'pwa-node';
+
+    const req =
+      typeof baseLaunchConfig.request === 'string'
+        ? (baseLaunchConfig.request as string)
+        : typeof a.request === 'string'
+        ? (a.request as string)
+        : 'launch';
+
+    const attachPort =
+      getPortValue(baseRecord.attachSimplePort) ??
+      getPortValue(baseRecord.port) ??
+      getPortValue(a.attachSimplePort) ??
+      getPortValue(a.port);
+    // An inspector URL from /json/list is the one port-less form js-debug
+    // honours (issue #896); the MCP transform leaves `port` undefined beside it.
+    const websocketAddress = stringValue(baseRecord.websocketAddress) ?? stringValue(a.websocketAddress);
+
+    if (req === 'attach') {
+      // Explicit ATTACH flow (single parent session), keyed on the request
+      // alone: a port-less attach used to fall through to the LAUNCH flow
+      // below and send js-debug a `launch` whose body said `request:
+      // 'attach'` (issue #896) — launch-branch keys on an attach, and a
+      // launch parent recorded for child adoption.
+      const hasPort = typeof attachPort === 'number' && attachPort > 0;
+      if (!hasPort && !websocketAddress) {
+        throw new Error(
+          "[JsDebugAdapterPolicy] A JavaScript attach needs a port (the target's --inspect port) or a websocketAddress; " +
+            "the handshake received request: 'attach' with neither, so no attach request was sent"
+        );
+      }
+      // Use the caller-provided host — previously hardcoded to 127.0.0.1,
+      // which broke attaching to anything but local loopback (issue #124).
+      const attachHost =
+        typeof baseRecord.host === 'string' && (baseRecord.host as string).length > 0
+          ? (baseRecord.host as string)
+          : typeof a.host === 'string' && (a.host as string).length > 0
+          ? (a.host as string)
+          : '127.0.0.1';
+      // NOTE: do not set attachSimplePort here. Combined with `port` it makes
+      // js-debug attach to the same inspector twice (simple-attach delegate +
+      // regular attach target); with continueOnAttach the two targets then
+      // fight over the process — every pause is immediately resumed by the
+      // other target and stackTrace fails with "Thread is not paused"
+      // (observed empirically while fixing issue #124).
+      // Caller-provided attach extras (localRoot/remoteRoot, sourceMaps,
+      // skipFiles, …) are spread through so they reach js-debug — and, via the
+      // recorded attach args, its child sessions (issue #466). The policy's
+      // own keys stay on top: the #124 fight-over-the-process failure modes
+      // live exactly in these knobs.
+      const {
+        attachSimplePort: _ignoredSimplePort,
+        ...callerAttachExtras
+      } = baseRecord;
+      void _ignoredSimplePort;
+      const attachArgs: Record<string, unknown> = {
+        ...callerAttachExtras,
+        type,
+        request: 'attach',
+        ...(hasPort ? { address: attachHost, port: attachPort } : {}),
+        continueOnAttach: true,
+        attachExistingChildren: true
+      };
+      if (!hasPort) {
+        // js-debug dials websocketAddress directly; the transform's
+        // `port: undefined` must not ride along as a key.
+        delete attachArgs.port;
+        delete attachArgs.address;
+      }
+      // Carry the caller's stopOnEntry: js-debug itself ignores it, but
+      // MinimalDapClient records this as parent intent separately from the
+      // arguments forwarded to child sessions (issues #124/#730).
+      const stopOnEntryValue =
+        typeof baseRecord.stopOnEntry === 'boolean'
+          ? (baseRecord.stopOnEntry as boolean)
+          : typeof a.stopOnEntry === 'boolean'
+          ? (a.stopOnEntry as boolean)
+          : undefined;
+      if (typeof stopOnEntryValue === 'boolean') {
+        attachArgs.stopOnEntry = stopOnEntryValue;
+      }
+      // The adapter transform enables children after proving the attach is
+      // local. An embedder bypassing that transform has no locality proof:
+      // stay off rather than injecting a host-only bootloader into a remote
+      // target. A transformed or caller-supplied boolean is respected.
+      if (typeof attachArgs.autoAttachChildProcesses !== 'boolean') {
+        attachArgs.autoAttachChildProcesses =
+          typeof a.autoAttachChildProcesses === 'boolean'
+            ? (a.autoAttachChildProcesses as boolean)
+            : false;
+      }
+      // Same self-containment for resolveSourceMapLocations (issue #655):
+      // js-debug's attach defaults collapse it to null without a workspace
+      // folder, applying every dependency's .js.map. The adapter transform
+      // already sets launch's exclusion; keep it for embedders that bypass
+      // the transform. Only an absent key is defaulted — an explicit null
+      // ("resolve everywhere") is a caller decision.
+      if (!('resolveSourceMapLocations' in attachArgs)) {
+        attachArgs.resolveSourceMapLocations =
+          'resolveSourceMapLocations' in a
+            ? a.resolveSourceMapLocations
+            : ['**', '!**/node_modules/**'];
+      }
+      try {
+        console.info(
+          hasPort
+            ? `[JsDebugAdapterPolicy] [JS] Sending 'attach' to ${attachPort} (address=${attachHost})`
+            : `[JsDebugAdapterPolicy] [JS] Sending 'attach' to ${websocketAddress}`
+        );
+        await pm.sendDapRequest('attach', attachArgs);
+      } catch (e) {
+        // Rethrown (issue #896): this runs in the MCP server process, where
+        // console is silenced, so the warning was the end of the road — the
+        // adapter's refusal never reached the caller. The attach controller
+        // decides what a rejection means.
+        console.warn(`[JsDebugAdapterPolicy] [JS] 'attach' failed: ${e instanceof Error ? e.message : String(e)}`);
+        throw e;
+      }
+    } else {
+      // LAUNCH flow (default for MCP). Use adapter-configured policy; do not add parent attach-by-port afterward
+      try {
+        if (typeof baseLaunchConfig.program !== 'string' || !baseLaunchConfig.program.length) {
+          baseLaunchConfig.program = scriptPath;
+        }
+
+        if (
+          (!Array.isArray(baseLaunchConfig.args) || baseLaunchConfig.args.length === 0) &&
+          Array.isArray(scriptArgs) &&
+          scriptArgs.length > 0
+        ) {
+          baseLaunchConfig.args = scriptArgs;
+        }
+
+        if (typeof baseLaunchConfig.cwd !== 'string' || !baseLaunchConfig.cwd.length) {
+          baseLaunchConfig.cwd = scriptPath ? path.dirname(scriptPath) : process.cwd();
+        }
+
+        if (typeof baseLaunchConfig.stopOnEntry !== 'boolean' && typeof a?.stopOnEntry === 'boolean') {
+          baseLaunchConfig.stopOnEntry = a.stopOnEntry;
+        }
+        // Always a boolean on the wire: the child adoption reads an absent
+        // stopOnEntry as "wait for an entry stop, then force one" (issue
+        // #704), the opposite of what every session-layer reader assumes.
+        if (typeof baseLaunchConfig.stopOnEntry !== 'boolean') {
+          baseLaunchConfig.stopOnEntry = false;
+        }
+
+        if (typeof baseLaunchConfig.justMyCode !== 'boolean' && typeof a?.justMyCode === 'boolean') {
+          baseLaunchConfig.justMyCode = a.justMyCode;
+        }
+
+        if (typeof baseLaunchConfig.console !== 'string') {
+          baseLaunchConfig.console = 'internalConsole';
+        }
+
+        if (typeof baseLaunchConfig.outputCapture !== 'string') {
+          baseLaunchConfig.outputCapture = 'std';
+        }
+
+        // Same derivation as the launch transform (an explicit boolean wins,
+        // else it follows justMyCode) so an embedder bypassing the transform
+        // does not get the stepper back on with justMyCode: false (issue #678).
+        baseLaunchConfig.smartStep = resolveJsLaunchSmartStep(baseLaunchConfig);
+
+        // Workspace root and source-map pause on the same rules as the launch
+        // transform, for embedders that bypass it (issue #699): the root is
+        // what lets js-debug's breakpoint predictor pre-bind source-mapped
+        // breakpoints before the program runs; the pause stays on only for a
+        // transpiled TypeScript program.
+        // Sourced like stopOnEntry above: launchConfig, then dapLaunchArgs,
+        // then the derivation.
+        const launchArgsRecord = (a ?? {}) as Record<string, unknown>;
+        if (typeof baseLaunchConfig.__workspaceFolder !== 'string' || !baseLaunchConfig.__workspaceFolder.length) {
+          const explicitRoot = launchArgsRecord.__workspaceFolder;
+          baseLaunchConfig.__workspaceFolder =
+            typeof explicitRoot === 'string' && explicitRoot.length > 0
+              ? explicitRoot
+              : resolveJsLaunchWorkspaceFolder(baseLaunchConfig);
+        }
+        if (typeof baseLaunchConfig.pauseForSourceMap !== 'boolean') {
+          baseLaunchConfig.pauseForSourceMap =
+            typeof launchArgsRecord.pauseForSourceMap === 'boolean'
+              ? launchArgsRecord.pauseForSourceMap
+              : resolveJsPauseForSourceMap(baseLaunchConfig);
+        }
+
+        if (typeof baseLaunchConfig.runtimeExecutable !== 'string') {
+          // Use process.execPath to ensure we use the same Node.js that's running this process
+          baseLaunchConfig.runtimeExecutable = process.execPath;
+        }
+
+        const finalLaunchArgs: Record<string, unknown> = {
+          ...baseLaunchConfig,
+          type,
+          request: req
+        };
+
+        if (typeof baseLaunchConfig.sourceMaps === 'boolean') {
+          finalLaunchArgs.sourceMaps = baseLaunchConfig.sourceMaps;
+        } else if (typeof a.sourceMaps === 'boolean') {
+          finalLaunchArgs.sourceMaps = a.sourceMaps;
+        }
+
+        const resolvedOutFiles =
+          Array.isArray(baseLaunchConfig.outFiles) && baseLaunchConfig.outFiles.length > 0
+            ? baseLaunchConfig.outFiles
+            : Array.isArray(a.outFiles) && a.outFiles.length > 0
+            ? a.outFiles
+            : undefined;
+        if (resolvedOutFiles) {
+          finalLaunchArgs.outFiles = resolvedOutFiles;
+        }
+
+        const resolvedSourcemapLocations =
+          Array.isArray((baseLaunchConfig as Record<string, unknown>).resolveSourceMapLocations)
+            ? (baseLaunchConfig as Record<string, unknown>).resolveSourceMapLocations
+            : Array.isArray((a as Record<string, unknown>).resolveSourceMapLocations)
+            ? (a as Record<string, unknown>).resolveSourceMapLocations
+            : undefined;
+        if (resolvedSourcemapLocations) {
+          finalLaunchArgs.resolveSourceMapLocations = resolvedSourcemapLocations;
+        }
+
+        console.info(
+          `[JsDebugAdapterPolicy] [JS] Sending 'launch' for program='${finalLaunchArgs.program}' cwd='${finalLaunchArgs.cwd}'`
+        );
+        await pm.sendDapRequest('launch', finalLaunchArgs);
+      } catch (e) {
+        // Rethrown like the attach refusal (issue #896); the launcher logs
+        // it and the launch readiness wait still decides the outcome.
+        console.warn(`[JsDebugAdapterPolicy] [JS] 'launch' failed: ${e instanceof Error ? e.message : String(e)}`);
+        throw e;
+      }
+    }
+
+    // Multi-session architecture handles everything from here
+    console.info(`[JsDebugAdapterPolicy] [JS] Handshake complete. Multi-session architecture now handling debugging.`);
+  },
+
+  /**
+   * JavaScript adapter requires command queueing for proper initialization
+   */
+  requiresCommandQueueing: (): boolean => true,
+
+  /**
+   * Determine if a command should be queued based on JavaScript-specific state
+   */
+  shouldQueueCommand: (command: string, state: AdapterSpecificState): CommandHandling => {
+    const jsState = state as JsAdapterState;
+    
+    // Don't queue 'initialize' - it goes through immediately
+    if (command === 'initialize') {
+      return { shouldQueue: false, shouldDefer: false };
+    }
+    
+    // Gate all non-'initialize' requests until initialize response is received
+    if (!jsState.initializeResponded) {
+      return {
+        shouldQueue: true,
+        shouldDefer: false,
+        reason: `Queuing '${command}' until 'initialize' response (JS adapter)`
+      };
+    }
+    
+    // Configuration commands must wait for 'initialized' event
+    const configCommands = new Set([
+      'setBreakpoints',
+      'setFunctionBreakpoints', 
+      'setExceptionBreakpoints',
+      'setDataBreakpoints',
+      'setInstructionBreakpoints',
+      'configurationDone'
+    ]);
+    
+    if (!jsState.initialized && configCommands.has(command)) {
+      return {
+        shouldQueue: true,
+        shouldDefer: false,
+        reason: `Queuing '${command}' until 'initialized' event (JS adapter)`
+      };
+    }
+    
+    // If launch/attach arrives before configurationDone, ensure strict ordering
+    if ((command === 'launch' || command === 'attach') && !jsState.configurationDone) {
+      return {
+        shouldQueue: true,
+        shouldDefer: true, // Signal that we need to inject configurationDone first
+        reason: `JS: deferring '${command}' until configurationDone (strict order)`
+      };
+    }
+    
+    // Command can proceed normally
+    return { shouldQueue: false, shouldDefer: false };
+  },
+
+  /**
+   * Process queued commands in JavaScript-specific order
+   */
+  processQueuedCommands: <T extends QueuedDapCommand>(
+    typedCommands: T[]
+  ): T[] => {
+    // Group commands by type for proper ordering
+    const isConfig = (cmd: string) => [
+      'setBreakpoints',
+      'setFunctionBreakpoints',
+      'setExceptionBreakpoints',
+      'setDataBreakpoints',
+      'setInstructionBreakpoints'
+    ].includes(cmd);
+    
+    const configs = typedCommands.filter(p => isConfig(p.dapCommand));
+    const configDone = typedCommands.filter(p => p.dapCommand === 'configurationDone');
+    const launches = typedCommands.filter(p => p.dapCommand === 'launch' || p.dapCommand === 'attach');
+    const others = typedCommands.filter(p => 
+      !isConfig(p.dapCommand) && 
+      p.dapCommand !== 'configurationDone' && 
+      p.dapCommand !== 'launch' && 
+      p.dapCommand !== 'attach'
+    );
+    
+    // JS (js-debug) strict order: configs -> configurationDone -> starts -> others
+    return [...configs, ...configDone, ...launches, ...others];
+  },
+
+  /**
+   * Create initial state for JavaScript adapter
+   */
+  createInitialState: (): AdapterSpecificState => {
+    return {
+      initialized: false,
+      configurationDone: false,
+      initializeResponded: false,
+      startSent: false,
+      pendingCommands: []
+    } as JsAdapterState;
+  },
+
+  /**
+   * Update state when a command is sent
+   */
+  updateStateOnCommand: (command: string, _args: unknown, state: AdapterSpecificState): void => {
+    const jsState = state as JsAdapterState;
+    
+    if (command === 'configurationDone') {
+      jsState.configurationDone = true;
+    } else if (command === 'launch' || command === 'attach') {
+      jsState.startSent = true;
+    }
+  },
+
+  /**
+   * Update state when a command response is received
+   */
+  updateStateOnResponse: (command: string, _response: unknown, state: AdapterSpecificState): void => {
+    const jsState = state as JsAdapterState;
+    if (command === 'initialize') {
+      jsState.initializeResponded = true;
+    }
+  },
+
+  /**
+   * Update state when an event is received
+   */
+  updateStateOnEvent: (event: string, _body: unknown, state: AdapterSpecificState): void => {
+    const jsState = state as JsAdapterState;
+    
+    if (event === 'initialized') {
+      jsState.initialized = true;
+    }
+  },
+
+  /**
+   * Check if JavaScript adapter is initialized
+   */
+  isInitialized: (state: AdapterSpecificState): boolean => {
+    const jsState = state as JsAdapterState;
+    return jsState.initialized && jsState.initializeResponded;
+  },
+
+  /**
+   * Check if JavaScript adapter is connected
+   */
+  isConnected: (state: AdapterSpecificState): boolean => {
+    // For JavaScript, we consider it connected once initialize response is received
+    const jsState = state as JsAdapterState;
+    return jsState.initializeResponded;
+  },
+
+  /**
+   * Check if this policy applies to the given adapter command
+   */
+  matchesAdapter: (adapterCommand: { command: string; args: string[] }): boolean => {
+    // Check for js-debug or pwa-node in command or arguments
+    const commandStr = adapterCommand.command.toLowerCase();
+    const argsStr = adapterCommand.args.join(' ').toLowerCase();
+    
+    return commandStr.includes('js-debug') || 
+           commandStr.includes('pwa-node') ||
+           commandStr.includes('vsdebugserver') ||
+           argsStr.includes('js-debug') ||
+           argsStr.includes('pwa-node') ||
+           argsStr.includes('vsdebugserver');
+  },
+
+  /**
+   * JavaScript adapter has special initialization requirements
+   */
+  getInitializationBehavior: () => {
+    return {
+      deferConfigDone: true,          // Inject configurationDone before launch/attach when ordering requires it
+      addRuntimeExecutable: true,      // Needs to add runtimeExecutable to launch args
+      trackInitializeResponse: true,   // Must track initialize response separately
+      requiresInitialStop: true,       // Must ensure initial stop after launch/attach
+      defaultStopOnEntry: false,       // Default to false unless user explicitly requests
+      // js-debug filter IDs ('all' = caught + uncaught)
+      exceptionFilters: {
+        uncaught: ['uncaught'],
+        all: ['all']
+      },
+      // Launch sessions pause at uncaught exceptions by default (issue #244)
+      defaultExceptionBreakMode: 'uncaught'
+    };
+  },
+
+  /**
+   * JavaScript-specific DAP client behaviors
+   */
+  getDapClientBehavior: (): DapClientBehavior => {
+    return {
+      // Handle reverse startDebugging requests
+      handleReverseRequest: async (request: DebugProtocol.Request, context: DapClientContext): Promise<ReverseRequestResult> => {
+        if (request.command === 'startDebugging') {
+          // The session tree (issue #1082): the first pending target on this
+          // connection is the program itself, adopted in-session below; every
+          // later one is a child the debuggee started, handed to the worker
+          // unanswered (the held report is acked there, and resolved only by
+          // a connection attaching with its id, or a throwaway one releasing it).
+          if (context.adoptedTargets.size > 0) {
+            const childReport = jsDebugChildAdoption.readChildReport(request);
+            if (childReport && !context.adoptedTargets.has(childReport.targetId)) {
+              return { handled: true, childReport };
+            }
+          }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const args: any = (request as any)?.arguments ?? {};
+          const cfg = args?.configuration ?? {};
+          const pendingId: string | undefined = cfg?.__pendingTargetId;
+
+          // Send acknowledgment. The early success ack is correct: js-debug
+          // ignores the response body — a pending target is resolved only by
+          // a fresh DAP connection attaching with its __pendingTargetId.
+          context.sendResponse(request, {});
+
+          if (pendingId && typeof pendingId === 'string') {
+            // Bookkeeping invariant (issue #249): the id is added here, before
+            // the adoption runs; MinimalDapClient removes it again when the
+            // adoption throws, so a re-sent startDebugging can retry. An
+            // adopted target stays recorded — it is settled server-side.
+            if (!context.adoptedTargets.has(pendingId)) {
+              context.adoptedTargets.add(pendingId);
+              return {
+                handled: true,
+                createChildSession: true,
+                childConfig: {
+                  host: cfg.host || 'localhost',
+                  port: cfg.port || 9229,
+                  pendingId,
+                  parentConfig: cfg
+                }
+              };
+            }
+          }
+          return { handled: true }; // Handled but no child session
+        } else if (request.command === 'runInTerminal') {
+          // Acknowledge without spawning terminal
+          context.sendResponse(request, {});
+          return { handled: true };
+        }
+        return { handled: false };
+      },
+      
+      // Commands that should be routed to child sessions
+      childRoutedCommands: new Set([
+        'threads',
+        'pause',
+        'continue',
+        'next',
+        'stepIn',
+        'stepOut',
+        'stackTrace',
+        'scopes',
+        'variables',
+        'evaluate',
+        'exceptionInfo',
+        'loadedSources',
+        'source',
+        'setVariable',
+        'setExpression',
+        'restart',
+        'disconnect',
+        'terminate',
+        'goto',
+        'restartFrame',
+        'stepBack',
+        'reverseContinue'
+      ]),
+      
+      // JavaScript-specific child session behaviors
+      mirrorBreakpointsToChild: true,
+      pauseAfterChildAttach: true,
+      // js-debug's only word on a condition (or compiled logpoint) that
+      // does not parse is a stderr output line during setBreakpoints or
+      // the child attach; the proxy correlates it (issue #853)
+      reportsBreakpointSyntaxErrorsOnStderr: true,
+      stackTraceRequiresChild: true,
+
+      // Commands that must not fall back to the parent when no child session
+      // is available: js-debug's root session acks 'pause' as a silent no-op,
+      // so a fallen-through pause "succeeds" but no stop can ever land
+      // (issue #513). 'threads' is deliberately NOT listed — the parent's
+      // empty threads response is load-bearing for the attach verify loop.
+      childRequiredCommands: new Set(['pause']),
+      
+      // Normalize adapter ID for initialize
+      normalizeAdapterId: (requestedId: string): string => {
+        if (requestedId.toLowerCase() === 'javascript') {
+          return 'pwa-node';
+        }
+        return requestedId;
+      },
+      
+      // Timeouts
+      childInitTimeout: 12000,
+      suppressPostAttachConfigDone: false  // Child session needs configurationDone
+    };
+  },
+
+  /**
+   * Get the configuration for spawning the JavaScript debug adapter (js-debug/pwa-node)
+   */
+  getAdapterSpawnConfig: (payload) => {
+    // JavaScript should always have a custom adapter command
+    // since js-debug/pwa-node isn't a simple executable
+    if (payload.adapterCommand) {
+      return {
+        mode: 'spawn',
+        command: payload.adapterCommand.command,
+        args: payload.adapterCommand.args,
+        host: payload.adapterHost,
+        port: payload.adapterPort,
+        logDir: payload.logDir,
+        env: payload.adapterCommand.env
+      };
+    }
+
+    // Fallback - this shouldn't normally happen for JavaScript
+    // as js-debug requires specific setup
+    console.warn('[JsDebugAdapterPolicy] No adapter command provided - JavaScript debugging may not work correctly');
+    return undefined;
+  }
+} satisfies AdapterPolicy;

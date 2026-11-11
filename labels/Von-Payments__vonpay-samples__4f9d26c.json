@@ -1,0 +1,141 @@
+{
+  "diff": "Von-Payments__vonpay-samples__4f9d26c",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "funnel-one-click-node/server/app.ts",
+      "line": 49,
+      "id": "77586f47ca25225e",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: MAIN_OFFER is not imported anywhere: the only importer of ./app.js, server/index.ts:27, takes DEFAULT_TERMS, createApp, termsMentionLaterCharges; the test named in the header comment is not in this repo (git grep finds no other hit) pass two: git grep MAIN_OFFER at the commit finds no use outside this file; the only import of this file is funnel-one-click-node/server/index.ts:27 `import { DEFAULT_TERMS, createApp, termsMentionLaterCharges } from \"./app.js\";`. The test the header comment names (tests/scripts/samples-funnel-one-click.test.ts) is not in this repository."
+    },
+    {
+      "rule": "dead-export",
+      "file": "funnel-one-click-node/server/app.ts",
+      "line": 50,
+      "id": "80a6c0688bba7b72",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: ADD_ON_OFFER is not imported anywhere: the only importer of ./app.js, server/index.ts:27, takes DEFAULT_TERMS, createApp, termsMentionLaterCharges; the test named in the header comment is not in this repo (git grep finds no other hit) pass two: git grep ADD_ON_OFFER at the commit finds no use outside this file; the only import of this file is funnel-one-click-node/server/index.ts:27 `import { DEFAULT_TERMS, createApp, termsMentionLaterCharges } from \"./app.js\";`. The test the header comment names (tests/scripts/samples-funnel-one-click.test.ts) is not in this repository."
+    },
+    {
+      "rule": "dead-export",
+      "file": "funnel-one-click-node/server/app.ts",
+      "line": 51,
+      "id": "72d2ac9a3aee46e2",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: CURRENCY is not imported anywhere: the only importer of ./app.js, server/index.ts:27, takes DEFAULT_TERMS, createApp, termsMentionLaterCharges; the test named in the header comment is not in this repo (git grep finds no other hit) pass two: git grep CURRENCY at the commit finds no use outside this file (the other hits are separate non-exported constants: checkout-embedded/app.ts:29 `const CURRENCY = \"USD\";` and payment-intents-3ds/server.ts:142 `const CURRENCY = \"USD\";`); the only import of this file is funnel-one-click-node/server/index.ts:27 `import { DEFAULT_TERMS, createApp, termsMentionLaterCharges } from \"./app.js\";`. The test the header comment names (tests/scripts/samples-funnel-one-click.test.ts) is not in this repository."
+    },
+    {
+      "rule": "dead-export",
+      "file": "funnel-one-click-node/server/app.ts",
+      "line": 58,
+      "id": "069101fc4915ac48",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: formatPrice is not imported anywhere: the only importer of ./app.js, server/index.ts:27, takes DEFAULT_TERMS, createApp, termsMentionLaterCharges; the test named in the header comment is not in this repo (git grep finds no other hit) pass two: git grep formatPrice at the commit finds no use outside this file; the only import of this file is funnel-one-click-node/server/index.ts:27 `import { DEFAULT_TERMS, createApp, termsMentionLaterCharges } from \"./app.js\";`. The test the header comment names (tests/scripts/samples-funnel-one-click.test.ts) is not in this repository."
+    },
+    {
+      "rule": "dead-export",
+      "file": "funnel-one-click-node/server/app.ts",
+      "line": 76,
+      "id": "34c47bf8d61012af",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: termsFor is not imported anywhere: the only importer of ./app.js, server/index.ts:27, takes DEFAULT_TERMS, createApp, termsMentionLaterCharges; the test named in the header comment is not in this repo (git grep finds no other hit) pass two: git grep termsFor at the commit finds no use outside this file; the only import of this file is funnel-one-click-node/server/index.ts:27 `import { DEFAULT_TERMS, createApp, termsMentionLaterCharges } from \"./app.js\";`. The test the header comment names (tests/scripts/samples-funnel-one-click.test.ts) is not in this repository."
+    },
+    {
+      "rule": "dead-export",
+      "file": "funnel-one-click-node/server/app.ts",
+      "line": 94,
+      "id": "c67801e505908ed8",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: termsVersion is not imported anywhere: the only importer of ./app.js, server/index.ts:27, takes DEFAULT_TERMS, createApp, termsMentionLaterCharges; the test named in the header comment is not in this repo (git grep finds no other hit) pass two: git grep termsVersion at the commit finds no use outside this file; the only import of this file is funnel-one-click-node/server/index.ts:27 `import { DEFAULT_TERMS, createApp, termsMentionLaterCharges } from \"./app.js\";`. The test the header comment names (tests/scripts/samples-funnel-one-click.test.ts) is not in this repository."
+    },
+    {
+      "rule": "dead-export",
+      "file": "funnel-one-click-node/server/app.ts",
+      "line": 99,
+      "id": "6209a89eee79d888",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: ConsentRecord is not imported anywhere: the only importer of ./app.js, server/index.ts:27, takes DEFAULT_TERMS, createApp, termsMentionLaterCharges; the test named in the header comment is not in this repo (git grep finds no other hit) pass two: git grep ConsentRecord at the commit finds no use outside this file; the only import of this file is funnel-one-click-node/server/index.ts:27 `import { DEFAULT_TERMS, createApp, termsMentionLaterCharges } from \"./app.js\";`. The test the header comment names (tests/scripts/samples-funnel-one-click.test.ts) is not in this repository."
+    },
+    {
+      "rule": "dead-export",
+      "file": "funnel-one-click-node/server/app.ts",
+      "line": 113,
+      "id": "baa3fe758b23e08f",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: CheckoutClient is not imported anywhere: the only importer of ./app.js, server/index.ts:27, takes DEFAULT_TERMS, createApp, termsMentionLaterCharges; the test named in the header comment is not in this repo (git grep finds no other hit) pass two: git grep CheckoutClient at the commit finds no use outside this file (checkout-embedded/app.ts:32 declares its own `export type CheckoutClient`, it does not import this one); the only import of this file is funnel-one-click-node/server/index.ts:27 `import { DEFAULT_TERMS, createApp, termsMentionLaterCharges } from \"./app.js\";`. The test the header comment names (tests/scripts/samples-funnel-one-click.test.ts) is not in this repository."
+    },
+    {
+      "rule": "dead-export",
+      "file": "funnel-one-click-node/server/app.ts",
+      "line": 115,
+      "id": "5a769ad5bb33e9be",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: AppDeps is not imported anywhere: the only importer of ./app.js, server/index.ts:27, takes DEFAULT_TERMS, createApp, termsMentionLaterCharges; the test named in the header comment is not in this repo (git grep finds no other hit) pass two: git grep AppDeps at the commit finds no use outside this file (checkout-embedded/app.ts:34 declares its own `export interface AppDeps`, it does not import this one); the only import of this file is funnel-one-click-node/server/index.ts:27 `import { DEFAULT_TERMS, createApp, termsMentionLaterCharges } from \"./app.js\";`. The test the header comment names (tests/scripts/samples-funnel-one-click.test.ts) is not in this repository."
+    },
+    {
+      "rule": "dead-export",
+      "file": "funnel-one-click-node/server/app.ts",
+      "line": 215,
+      "id": "53fc6405cced1112",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: outcomeForIntent is not imported anywhere: the only importer of ./app.js, server/index.ts:27, takes DEFAULT_TERMS, createApp, termsMentionLaterCharges; the test named in the header comment is not in this repo (git grep finds no other hit) pass two: git grep outcomeForIntent at the commit finds no use outside this file (checkout-embedded/app.ts:85 declares its own local `function outcomeForIntent`); the only import of this file is funnel-one-click-node/server/index.ts:27 `import { DEFAULT_TERMS, createApp, termsMentionLaterCharges } from \"./app.js\";`. The test the header comment names (tests/scripts/samples-funnel-one-click.test.ts) is not in this repository."
+    },
+    {
+      "rule": "dead-file",
+      "file": "funnel-one-click-node/public/funnel.js",
+      "line": 1,
+      "id": "d371f84fa941006b",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: browser entry point loaded by public/index.html:68 <script src=\"/funnel.js\">, served by express.static in server/index.ts:81 pass two: Loaded by the page: funnel-one-click-node/public/index.html:68 `<script src=\"/funnel.js\"></script>`."
+    },
+    {
+      "rule": "dead-file",
+      "file": "funnel-one-click-node/server/index.ts",
+      "line": 1,
+      "id": "5ffbb0725c63e76a",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: entry point: funnel-one-click-node/package.json scripts \"dev\": \"tsx --env-file=./.env server/index.ts\" and \"start\": \"tsx server/index.ts\" pass two: Entry point: funnel-one-click-node/package.json scripts `\"dev\": \"tsx --env-file=./.env server/index.ts\"` and `\"start\": \"tsx server/index.ts\"`."
+    },
+    {
+      "rule": "leftover-debug",
+      "file": "funnel-one-click-node/server/app.ts",
+      "line": 160,
+      "id": "6a77967ee728ca0a",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: console.log at line 160 is the body of logConsentRecord, the documented default persistConsentRecord hook (line 157 \"The default hook\"), with an eslint-disable line; deliberate logging, not a debug print pass two: The intended output of the default consent hook, not a stray debug print: app.ts:158-160 `function logConsentRecord(record: ConsentRecord): void {`, `// eslint-disable-next-line no-console`, `console.log(\"[funnel-one-click] consent record (replace persistConsentRecord with a database write)\", {`; it is wired as the default at app.ts:305 `persistConsentRecord = logConsentRecord,` and AppDeps documents it at app.ts:135 `record, no charge). The default only logs, which is not a record.`"
+    },
+    {
+      "rule": "swallowed-error",
+      "file": "funnel-one-click-node/public/funnel.js",
+      "line": 210,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: funnel.js is new in this diff (show --stat: 223 lines added, no parent copy) and line 210 `(async () => {` opens an async IIFE whose promise is discarded at line 223 `})();` with no await, handler, binding or void; `wireAddOn();` at line 211 sits outside the try at line 212, so its throw would reject unhandled. pass two: Floating promise in a new file: the async IIFE `(async () => {` ... `})();` (lines 210-223) returns a promise that is discarded with no await, no .then/.catch/.finally, no binding and no void; `wireAddOn();` at line 211 runs before the try that opens at line 212, so a throw there rejects with nothing handling it."
+    }
+  ]
+}

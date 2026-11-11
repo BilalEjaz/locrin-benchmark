@@ -1,0 +1,51 @@
+{
+  "diff": "Trias1__Linkhub__91742aa",
+  "locrin": "v0.6.1",
+  "pass1": {
+    "by": "opus",
+    "date": "2026-11-11"
+  },
+  "pass2": {
+    "by": "fable",
+    "date": "2026-11-11"
+  },
+  "pass2_by": "fable",
+  "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/lib/products.ts",
+      "line": 20,
+      "id": "2e0ac8d9be3df590",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: products.ts:20 'export function productStatus'; its only importer at the parent, src/app/[slug]/page.tsx:4 'import { fetchProducts, productStatus }', now imports liveProducts instead; git grep at the commit finds productStatus only in products.ts (lines 20, 27) pass two: `export function productStatus(` lost its last importer in this change: the parent's src/app/[slug]/page.tsx:4 had `import { fetchProducts, productStatus } from \"@/lib/products\"`, the commit's has `import { fetchProducts, liveProducts }`, and git grep at the commit finds productStatus only in products.ts (lines 20 and 27)."
+    },
+    {
+      "rule": "supabase-service-role-in-client",
+      "file": "src/app/dashboard/actions.ts",
+      "line": 430,
+      "id": "f1d1776791b575e8",
+      "pass1": "false-positive",
+      "pass2": "false-positive",
+      "note": "pass one: actions.ts:430 is the error string \"SUPABASE_SERVICE_ROLE_KEY is not set on the server\" in a file whose line 1 is '\"use server\";' (server actions); no service-role key reaches client code pass two: The file's first line is `\"use server\";`, so it runs on the server, and line 430 only names the variable in an error string: `if (!admin) accountError(\"SUPABASE_SERVICE_ROLE_KEY is not set on the server\");`."
+    },
+    {
+      "rule": "dead-file",
+      "file": "src/components/language-switcher.tsx",
+      "line": 1,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: the diff removed sidebar.tsx's 'import { LanguageSwitcher } from \"@/components/language-switcher\"', its only importer at the parent; git grep at the commit finds no 'language-switcher' import anywhere and it is not a route or config pass two: The change removed the file's last importer, `import { LanguageSwitcher } from \"@/components/language-switcher\";` (parent src/app/dashboard/sidebar.tsx:8); git grep for `language-switcher` at the commit finds no import, and the file (`\"use client\";` component under src/components) is no route or config."
+    },
+    {
+      "rule": "dead-export",
+      "file": "src/components/language-switcher.tsx",
+      "line": 4,
+      "id": null,
+      "pass1": "missed",
+      "pass2": "missed",
+      "note": "pass one: 'export function LanguageSwitcher()' lost its only importer (sidebar.tsx:8 at the parent) in this diff; git grep at the commit finds LanguageSwitcher only at language-switcher.tsx:4 pass two: `export function LanguageSwitcher(){` has no importer at the commit: the change deleted `import { LanguageSwitcher } from \"@/components/language-switcher\";` from src/app/dashboard/sidebar.tsx (parent line 8), and git grep for LanguageSwitcher at the commit finds only this declaration."
+    }
+  ]
+}

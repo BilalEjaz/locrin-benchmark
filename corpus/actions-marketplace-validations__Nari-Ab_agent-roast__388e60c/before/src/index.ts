@@ -1,0 +1,177 @@
+import path from "path";
+import {
+  streamGitLog,
+  parseGitLogStream,
+  streamGitDiff,
+  parseDiff,
+  resolveCommitSha,
+  findMergeBase,
+  GitResolutionError,
+} from "./git.js";
+import { MetricsCollector, auditFileDiffs, isCodeFile } from "./metrics.js";
+import {
+  formatTerminalCard,
+  formatPrTerminalCard,
+  formatGithubAnnotations,
+  formatPrMarkdownComment,
+} from "./renderer.js";
+import {
+  MetricSummary,
+  RoastOptions,
+  PrAuditOptions,
+  PrAuditResult,
+  VALID_DETECTORS,
+  DetectorType,
+} from "./types.js";
+
+export * from "./types.js";
+export * from "./detector.js";
+export * from "./git.js";
+export * from "./metrics.js";
+export * from "./renderer.js";
+export * from "./config.js";
+export * from "./init.js";
+export * from "./badge.js";
+export * from "./check.js";
+export * from "./review.js";
+export * from "./sarif.js";
+export * from "./baseline.js";
+export * from "./rules.js";
+export * from "./exceptions.js";
+
+export class InvalidDetectorError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidDetectorError";
+  }
+}
+
+export async function roastRepository(
+  options: RoastOptions = {}
+): Promise<{ summary: MetricSummary; output: string }> {
+  const cwd = path.resolve(options.cwd || process.cwd());
+  const since = options.since || "90 days ago";
+  const repoName = path.basename(cwd);
+
+  const collector = new MetricsCollector({ all: options.all, ignorePaths: options.ignorePaths, rules: options.rules, panicLoopWindowMinutes: options.panicLoopWindowMinutes });
+  const gitStream = streamGitLog(cwd, since);
+
+  await parseGitLogStream(gitStream, (commit, stats) => {
+    collector.processCommit(commit);
+    collector.recordSkipped(stats);
+  });
+
+  const summary = collector.getSummary();
+  const output = formatTerminalCard(summary, {
+    repoName,
+    verbose: options.verbose,
+  });
+
+  return { summary, output };
+}
+
+export async function auditPullRequest(
+  options: PrAuditOptions
+): Promise<PrAuditResult> {
+  const cwd = path.resolve(options.cwd || process.cwd());
+  const format = options.format || "terminal";
+  const failOn = (options.failOn || ["test-skip"]).map((s) => s.trim()).filter(Boolean);
+
+  // Validate detector names in failOn
+  for (const det of failOn) {
+    if (!VALID_DETECTORS.includes(det as DetectorType)) {
+      throw new InvalidDetectorError(
+        `Unknown detector '${det}' in --fail-on. Valid options: ${VALID_DETECTORS.join(", ")}`
+      );
+    }
+  }
+
+  if (options.staged && options.base) {
+    throw new GitResolutionError("--staged cannot be combined with --base.");
+  }
+  if (!options.staged && !options.base) {
+    throw new GitResolutionError("A base ref is required for a pull request audit.");
+  }
+
+  // 1. Resolve base and head refs to SHA safely
+  const baseSha = options.staged ? "INDEX" : resolveCommitSha(cwd, options.base!, "Base ref");
+  const headSha = options.staged ? "INDEX" : resolveCommitSha(cwd, options.head || "HEAD", "Head ref");
+
+  // 2. Find merge base
+  const mergeBaseSha = options.staged ? "INDEX" : findMergeBase(cwd, baseSha, headSha);
+
+  // 3. Diff from mergeBaseSha to headSha
+  if (!["terminal", "json", "github", "markdown"].includes(format)) throw new InvalidDetectorError("Unsupported legacy audit output format.");
+  const diffStream = streamGitDiff(cwd, mergeBaseSha, headSha, options.staged);
+  const chunks: Buffer[] = [];
+  let bytes = 0;
+  await new Promise<void>((resolve, reject) => {
+    diffStream.on("data", (chunk: Buffer) => {
+      bytes += chunk.length;
+      if (bytes > 50 * 1024 * 1024) {
+        diffStream.destroy(new GitResolutionError("Legacy diff exceeds the 50 MiB limit; use a smaller context review."));
+      } else chunks.push(chunk);
+    });
+    diffStream.on("end", resolve);
+    diffStream.on("error", reject);
+  });
+  let rawDiff: string;
+  try { rawDiff = new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks)); }
+  catch { throw new GitResolutionError("Legacy diff contains invalid UTF-8; no complete result was produced."); }
+
+  // 4. Parse diff
+  const { files, skippedLongLines, skippedUnknownFiles } = parseDiff(rawDiff);
+
+  // 5. Audit files
+  const audit = auditFileDiffs(files, headSha, new Date().toISOString(), { ignorePaths: options.ignorePaths, rules: options.rules });
+  const infractions = audit.infractions;
+
+  const defectDensityPer100Lines = audit.linesAdded > 0
+    ? Math.round((infractions.length / audit.linesAdded) * 100 * 100) / 100
+    : 0;
+
+  const failedRules = [...new Set(
+    infractions
+      .filter((inf) => failOn.includes(inf.type))
+      .map((inf) => inf.type)
+  )];
+
+  const skippedBinaryFiles = files.filter(file => file.binary && isCodeFile(file.path, options.ignorePaths)).length;
+  const complete = skippedLongLines === 0 && skippedUnknownFiles === 0 && skippedBinaryFiles === 0;
+  const passed = complete && failedRules.length === 0;
+  const exitCode = !complete ? 2 : passed ? 0 : 1;
+
+  const result: PrAuditResult = {
+    schemaVersion: "1.0.0",
+    mode: options.staged ? "staged" : "pr",
+    baseSha,
+    headSha,
+    mergeBaseSha,
+    hasSupportedChanges: audit.hasSupportedChanges,
+    filesInspected: audit.filesInspected,
+    linesAdded: audit.linesAdded,
+    defectDensityPer100Lines,
+    infractions,
+    failedRules,
+    passed,
+    complete,
+    skippedLongLines,
+    skippedUnknownFiles,
+    skippedBinaryFiles,
+    output: "",
+    exitCode,
+  };
+
+  if (format === "json") {
+    result.output = JSON.stringify(result, null, 2);
+  } else if (format === "github") {
+    result.output = formatGithubAnnotations(result) + (complete ? "" : "\n::error::Legacy audit incomplete: long lines, binary-marked or unparsed source were skipped. Use context review.");
+  } else if (format === "markdown") {
+    result.output = formatPrMarkdownComment(result);
+  } else {
+    result.output = formatPrTerminalCard(result);
+  }
+
+  return result;
+}
+
