@@ -52,9 +52,9 @@
       "file": "src/tools/analyze-work-context.ts",
       "line": 35,
       "id": "2d92ecc6bc4d3352",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: Only the type binding A2UIMessage is unused; updateComponentsMessage, textComponent and assistPanelComponent are all used in the a2uiUpdate array, so not every binding is unused pass two: not every binding is unused: line 436 calls `updateComponentsMessage(args.surfaceId, [`, line 437 `assistPanelComponent([cardId])`, line 444 `textComponent(titleId, ...`; only `type A2UIMessage` has no use in the file"
+      "pass1": "true",
+      "pass2": "true",
+      "note": "pass one: Only the type binding A2UIMessage is unused; updateComponentsMessage, textComponent and assistPanelComponent are all used in the a2uiUpdate array, so not every binding is unused pass two: not every binding is unused: line 436 calls `updateComponentsMessage(args.surfaceId, [`, line 437 `assistPanelComponent([cardId])`, line 444 `textComponent(titleId, ...`; only `type A2UIMessage` has no use in the file settled 2026-11-12 by the maintainer, was false-positive and false-positive: both passes recorded that the binding `type A2UIMessage` is unused in the file and marked it false-positive only because the other bindings of the statement are used; the definition is per binding (LABELLING.md, unused-import)."
     },
     {
       "rule": "dead-export",

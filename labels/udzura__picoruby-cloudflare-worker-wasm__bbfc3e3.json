@@ -17,9 +17,9 @@
       "file": "templates/runtime/host-bridge.js",
       "line": 14,
       "id": "1722900f534b0a99",
-      "pass1": "true",
+      "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: HostBridgeError is exported but only constructed inside host-bridge.js itself; no file in the repository imports it, in the template or in the synced spike copy. pass two: templates/ is the shipped source copied byte-identical into spike/src by the Rakefile; HostBridgeError is the public error class of that API (thrown by decodeHostResult), not a dead symbol"
+      "note": "pass one: HostBridgeError is exported but only constructed inside host-bridge.js itself; no file in the repository imports it, in the template or in the synced spike copy. pass two: templates/ is the shipped source copied byte-identical into spike/src by the Rakefile; HostBridgeError is the public error class of that API (thrown by decodeHostResult), not a dead symbol settled 2026-11-12 by the maintainer, was true and false-positive: templates/ is the source the project copies out to its users, so the file is a public surface and an entry point (LABELLING.md, dead-export)."
     },
     {
       "rule": "dead-export",

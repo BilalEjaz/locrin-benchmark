@@ -30,13 +30,13 @@ A note is evidence, and it says where it came from. A note that asserts somethin
 - `leftover-debug`: a debug print or breakpoint left in non-script code (console.log, debugger, var_dump, dd, breakpoint(), pdb). A log statement that is the module's real logging is not true; a print in a CLI script's main path is not true.
 - `leftover-commented-code`: a comment whose content is code that was disabled, not prose describing code.
 - `leftover-agent-marker`: TODO, FIXME, XXX, HACK or an explicit agent marker left in the change. A marker in a path or file name is not true.
-- `unused-import`: an import whose every binding is unused in the file after the change.
+- `unused-import`: an import binding that is unused in the file after the change. The finding names a binding, as "What gets labelled" says, so one unused name in a statement whose other names are used is true for that name. This line used to read "an import whose every binding is unused", which contradicted that section; wave two's labellers read it both ways on the same construct.
 - `unreachable`: a statement after return, throw, break or continue in the same block, or in a branch whose condition is a literal.
-- `dead-export`: an exported symbol with no importer anywhere in the repository and not an entry point.
-- `dead-file`: a source file no other file imports and no entry point names.
+- `dead-export`: an exported symbol with no importer anywhere in the repository and not an entry point. A file a package offers as its public surface is an entry point and its exports are not true: one that package.json names under `exports`, `main` or `bin`, and a template the project copies out to the people who use it.
+- `dead-file`: a source file no other file imports and no entry point names. An entry point is something the repository's own tooling names: a package.json script or bin, a framework's convention, a config file. A script that only a README or its own header comment tells a person how to run is named by no tooling and is true.
 - `swallowed-error`: an error nothing acts on, in one of three forms: an empty catch or except block (a body holding only a comment is a documented decision and is not true, whatever the comment says); a catch that only logs, in a function whose result a caller reads, so the caller gets undefined it cannot tell from success (a log-only catch whose result no caller reads is not true, and a catch that rethrows, returns an error or fallback value, or is documented as intentional is not true); or a floating promise, a call returning a promise whose result is discarded with no await, no `.then`, `.catch` or `.finally` handler, no binding, return or argument use, and no `void` marker (a `void` call is not true).
 - `test-no-assert`: a test body with no assertion or expectation call.
-- `test-newly-skipped`: a test the change marked skip, only, todo or xfail.
+- `test-newly-skipped`: a test the change marked skip, only, todo or xfail. A skip that applies only under a condition worked out when the test runs is a guard and not a mark, and is not true: `test.skip(browserName === "webkit", "...")` inside a test or a hook, `test.skipIf(...)`, `condition ? describe : describe.skip`. The test still runs wherever the condition does not hold.
 - `secret-exposed`: a real-looking credential literal (provider-shaped key, private key block, password in an assignment). Documented placeholder formats from a provider's docs are not true.
 - `weak-crypto`: md5, sha1 for security purposes, DES, RC4, ECB, Math.random for tokens.
 - `injection-sink`: user-controlled input reaching a query, shell, eval or HTML sink without a parameterisation or escape.
@@ -50,6 +50,8 @@ Not scored: `vulnerable-dependency` (advisory feed), and `boundary-violation`, `
 ## Disputes
 
 An entry where the two passes disagree is listed by `python label.py status --labels labels` (a `disagree:` line under its file's counts) and excluded from every number until a maintainer settles it by editing both passes with a note that says why. Adjudication never edits the two passes: a maintainer who proposes a resolution records it in `note`, starting `adjudicated (`, and the entry stays a disagreement, excluded and counted in the Excluded column exactly as any unsettled dispute is, until a second-model pass or a maintainer settles it by editing both passes with a note that does not start `adjudicated (`. So that the numbers can never depend on a note being read, an entry whose note starts `adjudicated` and says `pending` is never confirmed even when both passes agree, and a run over that diff does not publish: it is listed under `labels.unconfirmed` and exits 4 until the review happens. A missed entry settled as not a miss is deleted instead, since only a missed entry may have no id. A run still publishes with disagreements, lists each one as an `excluded:` line, and the table counts them in its heading and in the Excluded column of each rule and pair.
+
+A disputed missed entry the maintainer rules is not a miss is removed from the label file: the file holds findings and misses, and the construct is neither. The commit that removes it names the entry and the definition it was ruled under.
 
 ## A new Locrin version
 
