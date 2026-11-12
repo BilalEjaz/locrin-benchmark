@@ -96,6 +96,25 @@ def test_scored_rows_need_five_confirmed_findings_and_mark_below_line():
     assert "| `dead-file@typescript` | off | 80% (below line) |" in md
 
 
+def test_a_rule_the_corpus_was_not_built_to_feed_says_why_it_has_no_score():
+    # A rule under n=5 that no wave targets gives the reason in its own row; its pairs keep the short note,
+    # and a rule that reaches n is scored like any other.
+    fs = [F("a", "secret-exposed", "x.ts", 1, ident=A)]
+    ls = labels(a=[E("secret-exposed", "x.ts", 1, "true", A)])
+    rules = {r: RuleMeta(r, True, ["typescript"]) for r in ("secret-exposed", "supabase-table-without-rls", "unreachable")}
+    per_rule, per_pair, _ = score(fs, ls, rules)
+    by = {s.key: s.reason for s in per_rule}
+    assert by["secret-exposed"] == "n<5, not scored: not targeted, a public corpus must not hold live credentials"
+    assert by["supabase-table-without-rls"] == "n<5, not scored: not targeted, reads SQL migrations and the corpus records source files only"
+    assert by["unreachable"] == "n<5, not scored: not targeted, no signal selects for it"
+    assert {s.key: s.reason for s in per_pair}["secret-exposed@typescript"] == "n<5, not scored"
+
+    fs = [F("a", "unreachable", f"f{i}.ts", 1) for i in range(5)]
+    ls = labels(a=[E("unreachable", f"f{i}.ts", 1, "true") for i in range(5)])
+    per_rule, _, _ = score(fs, ls, rules)
+    assert {s.key: s for s in per_rule}["unreachable"].reason == ""
+
+
 def test_secret_exposed_ships_locked():
     md = render_markdown([Score("secret-exposed", 1, 0, 0, 1.0, 1.0, False, "n<5, not scored")], [], "v0.5.0", 1, 0,
                          rules={"secret-exposed": RuleMeta("secret-exposed", True, ["typescript"])})
@@ -180,7 +199,7 @@ def test_fixture_labels_produce_the_truthful_numbers():
     md = render_markdown(per_rule, per_pair, "v0.5.0", corpus_size=10, unlabelled=0, rules=rules)
     assert md.startswith("Locrin v0.5.0, 10 diffs. Left out of the numbers: 0 unlabelled, 0 without an agreed and confirmed label, 0 not applicable, 0 pre-existing and 0 duplicate. 0 of 21 rules and 0 of 9 pairs reached n=5 and are scored.\n")
     assert "| `leftover-debug` | on | 75% | 100% | 3 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |" in md
-    assert "| `unreachable` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |" in md
+    assert "| `unreachable` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | n<5, not scored: not targeted, no signal selects for it |" in md
     assert "| `dead-file` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |" in md
     assert "| `vulnerable-dependency` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | not benchmarked: advisory feed changes daily |" in md
     assert "| `leftover-debug@typescript` | on | 50% | 100% | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |" in md
@@ -242,10 +261,11 @@ def test_the_n_gate_counts_confirmed_findings_not_missed_entries():
     per_rule, per_pair, _ = score(fs, ls, RULES)
     row = {s.key: s for s in per_rule}["unreachable"]
     assert (row.true, row.false_positive, row.missed) == (0, 1, 4)
-    assert row.scored is False and row.reason == "n<5, not scored"
-    assert {s.key: s for s in per_pair}["unreachable@typescript"].scored is False
+    assert row.scored is False and row.reason == "n<5, not scored: not targeted, no signal selects for it"
+    pair = {s.key: s for s in per_pair}["unreachable@typescript"]
+    assert pair.scored is False and pair.reason == "n<5, not scored"
     md = render_markdown(per_rule, per_pair, "v0.5.0", 1, 0, rules=RULES)
-    assert "| `unreachable` | on | 0% | 0% | 0 | 1 | 4 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |" in md
+    assert "| `unreachable` | on | 0% | 0% | 0 | 1 | 4 | 0 | 0 | 0 | 0 | 0 | n<5, not scored: not targeted, no signal selects for it |" in md
     assert "below line" not in md
 
 

@@ -24,7 +24,7 @@ The table always says how many diffs ran. Run the tests with `python -m pytest -
 
 ## Results
 
-A rule or a language pair is scored only once five confirmed labelled findings back it, so read the table against how many reached that n: the table heading says how many of the rules and how many of the pairs did, and every row that did not reads `n<5, not scored` in its Note. In a wave of this size that is most rows, and the headline rests on the handful of rules that did reach n, so the corpus target for wave two is set by the rules still under it rather than by a number of diffs.
+A rule or a language pair is scored only once five confirmed labelled findings back it, so read the table against how many reached that n: the table heading says how many of the rules and how many of the pairs did, and every row that did not reads `n<5, not scored` in its Note. Where no wave of the corpus was built to feed a rule, its row adds why: `secret-exposed` (a public corpus must not hold live credentials), `supabase-table-without-rls` (it reads SQL migrations, and the corpus records source files only) and `unreachable` (no signal selects for it). In a wave of this size that is most rows, and the headline rests on the handful of rules that did reach n, so the corpus target for wave two is set by the rules still under it rather than by a number of diffs.
 
 <!-- results:start -->
 Locrin v0.6.1, 302 of 302 diffs ran. Left out of the numbers: 0 unlabelled, 8 without an agreed and confirmed label, 10 not applicable, 2991 pre-existing and 0 duplicate. 11 of 21 rules and 13 of 41 pairs reached n=5 and are scored.
