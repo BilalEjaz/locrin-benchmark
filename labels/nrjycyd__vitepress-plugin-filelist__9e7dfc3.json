@@ -52,9 +52,9 @@
       "file": "e2e/filelist.spec.ts",
       "line": 184,
       "id": "e2726e4513202883",
-      "pass1": "true",
+      "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: line 184 'test.skip(!streams(info), 'Safari cannot stream to disk')' marks the new test skipped on the webkit project pass two: `test.skip(!streams(info), 'Safari cannot stream to disk')` is a conditional guard inside a test this change adds, not a test marked skip: line 49 `const streams = (info: TestInfo) => info.project.name !== 'webkit'`, so the test runs in the `chromium` and `mobile` projects (playwright.config.ts:21 and 23) and is skipped only in `webkit`."
+      "note": "pass one: line 184 'test.skip(!streams(info), 'Safari cannot stream to disk')' marks the new test skipped on the webkit project pass two: `test.skip(!streams(info), 'Safari cannot stream to disk')` is a conditional guard inside a test this change adds, not a test marked skip: line 49 `const streams = (info: TestInfo) => info.project.name !== 'webkit'`, so the test runs in the `chromium` and `mobile` projects (playwright.config.ts:21 and 23) and is skipped only in `webkit`. settled 2026-11-12 by the maintainer, was true and false-positive: a skip that applies only under a condition worked out at run time is a guard, not a mark (LABELLING.md, test-newly-skipped)."
     }
   ]
 }

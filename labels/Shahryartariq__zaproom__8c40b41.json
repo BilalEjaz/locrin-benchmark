@@ -25,9 +25,9 @@
       "file": "tests/e2e/screenshots.spec.ts",
       "line": 7,
       "id": "486dd8d7988b8ae8",
-      "pass1": "true",
+      "pass1": "false-positive",
       "pass2": "false-positive",
-      "note": "pass one: new file screenshots.spec.ts:7 'test.skip(process.env.SCREENSHOTS !== \"1\", \"Only when SCREENSHOTS=1\")' marks the file's 'README screenshots' test skip (conditionally, unless SCREENSHOTS=1) pass two: Line 7 is `test.skip(process.env.SCREENSHOTS !== \"1\", \"Only when SCREENSHOTS=1\");`, a conditional environment gate in a file the change added, not a test marked skip: the test at line 34 (`test(\"README screenshots\", ...`) runs whenever SCREENSHOTS=1, as the comment at lines 4-5 says the CI calls job sets."
+      "note": "pass one: new file screenshots.spec.ts:7 'test.skip(process.env.SCREENSHOTS !== \"1\", \"Only when SCREENSHOTS=1\")' marks the file's 'README screenshots' test skip (conditionally, unless SCREENSHOTS=1) pass two: Line 7 is `test.skip(process.env.SCREENSHOTS !== \"1\", \"Only when SCREENSHOTS=1\");`, a conditional environment gate in a file the change added, not a test marked skip: the test at line 34 (`test(\"README screenshots\", ...`) runs whenever SCREENSHOTS=1, as the comment at lines 4-5 says the CI calls job sets. settled 2026-11-12 by the maintainer, was true and false-positive: a skip that applies only under a condition worked out at run time is a guard, not a mark (LABELLING.md, test-newly-skipped)."
     }
   ]
 }

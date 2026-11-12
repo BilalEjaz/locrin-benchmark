@@ -16,9 +16,9 @@
       "file": "tools/chick-scan-measure.ts",
       "line": 1,
       "id": "d7f980a3bedaa199",
-      "pass1": "false-positive",
+      "pass1": "true",
       "pass2": "true",
-      "note": "pass one: standalone CLI script, not a module: line 4 `// Usage: bun tools/chick-scan-measure.ts <path to the parent's .jsonl>`, and tools/README.md at the commit documents the run at line 37 `bun tools/chick-scan-measure.ts ~/.claude/projects/...` pass two: no importer and no entry point names it: git grep chick-scan-measure over the source files at the commit matches only lines 4 and 74 of the file itself, and the scripts of package.json at the commit (dev, build:verify, dev:web, build, preview, tauri, typecheck, test, gen:locales, verify:locales, prepare) do not mention it; it is run by hand (`bun tools/chick-scan-measure.ts`, line 4)"
+      "note": "pass one: standalone CLI script, not a module: line 4 `// Usage: bun tools/chick-scan-measure.ts <path to the parent's .jsonl>`, and tools/README.md at the commit documents the run at line 37 `bun tools/chick-scan-measure.ts ~/.claude/projects/...` pass two: no importer and no entry point names it: git grep chick-scan-measure over the source files at the commit matches only lines 4 and 74 of the file itself, and the scripts of package.json at the commit (dev, build:verify, dev:web, build, preview, tauri, typecheck, test, gen:locales, verify:locales, prepare) do not mention it; it is run by hand (`bun tools/chick-scan-measure.ts`, line 4) settled 2026-11-12 by the maintainer, was false-positive and true: no file imports it and no tooling names it; a usage comment and a README line are not an entry point (LABELLING.md, dead-file)."
     },
     {
       "rule": "leftover-debug",
