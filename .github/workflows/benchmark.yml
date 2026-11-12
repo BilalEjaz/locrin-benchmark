@@ -1,7 +1,8 @@
 name: benchmark
+# Started by hand. The nightly schedule was removed after Locrin 1.0.0 was measured: the corpus is fixed and a
+# version is measured once, when its labels are carried, so a nightly run had nothing new to say. The steps
+# below still handle a scheduled run, for whoever adds a schedule back.
 on:
-  schedule:
-    - cron: "17 3 * * *"
   workflow_dispatch:
     inputs:
       version:

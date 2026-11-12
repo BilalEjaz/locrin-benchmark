@@ -39,9 +39,12 @@ def test_ci_installs_locrin_runs_tests_fixture_run_and_em_dash_check():
     assert "grep -rIl $'\\xe2\\x80\\x94'" in step(ci, "No em dashes")
 
 
-def test_benchmark_has_schedule_and_dispatch_inputs_with_commit_default_true():
+def test_benchmark_runs_on_dispatch_only_with_commit_default_true():
+    # The nightly schedule went with Locrin 1.0.0: the corpus is fixed and a version is measured once, when its
+    # labels are carried, so a run is something a person starts. The schedule branch of the script stays for
+    # whoever turns a schedule back on.
     bm = read("benchmark.yml")
-    assert '    - cron: "17 3 * * *"\n' in bm
+    assert "cron:" not in bm and "\n  schedule:" not in bm
     assert "  workflow_dispatch:\n    inputs:\n      version:\n" in bm
     commit = bm[bm.index("      commit:\n"):]
     assert "        type: boolean\n" in commit.split("permissions:")[0]
