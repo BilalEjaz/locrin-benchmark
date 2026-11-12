@@ -1,13 +1,14 @@
 {
   "diff": "fichin__dropdesign__655a35c",
-  "locrin": "v0.6.1",
+  "locrin": "v1.0.0",
+  "carried_from": "v0.6.1",
   "pass1": {
     "by": "opus",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2_by": "fable",
   "entries": [
@@ -28,24 +29,6 @@
       "pass1": "true",
       "pass2": "true",
       "note": "pass one: export type AuthState: git grep at 655a35c finds it only in src/state/useAuth.ts lines 11 and 18; no importer pass two: git grep for `AuthState` matches only src/state/useAuth.ts lines 11 and 18; the file's one importer is src/App.tsx:5 `import { useAuth } from './state/useAuth'`"
-    },
-    {
-      "rule": "express-cookie-insecure",
-      "file": "backend/src/auth/session.ts",
-      "line": 37,
-      "id": "1c6fcdedc9ed22f4",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: res.cookie(SESSION_COOKIE, token, { ...cookieOptions, maxAge }) spreads cookieOptions from session.ts:23-28 { httpOnly: true, secure: secureCookies, sameSite: 'lax' }; server.ts:10 sets secureCookies: config.NODE_ENV === 'production' pass two: the options are spread in, `res.cookie(SESSION_COOKIE, token, { ...cookieOptions, maxAge: ... })`, and cookieOptions at backend/src/auth/session.ts:23-28 sets `httpOnly: true`, `secure: secureCookies` and `sameSite: 'lax'`; backend/src/server.ts:10 passes `secureCookies: config.NODE_ENV === 'production'`"
-    },
-    {
-      "rule": "express-cookie-insecure",
-      "file": "backend/src/auth/session.ts",
-      "line": 37,
-      "id": "af31ea9bdbb959c7",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: same res.cookie call: options spread cookieOptions with httpOnly: true, sameSite: 'lax', secure: secureCookies (true in production per backend/src/server.ts:10); the cookie is not insecure pass two: the options are spread in, `res.cookie(SESSION_COOKIE, token, { ...cookieOptions, maxAge: ... })`, and cookieOptions at backend/src/auth/session.ts:23-28 sets `httpOnly: true`, `secure: secureCookies` and `sameSite: 'lax'`; backend/src/server.ts:10 passes `secureCookies: config.NODE_ENV === 'production'`"
     }
   ]
 }

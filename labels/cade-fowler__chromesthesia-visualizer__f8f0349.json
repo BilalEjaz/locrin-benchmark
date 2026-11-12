@@ -1,13 +1,14 @@
 {
   "diff": "cade-fowler__chromesthesia-visualizer__f8f0349",
-  "locrin": "v0.6.1",
+  "locrin": "v1.0.0",
+  "carried_from": "v0.6.1",
   "pass1": {
     "by": "opus",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2_by": "fable",
   "entries": [
@@ -28,24 +29,6 @@
       "pass1": "true",
       "pass2": "true",
       "note": "pass one: TEST_AUTH is used only inside server/src/test/auth.ts (lines 18, 22); git grep finds no importer at the commit pass two: server/src/test/auth.ts:9 `export const TEST_AUTH: AuthConfig = {`; git grep TEST_AUTH at the commit finds only test/auth.ts lines 9, 18 and 22 (in-file uses); routes/auth.test.ts:5 imports `{ ownerCookie, TEST_PASSWORD, testApp }`, not TEST_AUTH."
-    },
-    {
-      "rule": "express-cookie-insecure",
-      "file": "server/src/routes/auth.ts",
-      "line": 49,
-      "id": "6c9e33e674cfafa7",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: res.cookie spreads cookieOptions (routes/auth.ts lines 22-27: httpOnly: true, sameSite: 'strict', secure) and index.ts line 33 sets secureCookies: process.env.NODE_ENV === 'production' pass two: routes/auth.ts:49-52 spreads `...cookieOptions(config.secureCookies)`, and cookieOptions (lines 22-27) sets `httpOnly: true`, `sameSite: 'strict'`, `secure`; secure comes from server/src/index.ts:33 `secureCookies: process.env.NODE_ENV === 'production'`. The cookie is not insecure; the engine did not follow the spread."
-    },
-    {
-      "rule": "express-cookie-insecure",
-      "file": "server/src/routes/auth.ts",
-      "line": 49,
-      "id": "a870d232fb5b99c8",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: same res.cookie call: flags come from cookieOptions (httpOnly: true, sameSite: 'strict', secure from config, on in production per index.ts line 33), not an insecure cookie pass two: Same call as the other id on this line: routes/auth.ts:49-52 spreads `...cookieOptions(config.secureCookies)`, whose body (lines 22-27) sets `httpOnly: true`, `sameSite: 'strict'`, `secure`, with secure on in production (server/src/index.ts:33 `secureCookies: process.env.NODE_ENV === 'production'`)."
     }
   ]
 }

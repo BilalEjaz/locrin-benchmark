@@ -1,13 +1,14 @@
 {
   "diff": "sugianand__whereabout__a1ebfd6",
-  "locrin": "v0.6.1",
+  "locrin": "v1.0.0",
+  "carried_from": "v0.6.1",
   "pass1": {
     "by": "opus",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2_by": "fable",
   "entries": [
@@ -37,15 +38,6 @@
       "pass1": "false-positive",
       "pass2": "false-positive",
       "note": "pass one: FinishedSurvivalRun is imported by web/src/components/Survival.tsx:29 (\"  type FinishedSurvivalRun,\") pass two: imported: web/src/components/Survival.tsx:29 `type FinishedSurvivalRun,` in the import that closes at :31 `} from \"@/lib/game/survivalChallenge\";`, used at :248"
-    },
-    {
-      "rule": "test-newly-skipped",
-      "file": "web/e2e/survival.spec.ts",
-      "line": 204,
-      "id": "ce9bfc5add26c280",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: test.skip((page.viewportSize()?.width ?? 1000) >= 768, \"a phone layout check\") is a runtime viewport gate inside a new test that runs on phone-width projects, not a test marked skipped pass two: conditional viewport gate on a new test, not a disabled test: line 204 is `test.skip((page.viewportSize()?.width ?? 1000) >= 768, \"a phone layout check\");` inside the test body, and web/playwright.config.ts lists a project it runs in: `{ name: \"phone\", use: { ...devices[\"Pixel 7\"] } }`"
     }
   ]
 }

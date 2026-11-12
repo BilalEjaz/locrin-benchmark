@@ -1,33 +1,15 @@
 {
   "diff": "paperclipai__paperclip__eb75c9b",
-  "locrin": "v0.6.1",
+  "locrin": "v1.0.0",
+  "carried_from": "v0.6.1",
   "pass1": {
     "by": "opus",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2_by": "fable",
-  "entries": [
-    {
-      "rule": "weak-crypto",
-      "file": "server/src/services/native-runtime/native-harness-backup-throttle.integration.test.ts",
-      "line": 95,
-      "id": "78999a6dd24b418c",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: `createHash(\"md5\").update(objects.get(key)!)` builds the ETag header of a fake S3 server inside a test (createServer at line 81); an S3 ETag is an MD5 by protocol, not a security use. pass two: line 95 `response.writeHead(200, { ETag: `\"${createHash(\"md5\").update(objects.get(key)!).digest(\"hex\")}\"` }).end();` is the PUT reply of the stub S3 server the test builds at line 81 (`const server = createServer((request, response) => {`): md5 is the ETag content checksum of a fake object store in a test, not a security use."
-    },
-    {
-      "rule": "weak-crypto",
-      "file": "server/src/services/native-runtime/native-harness-backup-throttle.integration.test.ts",
-      "line": 108,
-      "id": "201b653980b6d198",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: `ETag: `\"${createHash(\"md5\").update(body).digest(\"hex\")}\"`` is the same fake S3 server's GET/HEAD ETag inside a test; an S3 ETag is an MD5 by protocol, not a security use. pass two: line 108 `response.writeHead(200, { \"Content-Length\": body.length, ETag: `\"${createHash(\"md5\").update(body).digest(\"hex\")}\"`,` is the GET/HEAD reply of the same stub S3 server (line 81): md5 is the ETag content checksum of a fake object store in a test, not a security use."
-    }
-  ]
+  "entries": []
 }

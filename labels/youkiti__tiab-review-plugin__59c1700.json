@@ -1,13 +1,14 @@
 {
   "diff": "youkiti__tiab-review-plugin__59c1700",
-  "locrin": "v0.6.1",
+  "locrin": "v1.0.0",
+  "carried_from": "v0.6.1",
   "pass1": {
     "by": "opus",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2_by": "fable",
   "entries": [
@@ -46,60 +47,6 @@
       "pass1": "true",
       "pass2": "true",
       "note": "pass one: `export type SessionResetHandler` is referenced only inside session-reset.ts (lines 13, 16); git grep finds no importer in the repository. pass two: `export type SessionResetHandler` is used only at session-reset.ts:13 and session-reset.ts:16; git grep -w at the commit finds no other file. tab.ts:67 imports `registerSessionReset, type SessionResetReason`, compat.ts:13 imports `runSessionResets`, and the two test files import the functions and `SessionResetReason`."
-    },
-    {
-      "rule": "test-no-assert",
-      "file": "tests/session-reset-registry.test.ts",
-      "line": 27,
-      "id": "fd8c6ec62abd8b6b",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: Body `withCleanRegistry(() => {...})` calls assert.deepEqual and assert.equal (lines 28-30). pass two: The test body is the callback wrapped by `withCleanRegistry` (session-reset-registry.test.ts:16-25, which runs `fn();` at line 20) and it does assert: line 28 `assert.deepEqual(_getSessionResetNamesForTest(), []);` and lines 29-30 `assert.equal(runSessionResets(...), false);`."
-    },
-    {
-      "rule": "test-no-assert",
-      "file": "tests/session-reset-registry.test.ts",
-      "line": 33,
-      "id": "4d8da50c82e5e839",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: Body inside withCleanRegistry calls assert.deepEqual (lines 39-40). pass two: The test body is the callback wrapped by `withCleanRegistry` (session-reset-registry.test.ts:16-25, which runs `fn();` at line 20) and it does assert: line 39 `assert.deepEqual(calls, ['a:back', 'b:back', 'a:logout', 'b:logout']);` and line 40."
-    },
-    {
-      "rule": "test-no-assert",
-      "file": "tests/session-reset-registry.test.ts",
-      "line": 43,
-      "id": "f8184d78233d8ad3",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: Body inside withCleanRegistry calls assert.deepEqual (lines 49-50). pass two: The test body is the callback wrapped by `withCleanRegistry` (session-reset-registry.test.ts:16-25, which runs `fn();` at line 20) and it does assert: line 49 `assert.deepEqual(calls, ['a-new', 'b']);` and line 50."
-    },
-    {
-      "rule": "test-no-assert",
-      "file": "tests/session-reset-registry.test.ts",
-      "line": 53,
-      "id": "6b4fe9f808cb4f16",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: Body inside withCleanRegistry calls assert.deepEqual, assert.equal and assert.match (lines 63-70). pass two: The test body is the callback wrapped by `withCleanRegistry` (session-reset-registry.test.ts:16-25, which runs `fn();` at line 20) and it does assert: line 63 `assert.deepEqual(calls, ['first', 'last']);`, line 65 `assert.equal(aborted, true);`, lines 69-70."
-    },
-    {
-      "rule": "test-no-assert",
-      "file": "tests/session-reset-registry.test.ts",
-      "line": 73,
-      "id": "4b0ef0b005ab11fc",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: Body inside withCleanRegistry calls assert.equal (lines 76, 78, 81). pass two: The test body is the callback wrapped by `withCleanRegistry` (session-reset-registry.test.ts:16-25, which runs `fn();` at line 20) and it does assert: line 76 `assert.equal(runSessionResets('back'), false);`, lines 78 and 81."
-    },
-    {
-      "rule": "test-no-assert",
-      "file": "tests/session-reset-registry.test.ts",
-      "line": 84,
-      "id": "5cd2859a16bfa2a7",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: Body inside withCleanRegistry calls assert.deepEqual (line 89). pass two: The test body is the callback wrapped by `withCleanRegistry` (session-reset-registry.test.ts:16-25, which runs `fn();` at line 20) and it does assert: line 89 `assert.deepEqual(seen, ['back', 'logout']);`."
     },
     {
       "rule": "unused-import",

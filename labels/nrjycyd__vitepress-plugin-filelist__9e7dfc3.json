@@ -1,13 +1,14 @@
 {
   "diff": "nrjycyd__vitepress-plugin-filelist__9e7dfc3",
-  "locrin": "v0.6.1",
+  "locrin": "v1.0.0",
+  "carried_from": "v0.6.1",
   "pass1": {
     "by": "opus",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2_by": "fable",
   "entries": [
@@ -46,15 +47,6 @@
       "pass1": "false-positive",
       "pass2": "false-positive",
       "note": "pass one: line 72 'server.listen(PORT, () => console.log(`mock OpenList on ${ORIGIN}`))' is the startup message in the main path of a script run with node (playwright.config.ts line 29) pass two: A startup line in a script's main path, not a debug print: `server.listen(PORT, () => console.log(`mock OpenList on ${ORIGIN}`))` is the last top-level statement of a file run as `node e2e/mock-openlist.mjs` (playwright.config.ts:29)."
-    },
-    {
-      "rule": "test-newly-skipped",
-      "file": "e2e/filelist.spec.ts",
-      "line": 184,
-      "id": "e2726e4513202883",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: line 184 'test.skip(!streams(info), 'Safari cannot stream to disk')' marks the new test skipped on the webkit project pass two: `test.skip(!streams(info), 'Safari cannot stream to disk')` is a conditional guard inside a test this change adds, not a test marked skip: line 49 `const streams = (info: TestInfo) => info.project.name !== 'webkit'`, so the test runs in the `chromium` and `mobile` projects (playwright.config.ts:21 and 23) and is skipped only in `webkit`. settled 2026-11-12 by the maintainer, was true and false-positive: a skip that applies only under a condition worked out at run time is a guard, not a mark (LABELLING.md, test-newly-skipped)."
     }
   ]
 }
