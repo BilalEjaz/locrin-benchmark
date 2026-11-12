@@ -1,13 +1,14 @@
 {
   "diff": "sugianand__whereabout__8ae1951",
-  "locrin": "v0.6.1",
+  "locrin": "v1.0.0",
+  "carried_from": "v0.6.1",
   "pass1": {
     "by": "opus",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2_by": "fable",
   "entries": [
@@ -37,15 +38,6 @@
       "pass1": "true",
       "pass2": "true",
       "note": "pass one: type FarChallengeParse has no importer: git grep -w at the commit finds it only in farChallenge.ts, and HowFar.tsx lines 6-14 do not import it pass two: git grep -w FarChallengeParse at the commit finds only web/src/lib/game/farChallenge.ts:44 (the export) and :60 `export function parseFarChallenge(value: string, dealable: readonly string[]): FarChallengeParse {`; no file imports it"
-    },
-    {
-      "rule": "test-newly-skipped",
-      "file": "web/e2e/how-far.spec.ts",
-      "line": 196,
-      "id": "54a91911288bdd5d",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: test.skip((page.viewportSize()?.width ?? 1000) >= 768, \"a phone layout check\") is a runtime viewport gate inside a new test that runs on phone-width projects, not a test marked skipped pass two: conditional viewport gate on a new test, not a disabled test: line 196 is `test.skip((page.viewportSize()?.width ?? 1000) >= 768, \"a phone layout check\");` inside the test body, and web/playwright.config.ts lists a project it runs in: `{ name: \"phone\", use: { ...devices[\"Pixel 7\"] } }`"
     }
   ]
 }

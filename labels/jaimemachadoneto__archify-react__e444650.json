@@ -1,16 +1,26 @@
 {
   "diff": "jaimemachadoneto__archify-react__e444650",
-  "locrin": "v0.6.1",
+  "locrin": "v1.0.0",
+  "carried_from": "v0.6.1",
   "pass1": {
     "by": "opus",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2_by": "fable",
   "entries": [
+    {
+      "rule": "dead-export",
+      "file": "src/diagram/WorkflowDiagram.tsx",
+      "line": 11,
+      "id": "743f840f78ab2f8b",
+      "pass1": "true",
+      "pass2": "true",
+      "note": "carried from v0.6.1: both passes wrote this as a missed entry, and the engine now reports it"
+    },
     {
       "rule": "dead-export",
       "file": "src/diagram/components/FlowEdge.tsx",
@@ -64,15 +74,6 @@
       "pass1": "true",
       "pass2": "true",
       "note": "pass one: \"// TODO: Task 6 moves the dot along the path (data.animated) in components/Edge.tsx.\" added in a new file. pass two: Line 23 is `// TODO: Task 6 moves the dot along the path (data.animated) in components/Edge.tsx.` in a file the change added."
-    },
-    {
-      "rule": "dead-export",
-      "file": "src/diagram/WorkflowDiagram.tsx",
-      "line": 11,
-      "id": null,
-      "pass1": "missed",
-      "pass2": "missed",
-      "note": "pass one: \"export interface WorkflowDiagramProps {\" in a new file; git grep at the commit finds WorkflowDiagramProps only in WorkflowDiagram.tsx (lines 11, 26), and index.ts re-exports only ./spec and ./validate. pass two: `export interface WorkflowDiagramProps {` in a file the change added: git grep for WorkflowDiagramProps at the commit finds only WorkflowDiagram.tsx:11 and :26 (a use in the same file), and Demo.tsx:2 and WorkflowDiagram.test.tsx:4 import only the default export."
     }
   ]
 }

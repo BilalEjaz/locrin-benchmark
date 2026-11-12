@@ -1,13 +1,14 @@
 {
   "diff": "sugianand__whereabout__35e8619",
-  "locrin": "v0.6.1",
+  "locrin": "v1.0.0",
+  "carried_from": "v0.6.1",
   "pass1": {
     "by": "opus",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2_by": "fable",
   "entries": [
@@ -55,15 +56,6 @@
       "pass1": "true",
       "pass2": "true",
       "note": "pass one: streakChallengeOutcome is called only inside streakChallenge.ts (lines 168, 186); git grep -w at the commit finds no other file naming it pass two: git grep -w streakChallengeOutcome at the commit finds only web/src/lib/game/streakChallenge.ts lines 150, 168 and 186; web/src/lib/game/streakChallenge.test.ts and CountryStreak.tsx do not import it"
-    },
-    {
-      "rule": "test-newly-skipped",
-      "file": "web/e2e/streak.spec.ts",
-      "line": 281,
-      "id": "e96efd353692bdc5",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: test.skip((page.viewportSize()?.width ?? 1000) >= 768, \"a phone layout check\") is a runtime viewport gate inside a new test that runs on phone-width projects, not a test marked skipped pass two: conditional viewport gate on a new test, not a disabled test: line 281 is `test.skip((page.viewportSize()?.width ?? 1000) >= 768, \"a phone layout check\");` inside the test body, and web/playwright.config.ts lists a project it runs in: `{ name: \"phone\", use: { ...devices[\"Pixel 7\"] } }`"
     }
   ]
 }

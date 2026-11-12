@@ -1,13 +1,14 @@
 {
   "diff": "gm7dha__JuraCAD__5e885c3",
-  "locrin": "v0.6.1",
+  "locrin": "v1.0.0",
+  "carried_from": "v0.6.1",
   "pass1": {
     "by": "opus",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2_by": "fable",
   "entries": [
@@ -82,15 +83,6 @@
       "pass1": "true",
       "pass2": "true",
       "note": "pass one: Repo-wide git grep -w at 5e885c3 over the source pathspecs finds LiveServerOptions only in src/mcp/websocket.ts (238, 251); no import names it. pass two: git grep -w LiveServerOptions at the commit finds only src/mcp/websocket.ts:238 (the export) and :251 (`startLiveServer(opts: LiveServerOptions)`); no file imports it."
-    },
-    {
-      "rule": "weak-crypto",
-      "file": "src/mcp/websocket.ts",
-      "line": 18,
-      "id": "948afd05e3e49f03",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: `createHash(\"sha1\").update(key + GUID).digest(\"base64\")` computes the RFC 6455 Sec-WebSocket-Accept handshake value the protocol fixes (GUID at line 14); it is not used for security. pass two: src/mcp/websocket.ts:18 `return createHash(\"sha1\").update(key + GUID).digest(\"base64\");` is `acceptKey`, documented at line 16 as `The Sec-WebSocket-Accept answer to a client's key`: the handshake digest the WebSocket protocol (RFC 6455, named at line 2) fixes as SHA-1, not a security use."
     }
   ]
 }

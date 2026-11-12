@@ -1,13 +1,14 @@
 {
   "diff": "allisson__blindvault__39ca285",
-  "locrin": "v0.6.1",
+  "locrin": "v1.0.0",
+  "carried_from": "v0.6.1",
   "pass1": {
     "by": "opus",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2": {
     "by": "fable",
-    "date": "2026-11-11"
+    "date": "2026-11-12"
   },
   "pass2_by": "fable",
   "entries": [
@@ -19,15 +20,6 @@
       "pass1": "false-positive",
       "pass2": "false-positive",
       "note": "pass one: keyboard.spec.ts:12 'const PASSWORD = 'quartz-lantern-velvet-harbor-9214';' is an e2e fixture the test itself types as the new vault's password (line 77 'type(page, page.getByTestId('new-password'), PASSWORD)'); it guards no real account or service pass two: Fixture password the spec itself sets on a vault it creates, not a credential to anything: line 77 `await type(page, page.getByTestId('new-password'), PASSWORD);` and line 78 `await type(page, page.getByTestId('confirm-password'), PASSWORD);`."
-    },
-    {
-      "rule": "test-newly-skipped",
-      "file": "apps/web/e2e/axe-devices.spec.ts",
-      "line": 18,
-      "id": "9d9a15209887570a",
-      "pass1": "false-positive",
-      "pass2": "false-positive",
-      "note": "pass one: new file; axe-devices.spec.ts:18 'test.skip(browserName === 'webkit' && process.platform === 'linux', ...)' in beforeEach marks the file's new axe tests skipped on WebKit/Linux (conditional skip) pass two: Not a test marked skip: line 18 is a conditional guard in a beforeEach, `test.skip(` / `browserName === 'webkit' && process.platform === 'linux',` (lines 18-19), so the new tests at line 57 still run wherever the condition is false (playwright.config.ts names projects 'chromium' and 'firefox' at lines 24 and 33). settled 2026-11-12 by the maintainer, was true and false-positive: a skip that applies only under a condition worked out at run time is a guard, not a mark (LABELLING.md, test-newly-skipped)."
     }
   ]
 }
