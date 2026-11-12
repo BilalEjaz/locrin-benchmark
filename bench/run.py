@@ -30,6 +30,12 @@ enabled = true
 enabled = true
 [rules.injection-sink]
 enabled = true
+[rules.leftover-debug]
+enabled = true
+[rules.html-injection]
+enabled = true
+[rules.supabase-service-role-in-client]
+enabled = true
 [rules.leftover-commented-code]
 enabled = true
 languages = ["typescript", "tsx", "javascript", "php", "python"]

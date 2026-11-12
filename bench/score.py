@@ -16,6 +16,13 @@ NOT_BENCHMARKED = {
     # Fires only on a route behind a middleware that framework.auth_middleware names; the default names none.
     "express-cors-wildcard-on-authenticated": "needs per-repository config",
 }
+# Rules that ship on and that no wave of the corpus was built to feed, each with the reason its row gives
+# while it is under n. Unlike NOT_BENCHMARKED these are scored the moment the corpus does supply five.
+NOT_TARGETED = {
+    "secret-exposed": "a public corpus must not hold live credentials",
+    "supabase-table-without-rls": "reads SQL migrations and the corpus records source files only",
+    "unreachable": "no signal selects for it",
+}
 LOCKED = {"secret-exposed"}
 SHIPS_OFF = {"dead-file", "swallowed-error", "injection-sink"}
 # Pairs the engine ships off although their rule ships on. SARIF carries only the rule
@@ -67,7 +74,9 @@ def _tally(counts: dict[str, list[int]], keys_in_order: list[str], side: dict[st
         elif t + fp < MIN_N:
             # The gate counts confirmed labelled findings (true plus false positive), as the
             # engine's own gate counts findings; missed entries are not findings.
-            out.append(Score(key, t, fp, m, precision, recall, False, "n<5, not scored", **extra))
+            # The reason goes on the rule's own row; a pair key (rule@language) is not in the table of reasons.
+            why = f": not targeted, {NOT_TARGETED[key]}" if key in NOT_TARGETED else ""
+            out.append(Score(key, t, fp, m, precision, recall, False, f"n<5, not scored{why}", **extra))
         else:
             out.append(Score(key, t, fp, m, precision, recall, True, "", **extra))
     return out

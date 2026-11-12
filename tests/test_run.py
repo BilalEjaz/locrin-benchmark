@@ -231,7 +231,9 @@ def test_bench_toml_has_no_carriage_returns_and_enables_the_ships_off_rules():
     # flips off between versions (leftover-commented-code did in 0.6.0) never silently stops being
     # measured; the table's Ships column comes from the engine, not from this file.
     assert "\r" not in BENCH_TOML
-    for rule in ("dead-file", "swallowed-error", "injection-sink", "leftover-commented-code"):
+    # leftover-debug, html-injection and supabase-service-role-in-client went off in 1.0.0.
+    for rule in ("dead-file", "swallowed-error", "injection-sink", "leftover-commented-code",
+                 "leftover-debug", "html-injection", "supabase-service-role-in-client"):
         assert f"[rules.{rule}]\nenabled = true" in BENCH_TOML
 
 

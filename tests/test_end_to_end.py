@@ -45,12 +45,12 @@ RULE_ROWS = [
     "| `leftover-commented-code` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
     "| `leftover-agent-marker` | on | 100% | 100% | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
     "| `unused-import` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `unreachable` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `unreachable` | on | 100% | 50% | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | n<5, not scored: not targeted, no signal selects for it |",
     "| `dead-file` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
     "| `boundary-violation` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | not benchmarked: needs per-repository config |",
     "| `swallowed-error` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
     "| `test-no-assert` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
-    "| `secret-exposed` | locked | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
+    "| `secret-exposed` | locked | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored: not targeted, a public corpus must not hold live credentials |",
     "| `weak-crypto` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
     "| `injection-sink` | off |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | n<5, not scored |",
     "| `vulnerable-dependency` | on |  |  | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | not benchmarked: advisory feed changes daily |",
@@ -294,7 +294,7 @@ export function total(xs: number[]): number {
     table = (results / "table.md").read_text(encoding="utf-8")
     for rule in ("leftover-agent-marker", "unreachable", "unused-import", "dead-file"):
         assert f"| `{rule}` | " in table and any(
-            line.startswith(f"| `{rule}` |") and line.endswith("| 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | n<5, not scored |")
+            line.startswith(f"| `{rule}` |") and "| 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | n<5, not scored" in line
             for line in table.splitlines()), rule
     assert "| `leftover-debug` | on |  |  | 0 | 0 | 0 | 1 | 0 | 0 | 1 | 0 | n<5, not scored |" in table
 
@@ -353,7 +353,7 @@ def test_a_new_occurrence_of_an_id_the_parent_already_reports_is_introduced(tmp_
     proc = _run(tmp_path, corpus, labels)
     assert proc.returncode == 0, proc.stdout + proc.stderr
     table = (results / "table.md").read_text(encoding="utf-8")
-    assert "| `secret-exposed` | locked | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | n<5, not scored |" in table
+    assert "| `secret-exposed` | locked | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | n<5, not scored: not targeted, a public corpus must not hold live credentials |" in table
     assert "| `test-no-assert` | on | 100% | 100% | 1 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | n<5, not scored |" in table
     # A missed entry on the old occurrence names a finding the engine did report: the run does not publish.
     write("fx-01-secret", [found(findings[0]), missed("secret-exposed", "src/s.ts", 6)])
